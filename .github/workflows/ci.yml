@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Debug registry
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "pnpm registry: $(pnpm config get registry)"
+          echo "npm registry: $(npm config get registry)"
+
+          if [ -f .npmrc ]; then
+            echo "repo .npmrc found (masked):"
+            sed -E \
+              -e 's|(//.*:_authToken=).*|\\1***MASKED***|' \
+              -e 's|(_authToken=).*|\\1***MASKED***|' \
+              -e 's|(_auth=).*|\\1***MASKED***|' \
+              -e 's|(TOKEN|token)=.*|\\1=***MASKED***|' \
+              .npmrc || true
+          else
+            echo "repo .npmrc not found"
+          fi
+
+          if [ -f "$HOME/.npmrc" ]; then
+            echo "~/.npmrc found (masked):"
+            sed -E \
+              -e 's|(//.*:_authToken=).*|\\1***MASKED***|' \
+              -e 's|(_authToken=).*|\\1***MASKED***|' \
+              -e 's|(_auth=).*|\\1***MASKED***|' \
+              -e 's|(TOKEN|token)=.*|\\1=***MASKED***|' \
+              "$HOME/.npmrc" || true
+          else
+            echo "~/.npmrc not found"
+          fi
+
+      - name: Force public registry and optional auth
+        shell: bash
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GH_PACKAGES_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
+          PRIVATE_REGISTRY_TOKEN: ${{ secrets.PRIVATE_REGISTRY_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ -f .npmrc ]; then
+            mv .npmrc .npmrc.ci-backup
+          fi
+
+          pnpm config set registry https://registry.npmjs.org/
+          npm config set registry https://registry.npmjs.org/
+
+          cat > "$HOME/.npmrc" <<'EONPMRC'
+registry=https://registry.npmjs.org/
+EONPMRC
+
+          if [ -n "${NPM_TOKEN:-}" ]; then
+            echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> "$HOME/.npmrc"
+          fi
+
+          if [ -n "${GH_PACKAGES_TOKEN:-}" ]; then
+            echo "@*:*:registry=https://npm.pkg.github.com" >> "$HOME/.npmrc"
+            echo "//npm.pkg.github.com/:_authToken=${GH_PACKAGES_TOKEN}" >> "$HOME/.npmrc"
+          fi
+
+          if [ -n "${PRIVATE_REGISTRY_TOKEN:-}" ]; then
+            echo "//your-private-registry.example.com/:_authToken=${PRIVATE_REGISTRY_TOKEN}" >> "$HOME/.npmrc"
+          fi
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build

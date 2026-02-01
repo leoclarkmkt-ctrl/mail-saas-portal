@@ -1,0 +1,93 @@
+# NSUK Mail Portal
+
+A Next.js App Router portal for **National Science University of Kyrgyzstan (NSUK)** to activate, manage, and renew official education mailboxes.
+
+## Stack
+- Next.js (App Router) + TypeScript
+- TailwindCSS + shadcn/ui primitives
+- Supabase Postgres (service role for all sensitive actions)
+- JWT cookie sessions
+
+## Environment
+Copy `.env.example` to `.env.local` and fill values:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+SESSION_SECRET=
+APP_BASE_URL=http://localhost:3000
+EMAIL_SMTP_HOST=
+EMAIL_SMTP_PORT=587
+EMAIL_SMTP_USER=
+EMAIL_SMTP_PASS=
+EMAIL_FROM="NSUK Portal <noreply@nsuk.edu.kg>"
+ADMIN_EMAIL=admin@nsuk.edu.kg
+ADMIN_PASSWORD_HASH=
+```
+
+> `SUPABASE_SERVICE_ROLE_KEY` must only exist on the server. **Never expose it to the browser**.
+
+## Database setup (Supabase)
+1. Create a Supabase project and open SQL editor.
+2. Run `supabase/schema.sql`.
+3. Run `supabase/rls.sql`.
+4. Run `supabase/seed.sql` to create 3 unused activation codes.
+
+### Admin password hash
+Generate bcrypt hash:
+
+```
+node -e "const bcrypt=require('bcryptjs');bcrypt.hash('YOUR_PASSWORD',10).then(console.log);"
+```
+
+Set output to `ADMIN_PASSWORD_HASH`.
+
+## Development
+
+```
+pnpm install
+pnpm dev
+```
+
+## End-to-end self-check (with Supabase configured)
+1. Use `seed.sql` codes to redeem on `/redeem`.
+2. Confirm activation code becomes `used` and a new `users` + `edu_accounts` row is created.
+3. Login with personal email on `/login`, reach `/dashboard`.
+4. Login with edu email on `/login` (mode: education), allowed only if `expires_at` is in the future.
+5. Change password in `/dashboard` and verify personal/edu login use the new password.
+6. Use `/forgot` to request a reset; if SMTP isn't configured, reset link prints in server logs.
+7. Use `/reset?token=...` to set a new password and verify login works.
+8. Redeem another activation code on `/dashboard` renewal and check `expires_at` +1 year.
+9. Suspend a user from `/admin/users` and confirm login is blocked.
+10. Admin login via `/admin/login` using `ADMIN_EMAIL` and `ADMIN_PASSWORD_HASH`.
+11. Use `/admin/codes` to generate codes, export CSV, revoke unused codes.
+12. Review `/admin/audit` for recorded actions.
+
+## Notes
+- Webmail is external: `https://mail.nsuk.edu.kg/`.
+- All sensitive operations happen in server routes using the Supabase Service Role key.
+- The project uses `?lang=zh` or `?lang=en` to switch language and stores it in a cookie.
+
+## GitHub Actions 依赖安装 403 如何处理（无需本地操作）
+当 GitHub Actions 日志出现 `pnpm install failed: 403` 时，通常是因为 registry 被指向了私有源，但没有 token 导致拒绝访问。CI 已经在 workflow 中强制切回公共 npm registry，并提供可选 token 注入。
+
+### 在 GitHub 网页添加 Secrets（无需本地）
+1. 进入你的 GitHub 仓库页面。
+2. 点击 **Settings → Secrets and variables → Actions**。
+3. 点击 **New repository secret**，按需添加以下任一项：
+
+#### NPM_TOKEN
+用于 npmjs 私有包访问（如你发布/依赖私有 npm 包）。
+
+#### GH_PACKAGES_TOKEN
+用于 GitHub Packages 私有包访问（例如 `npm.pkg.github.com`）。
+
+#### PRIVATE_REGISTRY_TOKEN
+用于公司私有 registry（若你们有自建 registry）。
+
+> 如果你不需要私有包，可以不配置任何 token。
+
+### 仍然失败怎么办
+请把 GitHub Actions 日志里的 **Debug registry** 输出贴出来，便于进一步定位（其中 token 会自动打码）。
