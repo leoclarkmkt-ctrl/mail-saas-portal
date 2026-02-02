@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import type { FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,6 +10,7 @@ import type { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { RedeemCopy, RedeemStatusKey } from "@/lib/redeem-copy";
 
 type RedeemValues = z.infer<typeof redeemSchema>;
 
@@ -20,11 +22,27 @@ type RedeemResult = {
   webmail: string;
 };
 
-export function RedeemForm({ labels }: { labels: Record<string, string> }) {
+type RedeemFormProps = {
+  copy: RedeemCopy;
+  lang: "en" | "zh";
+};
+
+type RedeemErrorKey =
+  | "required_activation_code"
+  | "required_personal_email"
+  | "required_username"
+  | "required_password"
+  | "invalid_email"
+  | "invalid_password_rules";
+
+export function RedeemForm({ copy, lang }: RedeemFormProps) {
   const [result, setResult] = useState<RedeemResult | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [messageKey, setMessageKey] = useState<keyof RedeemCopy | null>(null);
+  const [messageDetail, setMessageDetail] = useState<string | null>(null);
+  const [status, setStatus] = useState<RedeemStatusKey>("idle");
+  const [submitting, setSubmitting] = useState(false);
   const params = useSearchParams();
-  const lang = params.get("lang") ?? undefined;
+  const runtimeLang = params.get("lang") === "zh" ? "zh" : params.get("lang") === "en" ? "en" : lang;
   const form = useForm<RedeemValues>({
     resolver: zodResolver(redeemSchema),
     defaultValues: {
@@ -35,99 +53,191 @@ export function RedeemForm({ labels }: { labels: Record<string, string> }) {
     }
   });
 
-  const onSubmit = async (values: RedeemValues) => {
-    setMessage(null);
+  const statusText = useMemo(() => copy.status[status], [copy.status, status]);
+
+  const setFieldError = (field: keyof RedeemValues, key: RedeemErrorKey) => {
+    form.setError(field, { type: "manual", message: key });
+  };
+
+  const validateValues = (values: RedeemValues) => {
+    let valid = true;
+    form.clearErrors();
+    if (!values.activation_code.trim()) {
+      setFieldError("activation_code", "required_activation_code");
+      valid = false;
+    }
+    if (!values.personal_email.trim()) {
+      setFieldError("personal_email", "required_personal_email");
+      valid = false;
+    } else {
+      const emailOk = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(values.personal_email);
+      if (!emailOk) {
+        setFieldError("personal_email", "invalid_email");
+        valid = false;
+      }
+    }
+    if (!values.edu_username.trim()) {
+      setFieldError("edu_username", "required_username");
+      valid = false;
+    }
+    if (!values.password.trim()) {
+      setFieldError("password", "required_password");
+      valid = false;
+    } else {
+      const passwordOk =
+        values.password.length >= 8 &&
+        /[A-Z]/.test(values.password) &&
+        /[a-z]/.test(values.password) &&
+        /\\d/.test(values.password) &&
+        /[^A-Za-z0-9]/.test(values.password);
+      if (!passwordOk) {
+        setFieldError("password", "invalid_password_rules");
+        valid = false;
+      }
+    }
+    return valid;
+  };
+
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setMessageKey(null);
+    setMessageDetail(null);
+    setStatus("validating");
+    const values = form.getValues();
+    const valid = validateValues(values);
+    if (!valid) {
+      setStatus("error");
+      setMessageKey("submitFailedGeneric");
+      return;
+    }
+    setStatus("submitting");
+    setSubmitting(true);
+    console.log("Redeem submit payload", values);
     try {
       const res = await fetch("/api/redeem", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values)
       });
-      const data = await res.json();
+      const data = await res.json().catch(async () => {
+        const text = await res.text();
+        return { error: text };
+      });
       if (!res.ok) {
-        setMessage(data.error ?? "Failed. Please check /status for configuration hints.");
+        setStatus("error");
+        setMessageKey("serverErrorPrefix");
+        const detail =
+          runtimeLang === "zh" ? copy.submitFailedGeneric : data.error || copy.submitFailedGeneric;
+        setMessageDetail(detail);
         return;
       }
       setResult(data);
+      setStatus("success");
+      setMessageKey("submitSuccess");
     } catch {
-      setMessage(labels.networkError ?? "Network error. Please try again.");
+      setStatus("error");
+      setMessageKey("networkError");
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const copyInfo = async () => {
     if (!result) return;
-    const text = `${labels.eduEmail}: ${result.edu_email}\n${labels.password}: ${result.password}\n${labels.webmail}: ${result.webmail}`;
+    const text = `${copy.eduEmail}: ${result.edu_email}\n${copy.password}: ${result.password}\n${copy.webmail}: ${result.webmail}`;
     await navigator.clipboard.writeText(text);
-    setMessage(labels.copied);
+    setMessageKey("copied");
   };
 
   if (result) {
     return (
       <div className="space-y-4">
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
-          {labels.successTitle}
+          {copy.successTitle}
         </div>
         <div className="space-y-2 text-sm text-slate-600">
-          <p>{labels.personalEmail}: {result.personal_email}</p>
-          <p>{labels.eduEmail}: {result.edu_email}</p>
-          <p>{labels.expiresAt}: {result.expires_at}</p>
-          <p>{labels.webmail}: {result.webmail}</p>
+          <p>{copy.personalEmail}: {result.personal_email}</p>
+          <p>{copy.eduEmail}: {result.edu_email}</p>
+          <p>{copy.expiresAt}: {result.expires_at}</p>
+          <p>{copy.webmail}: {result.webmail}</p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Button onClick={copyInfo}>{labels.copyInfo}</Button>
+          <Button onClick={copyInfo}>{copy.copyInfo}</Button>
           <Button
             variant="outline"
             onClick={() => {
-              const resolvedLang = lang === "en" || lang === "zh" ? lang : undefined;
-              window.location.href = resolvedLang ? `/dashboard?lang=${resolvedLang}` : "/dashboard";
+              window.location.href = `/dashboard?lang=${runtimeLang}`;
             }}
           >
-            {labels.dashboard}
+            {copy.dashboard}
           </Button>
         </div>
-        {message && <p className="text-sm text-slate-500">{message}</p>}
+        {messageKey && (
+          <p className="text-sm text-slate-500">
+            {messageKey === "serverErrorPrefix"
+              ? `${copy.serverErrorPrefix}${messageDetail ?? ""}`
+              : (copy as Record<string, string>)[messageKey]}
+          </p>
+        )}
       </div>
     );
   }
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={onSubmit} className="space-y-4">
       <div>
-        <Label>{labels.activationCode}</Label>
-        <Input placeholder={labels.activationCodePlaceholder} {...form.register("activation_code")} />
-        <p className="mt-1 text-xs text-slate-500">{labels.activationCodeHelp}</p>
+        <Label>{copy.activationCode}</Label>
+        <Input placeholder={copy.activationCodePlaceholder} {...form.register("activation_code")} />
+        <p className="mt-1 text-xs text-slate-500">{copy.activationCodeHelp}</p>
         {form.formState.errors.activation_code?.message && (
-          <p className="mt-1 text-xs text-rose-500">{form.formState.errors.activation_code.message}</p>
+          <p className="mt-1 text-xs text-rose-500">
+            {copy.errors[form.formState.errors.activation_code.message as RedeemErrorKey]}
+          </p>
         )}
       </div>
       <div>
-        <Label>{labels.personalEmail}</Label>
+        <Label>{copy.personalEmail}</Label>
         <Input type="email" {...form.register("personal_email")} />
-        <p className="mt-1 text-xs text-slate-500">{labels.personalEmailHelp}</p>
+        <p className="mt-1 text-xs text-slate-500">{copy.personalEmailHelp}</p>
         {form.formState.errors.personal_email?.message && (
-          <p className="mt-1 text-xs text-rose-500">{form.formState.errors.personal_email.message}</p>
+          <p className="mt-1 text-xs text-rose-500">
+            {copy.errors[form.formState.errors.personal_email.message as RedeemErrorKey]}
+          </p>
         )}
       </div>
       <div>
-        <Label>{labels.eduUsername}</Label>
+        <Label>{copy.eduUsername}</Label>
         <Input {...form.register("edu_username")} />
-        <p className="mt-1 text-xs text-slate-500">{labels.eduUsernameHelp}</p>
+        <p className="mt-1 text-xs text-slate-500">{copy.eduUsernameHelp}</p>
         {form.formState.errors.edu_username?.message && (
-          <p className="mt-1 text-xs text-rose-500">{form.formState.errors.edu_username.message}</p>
+          <p className="mt-1 text-xs text-rose-500">
+            {copy.errors[form.formState.errors.edu_username.message as RedeemErrorKey]}
+          </p>
         )}
       </div>
       <div>
-        <Label>{labels.password}</Label>
+        <Label>{copy.password}</Label>
         <Input type="password" {...form.register("password")} />
-        <p className="mt-1 text-xs text-slate-500">{labels.passwordHelp}</p>
+        <p className="mt-1 text-xs text-slate-500">{copy.passwordHelp}</p>
         {form.formState.errors.password?.message && (
-          <p className="mt-1 text-xs text-rose-500">{form.formState.errors.password.message}</p>
+          <p className="mt-1 text-xs text-rose-500">
+            {copy.errors[form.formState.errors.password.message as RedeemErrorKey]}
+          </p>
         )}
       </div>
-      <Button type="submit" disabled={form.formState.isSubmitting}>
-        {form.formState.isSubmitting ? labels.submitting : labels.submit}
+      <Button type="submit" disabled={submitting}>
+        {submitting ? copy.submitting : copy.submit}
       </Button>
-      {message && <p className="text-sm text-rose-500">{message}</p>}
+      <div className="rounded-md border border-slate-200 bg-white p-3 text-xs text-slate-500">
+        {statusText}
+      </div>
+      {messageKey && (
+        <p className="text-sm text-rose-500">
+          {messageKey === "serverErrorPrefix"
+            ? `${copy.serverErrorPrefix}${messageDetail ?? ""}`
+            : (copy as Record<string, string>)[messageKey]}
+        </p>
+      )}
     </form>
   );
 }
