@@ -91,3 +91,32 @@ pnpm dev
 
 ### 仍然失败怎么办
 请把 GitHub Actions 日志里的 **Debug registry** 输出贴出来，便于进一步定位（其中 token 会自动打码）。
+
+## CI 自愈策略与私有依赖说明
+本仓库的 CI 已内置“自愈”策略，确保公共依赖能稳定安装与构建：
+
+- **强制公共 npm registry**：CI 会忽略仓库根目录 `.npmrc`（自动重命名为 `.npmrc.ci-backup`），并把 registry 指向 `https://registry.npmjs.org/`，避免误用私有源导致 403。
+- **可选私有 token 注入**：如果你未来需要私有依赖，可在 GitHub Secrets 中添加 `NPM_TOKEN`、`GH_PACKAGES_TOKEN` 或 `PRIVATE_REGISTRY_TOKEN`，CI 会自动启用；未配置时不会失败。
+- **自动识别 scope registry**：CI 会读取 `.npmrc.ci-backup` 中的 `@scope:registry` 配置，若是 GitHub Packages 且提供 token 则启用，否则统一回退到公共 npm registry。
+- **锁文件自适应**：存在 `pnpm-lock.yaml` 时使用 `--frozen-lockfile`，不存在则使用 `--no-frozen-lockfile`，保证 CI 可运行。
+
+以上策略无需任何本地操作，直接在 GitHub Actions 中生效。
+
+## CI 依赖安装与私有包（无需本地操作）
+当 CI 使用私有 registry（例如 GitHub Packages 或公司私有源）而未提供 token 时，会出现 `403 no authorization header`。本仓库的 CI 会先检测私有 registry 迹象并给出**可读错误提示**，避免晦涩的 403。
+
+### 仅用 GitHub 网页配置 Secrets（无需本地）
+1. 打开仓库 **Settings → Secrets and variables → Actions**。
+2. 点击 **New repository secret**。
+3. 按需添加以下任一项（不需要私有包则无需配置任何 secret）：
+
+#### NPM_TOKEN
+用于 npmjs 私有包访问。
+
+#### GH_PACKAGES_TOKEN
+用于 GitHub Packages（需 `read:packages` 权限）。
+
+#### PRIVATE_REGISTRY_TOKEN
+用于公司私有 registry（如 Artifactory/Nexus/JFrog）。
+
+如果你不依赖私有包，CI 会自动走公共 npm registry，不需要任何 secret。
