@@ -10,7 +10,7 @@ import type { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { RedeemCopy, RedeemStatusKey } from "@/lib/redeem-copy";
+import type { RedeemCopy, RedeemMessageKey, RedeemStatusKey } from "@/lib/redeem-copy";
 
 type RedeemValues = z.infer<typeof redeemSchema>;
 
@@ -37,7 +37,7 @@ type RedeemErrorKey =
 
 export function RedeemForm({ copy, lang }: RedeemFormProps) {
   const [result, setResult] = useState<RedeemResult | null>(null);
-  const [messageKey, setMessageKey] = useState<keyof RedeemCopy | null>(null);
+  const [messageKey, setMessageKey] = useState<RedeemMessageKey | null>(null);
   const [messageDetail, setMessageDetail] = useState<string | null>(null);
   const [status, setStatus] = useState<RedeemStatusKey>("idle");
   const [submitting, setSubmitting] = useState(false);
@@ -107,7 +107,7 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
     const valid = validateValues(values);
     if (!valid) {
       setStatus("error");
-      setMessageKey("submitFailedGeneric");
+      setMessageKey("submit_failed_generic");
       return;
     }
     setStatus("submitting");
@@ -133,10 +133,10 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
       }
       setResult(data);
       setStatus("success");
-      setMessageKey("submitSuccess");
+      setMessageKey("submit_success");
     } catch {
       setStatus("error");
-      setMessageKey("networkError");
+      setMessageKey("network_error");
     } finally {
       setSubmitting(false);
     }
@@ -144,9 +144,9 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
 
   const copyInfo = async () => {
     if (!result) return;
-    const text = `${copy.eduEmail}: ${result.edu_email}\n${copy.password}: ${result.password}\n${copy.webmail}: ${result.webmail}`;
+    const text = `${copy.eduEmail}: ${result.edu_email}\n${copy.fields.password}: ${result.password}\n${copy.webmail}: ${result.webmail}`;
     await navigator.clipboard.writeText(text);
-    setMessageKey("copied");
+    setMessageKey(null);
   };
 
   if (result) {
@@ -156,7 +156,7 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
           {copy.successTitle}
         </div>
         <div className="space-y-2 text-sm text-slate-600">
-          <p>{copy.personalEmail}: {result.personal_email}</p>
+          <p>{copy.fields.personalEmail}: {result.personal_email}</p>
           <p>{copy.eduEmail}: {result.edu_email}</p>
           <p>{copy.expiresAt}: {result.expires_at}</p>
           <p>{copy.webmail}: {result.webmail}</p>
@@ -176,7 +176,7 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
           <p className="text-sm text-slate-500">
             {messageKey === "serverErrorPrefix"
               ? `${copy.serverErrorPrefix}${messageDetail ?? ""}`
-              : (copy as Record<string, string>)[messageKey]}
+              : copy.messages[messageKey]}
           </p>
         )}
       </div>
@@ -186,47 +186,47 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div>
-        <Label>{copy.activationCode}</Label>
-        <Input placeholder={copy.activationCodePlaceholder} {...form.register("activation_code")} />
-        <p className="mt-1 text-xs text-slate-500">{copy.activationCodeHelp}</p>
+        <Label>{copy.fields.activationCode}</Label>
+        <Input placeholder={copy.fields.activationCodePlaceholder} {...form.register("activation_code")} />
+        <p className="mt-1 text-xs text-slate-500">{copy.fields.activationCodeHelp}</p>
         {form.formState.errors.activation_code?.message && (
           <p className="mt-1 text-xs text-rose-500">
-            {copy.errors[form.formState.errors.activation_code.message as RedeemErrorKey]}
+            {copy.messages[form.formState.errors.activation_code.message as RedeemErrorKey]}
           </p>
         )}
       </div>
       <div>
-        <Label>{copy.personalEmail}</Label>
+        <Label>{copy.fields.personalEmail}</Label>
         <Input type="email" {...form.register("personal_email")} />
-        <p className="mt-1 text-xs text-slate-500">{copy.personalEmailHelp}</p>
+        <p className="mt-1 text-xs text-slate-500">{copy.fields.personalEmailHelp}</p>
         {form.formState.errors.personal_email?.message && (
           <p className="mt-1 text-xs text-rose-500">
-            {copy.errors[form.formState.errors.personal_email.message as RedeemErrorKey]}
+            {copy.messages[form.formState.errors.personal_email.message as RedeemErrorKey]}
           </p>
         )}
       </div>
       <div>
-        <Label>{copy.eduUsername}</Label>
+        <Label>{copy.fields.eduUsername}</Label>
         <Input {...form.register("edu_username")} />
-        <p className="mt-1 text-xs text-slate-500">{copy.eduUsernameHelp}</p>
+        <p className="mt-1 text-xs text-slate-500">{copy.fields.eduUsernameHelp}</p>
         {form.formState.errors.edu_username?.message && (
           <p className="mt-1 text-xs text-rose-500">
-            {copy.errors[form.formState.errors.edu_username.message as RedeemErrorKey]}
+            {copy.messages[form.formState.errors.edu_username.message as RedeemErrorKey]}
           </p>
         )}
       </div>
       <div>
-        <Label>{copy.password}</Label>
+        <Label>{copy.fields.password}</Label>
         <Input type="password" {...form.register("password")} />
-        <p className="mt-1 text-xs text-slate-500">{copy.passwordHelp}</p>
+        <p className="mt-1 text-xs text-slate-500">{copy.fields.passwordHelp}</p>
         {form.formState.errors.password?.message && (
           <p className="mt-1 text-xs text-rose-500">
-            {copy.errors[form.formState.errors.password.message as RedeemErrorKey]}
+            {copy.messages[form.formState.errors.password.message as RedeemErrorKey]}
           </p>
         )}
       </div>
       <Button type="submit" disabled={submitting}>
-        {submitting ? copy.submitting : copy.submit}
+        {submitting ? copy.messages.submitting : copy.buttons.submit}
       </Button>
       <div className="rounded-md border border-slate-200 bg-white p-3 text-xs text-slate-500">
         {statusText}
@@ -235,7 +235,7 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
         <p className="text-sm text-rose-500">
           {messageKey === "serverErrorPrefix"
             ? `${copy.serverErrorPrefix}${messageDetail ?? ""}`
-            : (copy as Record<string, string>)[messageKey]}
+            : copy.messages[messageKey]}
         </p>
       )}
     </form>
