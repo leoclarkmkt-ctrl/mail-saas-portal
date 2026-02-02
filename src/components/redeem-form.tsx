@@ -1,15 +1,30 @@
 "use client";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { redeemSchema } from "@/lib/validation/schemas";
-import type { z } from "zod";
+import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { safeTrim } from "@/lib/safe-trim";
 
-type RedeemValues = z.infer<typeof redeemSchema>;
+type RedeemLabels = {
+  activationCode: string;
+  personalEmail: string;
+  eduUsername: string;
+  password: string;
+  submit: string;
+  successTitle: string;
+  webmail: string;
+  dashboard: string;
+  copyInfo: string;
+  expiresAt: string;
+  copied: string;
+  required: string;
+  failure: string;
+  networkError: string;
+};
+
+type MessageTone = "success" | "error";
 
 type RedeemResult = {
   personal_email: string;
@@ -19,38 +34,89 @@ type RedeemResult = {
   webmail: string;
 };
 
-export function RedeemForm({ labels }: { labels: Record<string, string> }) {
+export function RedeemForm({ labels }: { labels: RedeemLabels }) {
+  const [activationCode, setActivationCode] = useState("");
+  const [personalEmail, setPersonalEmail] = useState("");
+  const [eduUsername, setEduUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [result, setResult] = useState<RedeemResult | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const form = useForm<RedeemValues>({
-    resolver: zodResolver(redeemSchema),
-    defaultValues: {
-      activation_code: "",
-      personal_email: "",
-      edu_username: "",
-      password: ""
-    }
-  });
+  const [messageTone, setMessageTone] = useState<MessageTone>("error");
+  const [loading, setLoading] = useState(false);
 
-  const onSubmit = async (values: RedeemValues) => {
+  useEffect(() => {
     setMessage(null);
-    const res = await fetch("/api/redeem", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(values)
+  }, [activationCode, personalEmail, eduUsername, password]);
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    console.log("[redeem] submit clicked", {
+      activation_code: activationCode,
+      personal_email: personalEmail,
+      edu_username: eduUsername
     });
-    const data = await res.json();
-    if (!res.ok) {
-      setMessage(data.error ?? "Failed. Please check /status for configuration hints.");
+
+    const normalizedActivationCode = safeTrim(activationCode);
+    const normalizedPersonalEmail = safeTrim(personalEmail).toLowerCase();
+    const normalizedEduUsername = safeTrim(eduUsername).toLowerCase();
+    const normalizedPassword = safeTrim(password);
+
+    if (!normalizedActivationCode || !normalizedPersonalEmail || !normalizedEduUsername || !normalizedPassword) {
+      setMessageTone("error");
+      setMessage(labels.required);
       return;
     }
-    setResult(data);
+
+    setLoading(true);
+    setMessage(null);
+
+    try {
+      const res = await fetch("/api/redeem", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          activation_code: normalizedActivationCode,
+          personal_email: normalizedPersonalEmail,
+          edu_username: normalizedEduUsername,
+          password: normalizedPassword
+        })
+      });
+      const responseText = await res.text();
+
+      if (!res.ok) {
+        setMessageTone("error");
+        setMessage(responseText || labels.failure);
+        return;
+      }
+
+      try {
+        const data = responseText ? (JSON.parse(responseText) as RedeemResult) : null;
+        if (!data) {
+          setMessageTone("error");
+          setMessage(labels.failure);
+          return;
+        }
+        setResult(data);
+        setMessage(null);
+      } catch (error) {
+        console.error("[redeem] response parse error", error);
+        setMessageTone("error");
+        setMessage(labels.failure);
+      }
+    } catch (error) {
+      console.error("[redeem] submit error", error);
+      setMessageTone("error");
+      setMessage(labels.networkError);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const copyInfo = async () => {
     if (!result) return;
     const text = `Edu Email: ${result.edu_email}\nPassword: ${result.password}\nWebmail: ${result.webmail}`;
     await navigator.clipboard.writeText(text);
+    setMessageTone("success");
     setMessage(labels.copied);
   };
 
@@ -61,42 +127,60 @@ export function RedeemForm({ labels }: { labels: Record<string, string> }) {
           {labels.successTitle}
         </div>
         <div className="space-y-2 text-sm text-slate-600">
-          <p>{labels.personalEmail}: {result.personal_email}</p>
+          <p>
+            {labels.personalEmail}: {result.personal_email}
+          </p>
           <p>Edu Email: {result.edu_email}</p>
-          <p>{labels.expiresAt}: {result.expires_at}</p>
-          <p>{labels.webmail}: {result.webmail}</p>
+          <p>
+            {labels.expiresAt}: {result.expires_at}
+          </p>
+          <p>
+            {labels.webmail}: {result.webmail}
+          </p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Button onClick={copyInfo}>{labels.copyInfo}</Button>
-          <Button variant="outline" onClick={() => (window.location.href = "/dashboard")}>
+          <Button type="button" onClick={copyInfo}>
+            {labels.copyInfo}
+          </Button>
+          <Button type="button" variant="outline" onClick={() => (window.location.href = "/dashboard")}>
             {labels.dashboard}
           </Button>
         </div>
-        {message && <p className="text-sm text-slate-500">{message}</p>}
+        {message && (
+          <p className={messageTone === "success" ? "text-sm text-emerald-600" : "text-sm text-rose-500"}>
+            {message}
+          </p>
+        )}
       </div>
     );
   }
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <Label>{labels.activationCode}</Label>
-        <Input {...form.register("activation_code")} />
+        <Input value={activationCode} onChange={(event) => setActivationCode(event.target.value)} />
       </div>
       <div>
         <Label>{labels.personalEmail}</Label>
-        <Input type="email" {...form.register("personal_email")} />
+        <Input type="email" value={personalEmail} onChange={(event) => setPersonalEmail(event.target.value)} />
       </div>
       <div>
         <Label>{labels.eduUsername}</Label>
-        <Input {...form.register("edu_username")} />
+        <Input value={eduUsername} onChange={(event) => setEduUsername(event.target.value)} />
       </div>
       <div>
         <Label>{labels.password}</Label>
-        <Input type="password" {...form.register("password")} />
+        <Input type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
       </div>
-      <Button type="submit">{labels.submit}</Button>
-      {message && <p className="text-sm text-rose-500">{message}</p>}
+      <Button type="submit" disabled={loading}>
+        {labels.submit}
+      </Button>
+      {message && (
+        <p className={messageTone === "success" ? "text-sm text-emerald-600" : "text-sm text-rose-500"}>
+          {message}
+        </p>
+      )}
     </form>
   );
 }

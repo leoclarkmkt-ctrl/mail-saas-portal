@@ -23,7 +23,10 @@ export default function RedeemPage() {
             dashboard: dict.redeem.dashboard,
             copyInfo: dict.redeem.copyInfo,
             expiresAt: dict.dashboard.expiresAt,
-            copied: dict.common.copied
+            copied: dict.common.copied,
+            required: dict.redeem.required,
+            failure: dict.redeem.failure,
+            networkError: dict.redeem.networkError
           }}
         />
       </CardContent>

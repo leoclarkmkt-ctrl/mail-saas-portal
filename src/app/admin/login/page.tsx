@@ -10,7 +10,17 @@ export default function AdminLoginPage() {
         <h2 className="text-2xl font-semibold text-primary">{dict.admin.loginTitle}</h2>
       </CardHeader>
       <CardContent>
-        <AdminLoginForm />
+        <AdminLoginForm
+          labels={{
+            email: dict.admin.email,
+            password: dict.admin.password,
+            submit: dict.admin.submit,
+            required: dict.admin.required,
+            success: dict.admin.success,
+            failure: dict.admin.failure,
+            networkError: dict.admin.networkError
+          }}
+        />
       </CardContent>
     </Card>
   );
