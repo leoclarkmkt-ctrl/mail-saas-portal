@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
   const { data, error } = await supabase
     .from("profiles")
     .select("personal_email")
-    .eq("id", session.userId)
+    .eq("user_id", session.userId)
     .single();
   if (error || !data) {
     return jsonError("User not found", 404);

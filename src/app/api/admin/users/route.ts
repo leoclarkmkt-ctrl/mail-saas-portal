@@ -13,25 +13,38 @@ export async function GET(request: NextRequest) {
   const supabase = createServerSupabaseClient();
   const userMatches = await supabase
     .from("profiles")
-    .select("id")
+    .select("user_id")
     .ilike("personal_email", `%${query}%`)
     .limit(100);
 
-  const userIds = userMatches.data?.map((row) => row.id) ?? [];
+  const userIds = userMatches.data?.map((row) => row.user_id) ?? [];
 
   let eduQuery = supabase
     .from("edu_accounts")
-    .select("user_id, edu_email, expires_at, status, profiles(id, personal_email, is_suspended)")
-    .or(`edu_email.ilike.%${query}%,edu_username.ilike.%${query}%`);
+    .select("user_id, edu_email, expires_at, status");
+  const orFilters = [`edu_email.ilike.%${query}%,edu_username.ilike.%${query}%`];
   if (userIds.length > 0) {
-    eduQuery = eduQuery.in("user_id", userIds);
+    orFilters.push(`user_id.in.(${userIds.join(",")})`);
+  }
+  if (orFilters.length > 0) {
+    eduQuery = eduQuery.or(orFilters.join(","));
   }
   const { data, error } = await eduQuery.limit(100);
   if (error) return jsonError(error.message, 400);
-  const rows = (data ?? []).map((row: any) => {
-    const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+  const eduRows = data ?? [];
+  const eduUserIds = eduRows.map((row) => row.user_id).filter(Boolean);
+  const { data: profiles, error: profileError } = await supabase
+    .from("profiles")
+    .select("user_id, personal_email, is_suspended")
+    .in("user_id", eduUserIds);
+  if (profileError) return jsonError(profileError.message, 400);
+  const profileMap = new Map(
+    (profiles ?? []).map((profile) => [profile.user_id, profile])
+  );
+  const rows = eduRows.map((row) => {
+    const profile = profileMap.get(row.user_id);
     return {
-      id: profile?.user_id ?? row.user_id ?? null,
+      id: row.user_id ?? null,
       personal_email: profile?.personal_email ?? null,
       is_suspended: profile?.is_suspended ?? false,
       edu_email: row.edu_email,
@@ -64,7 +77,7 @@ export async function PATCH(request: NextRequest) {
     const { error } = await supabase
       .from("profiles")
       .update({ is_suspended: parsed.data.suspend, suspended_reason: parsed.data.reason ?? null })
-      .eq("id", parsed.data.user_id);
+      .eq("user_id", parsed.data.user_id);
     if (error) return jsonError(error.message, 400);
     await supabase.from("audit_logs").insert({ action: parsed.data.suspend ? "admin_suspend_user" : "admin_unsuspend_user", user_id: parsed.data.user_id });
     return jsonSuccess({ ok: true });

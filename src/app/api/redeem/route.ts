@@ -20,29 +20,31 @@ export async function POST(request: NextRequest) {
   const authAdmin = supabase.auth.admin;
 
   let authUserId: string;
-  const created = await authAdmin.createUser({
-    email: personal_email,
-    password,
-    email_confirm: true
-  });
-  if (created.data?.user) {
-    authUserId = created.data.user.id;
-  } else {
-    const list = await authAdmin.listUsers({ email: personal_email, perPage: 1 });
-    if (list.error) {
-      return jsonError(list.error.message ?? "Failed to find user", 400);
-    }
-    const existingUser = list.data?.users?.find(
-      (user) => user.email?.toLowerCase() === personal_email.toLowerCase()
-    );
-    if (!existingUser) {
-      return jsonError(created.error?.message ?? "Failed to create user", 400);
-    }
-    authUserId = existingUser.id;
+  const { data: existingProfile } = await supabase
+    .from("profiles")
+    .select("user_id")
+    .eq("personal_email", personal_email)
+    .maybeSingle();
+  if (existingProfile?.user_id) {
+    authUserId = existingProfile.user_id;
     const update = await authAdmin.updateUserById(authUserId, { password });
     if (update.error) {
       return jsonError(update.error.message ?? "Failed to update password", 400);
     }
+  } else {
+    const created = await authAdmin.createUser({
+      email: personal_email,
+      password,
+      email_confirm: true
+    });
+    if (created.error || !created.data.user) {
+      return jsonError(created.error?.message ?? "Failed to create user", 400);
+    }
+    authUserId = created.data.user.id;
+    await supabase.from("profiles").upsert(
+      { id: authUserId, user_id: authUserId, personal_email, is_suspended: false },
+      { onConflict: "user_id" }
+    );
   }
 
   const { data, error } = await supabase.rpc("redeem_activation_code", {
@@ -58,8 +60,8 @@ export async function POST(request: NextRequest) {
 
   const result = data[0];
   await supabase.from("profiles").upsert(
-    { id: authUserId, personal_email },
-    { onConflict: "id" }
+    { id: authUserId, user_id: authUserId, personal_email },
+    { onConflict: "user_id" }
   );
   await createUserSession({ userId: result.user_id, mode: "personal" });
 
