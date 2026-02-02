@@ -28,14 +28,17 @@ export async function GET(request: NextRequest) {
   }
   const { data, error } = await eduQuery.limit(100);
   if (error) return jsonError(error.message, 400);
-  const rows = (data ?? []).map((row) => ({
-    id: row.profiles?.id,
-    personal_email: row.profiles?.personal_email,
-    is_suspended: row.profiles?.is_suspended,
-    edu_email: row.edu_email,
-    expires_at: row.expires_at,
-    status: row.status
-  }));
+  const rows = (data ?? []).map((row: any) => {
+    const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+    return {
+      id: profile?.user_id ?? row.user_id ?? null,
+      personal_email: profile?.personal_email ?? null,
+      is_suspended: profile?.is_suspended ?? false,
+      edu_email: row.edu_email,
+      expires_at: row.expires_at,
+      status: row.status
+    };
+  });
   return jsonSuccess({ users: rows });
 }
 
