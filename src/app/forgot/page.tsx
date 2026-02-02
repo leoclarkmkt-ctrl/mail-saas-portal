@@ -15,7 +15,10 @@ export default function ForgotPage() {
           labels={{
             email: dict.forgot.email,
             submit: dict.forgot.submit,
-            notice: dict.forgot.notice
+            notice: dict.forgot.notice,
+            required: dict.forgot.required,
+            failure: dict.forgot.failure,
+            networkError: dict.forgot.networkError
           }}
         />
       </CardContent>

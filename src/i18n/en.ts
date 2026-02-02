@@ -32,7 +32,10 @@ export const en = {
     webmail: "Webmail Address",
     dashboard: "Go to Dashboard",
     copyInfo: "Copy Login Info",
-    renewNotice: "Detected existing account. This activation will renew the subscription." 
+    renewNotice: "Detected existing account. This activation will renew the subscription.",
+    required: "Please fill in all required fields.",
+    failure: "Activation failed. Please try again.",
+    networkError: "Network error. Please try again."
   },
   login: {
     title: "Sign In",
@@ -41,14 +44,21 @@ export const en = {
     email: "Email",
     password: "Password",
     forgot: "Forgot password?",
-    submit: "Sign In"
+    submit: "Sign In",
+    required: "Please enter both email and password.",
+    success: "Sign in successful. Redirecting...",
+    failure: "Sign in failed. Please try again.",
+    networkError: "Network error. Please try again."
   },
   forgot: {
     title: "Password Recovery",
     description: "Only personal email can be used to recover password.",
     email: "Personal Email",
     submit: "Send Reset Link",
-    notice: "If the email exists, a reset link will be sent."
+    notice: "If the email exists, a reset link will be sent.",
+    required: "Please enter your personal email.",
+    failure: "Failed to send reset link. Please try again.",
+    networkError: "Network error. Please try again."
   },
   reset: {
     title: "Reset Password",
@@ -78,6 +88,13 @@ export const en = {
     summary: "Overview",
     codes: "Activation Codes",
     users: "Users",
-    audit: "Audit Logs"
+    audit: "Audit Logs",
+    email: "Email",
+    password: "Password",
+    submit: "Sign In",
+    required: "Please enter email and password.",
+    success: "Sign in successful. Redirecting...",
+    failure: "Sign in failed. Please try again.",
+    networkError: "Network error. Please try again."
   }
 };

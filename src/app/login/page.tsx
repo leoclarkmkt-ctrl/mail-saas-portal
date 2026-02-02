@@ -17,7 +17,11 @@ export default function LoginPage() {
             eduTab: dict.login.eduTab,
             email: dict.login.email,
             password: dict.login.password,
-            submit: dict.login.submit
+            submit: dict.login.submit,
+            required: dict.login.required,
+            success: dict.login.success,
+            failure: dict.login.failure,
+            networkError: dict.login.networkError
           }}
         />
         <Link className="text-sm text-slate-500" href="/forgot">

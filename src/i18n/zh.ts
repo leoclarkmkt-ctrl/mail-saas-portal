@@ -32,7 +32,10 @@ export const zh = {
     webmail: "Webmail 地址",
     dashboard: "进入控制台",
     copyInfo: "复制登录信息",
-    renewNotice: "检测到已有账号，本次将进行续费。"
+    renewNotice: "检测到已有账号，本次将进行续费。",
+    required: "请填写所有必填项。",
+    failure: "开通失败，请稍后重试。",
+    networkError: "网络异常，请稍后重试。"
   },
   login: {
     title: "登录",
@@ -41,14 +44,21 @@ export const zh = {
     email: "邮箱",
     password: "密码",
     forgot: "忘记密码？",
-    submit: "登录"
+    submit: "登录",
+    required: "请输入邮箱和密码。",
+    success: "登录成功，正在跳转…",
+    failure: "登录失败，请稍后重试。",
+    networkError: "网络异常，请稍后重试。"
   },
   forgot: {
     title: "找回密码",
     description: "仅支持个人邮箱找回密码。",
     email: "个人邮箱",
     submit: "发送重置链接",
-    notice: "若邮箱存在，将发送重置链接。"
+    notice: "若邮箱存在，将发送重置链接。",
+    required: "请输入个人邮箱。",
+    failure: "发送失败，请稍后重试。",
+    networkError: "网络异常，请稍后重试。"
   },
   reset: {
     title: "重置密码",
@@ -78,6 +88,13 @@ export const zh = {
     summary: "总览",
     codes: "激活码管理",
     users: "用户管理",
-    audit: "审计日志"
+    audit: "审计日志",
+    email: "邮箱",
+    password: "密码",
+    submit: "登录",
+    required: "请输入邮箱和密码。",
+    success: "登录成功，正在跳转…",
+    failure: "登录失败，请稍后重试。",
+    networkError: "网络异常，请稍后重试。"
   }
 };
