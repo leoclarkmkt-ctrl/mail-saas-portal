@@ -17,7 +17,6 @@ export function ResetForm({ labels }: { labels: Record<string, string> }) {
   const params = useSearchParams();
   const accessTokenFromQuery = params.get("access_token") ?? "";
   const [accessTokenFromHash, setAccessTokenFromHash] = useState("");
-  const lang = params.get("lang") ?? undefined;
 
   useEffect(() => {
     const hashToken = new URLSearchParams(window.location.hash.replace(/^#/, "")).get("access_token") ?? "";
@@ -48,8 +47,7 @@ export function ResetForm({ labels }: { labels: Record<string, string> }) {
       return;
     }
     setMessage("Success");
-    const resolvedLang = lang === "en" || lang === "zh" ? lang : undefined;
-    window.location.href = resolvedLang ? `/login?lang=${resolvedLang}` : "/login";
+    window.location.href = "/login";
   };
 
   return (

@@ -1,11 +1,9 @@
 import { getDictionary } from "@/i18n";
-import { getLangFromRequest } from "@/lib/i18n";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ForgotForm } from "@/components/forgot-form";
 
-export default function ForgotPage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
-  const lang = getLangFromRequest(searchParams);
-  const dict = getDictionary(lang);
+export default function ForgotPage() {
+  const dict = getDictionary();
   return (
     <Card>
       <CardHeader>
@@ -17,7 +15,10 @@ export default function ForgotPage({ searchParams }: { searchParams?: Record<str
           labels={{
             email: dict.forgot.email,
             submit: dict.forgot.submit,
-            notice: dict.forgot.notice
+            notice: dict.forgot.notice,
+            required: dict.forgot.required,
+            failure: dict.forgot.failure,
+            networkError: dict.forgot.networkError
           }}
         />
       </CardContent>

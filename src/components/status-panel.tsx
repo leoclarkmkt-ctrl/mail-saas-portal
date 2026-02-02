@@ -3,24 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 
-type StatusLabels = {
-  env: string;
-  envDetailPrefix: string;
-  envOk: string;
-  supabase: string;
-  supabaseOk: string;
-  supabaseFail: string;
-  schema: string;
-  schemaOk: string;
-  schemaFail: string;
-  redirect: string;
-  redirectMissing: string;
-  redirectTitle: string;
-  redirectCopy: string;
-  copied: string;
-  loading: string;
-};
-
 const statusLine = (ok: boolean, label: string, detail?: string) => (
   <div className="flex items-start justify-between rounded-md border border-slate-200 bg-white p-3 text-sm">
     <div>
@@ -40,7 +22,7 @@ type HealthPayload = {
   message?: string;
 };
 
-export function StatusPanel({ labels }: { labels: StatusLabels }) {
+export function StatusPanel() {
   const [data, setData] = useState<HealthPayload | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -59,33 +41,19 @@ export function StatusPanel({ labels }: { labels: StatusLabels }) {
   const copyHint = async () => {
     if (!redirectHint) return;
     await navigator.clipboard.writeText(redirectHint);
-    setMessage(labels.copied);
+    setMessage("Copied");
   };
 
   if (!data) {
-    return <p className="text-sm text-slate-500">{labels.loading}</p>;
+    return <p className="text-sm text-slate-500">Loading...</p>;
   }
 
   return (
     <div className="space-y-4">
-      {statusLine(
-        data.missing_env.length === 0,
-        labels.env,
-        data.missing_env.length > 0
-          ? `${labels.envDetailPrefix}${data.missing_env.join(", ")}`
-          : labels.envOk
-      )}
-      {statusLine(
-        data.supabase === "ok",
-        labels.supabase,
-        data.supabase === "ok" ? labels.supabaseOk : labels.supabaseFail
-      )}
-      {statusLine(
-        data.schema === "ok",
-        labels.schema,
-        data.schema === "ok" ? labels.schemaOk : labels.schemaFail
-      )}
-      {statusLine(Boolean(redirectHint), labels.redirect, redirectHint || labels.redirectMissing)}
+      {statusLine(data.missing_env.length === 0, "环境变量是否齐全", data.missing_env.length > 0 ? `缺失: ${data.missing_env.join(", ")}` : "已配置")}
+      {statusLine(data.supabase === "ok", "Supabase 是否可连接", data.supabase === "ok" ? "连接正常" : "连接失败" )}
+      {statusLine(data.schema === "ok", "数据库 Schema 是否已初始化", data.schema === "ok" ? "已初始化" : "请在 Supabase SQL Editor 执行 schema.sql + seed.sql")}
+      {statusLine(Boolean(redirectHint), "Auth Redirect URLs 是否已配置", redirectHint || "未提供提示")}
 
       {data.message && (
         <div className="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-600">
@@ -95,10 +63,10 @@ export function StatusPanel({ labels }: { labels: StatusLabels }) {
 
       {redirectHint && (
         <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-          <p className="font-medium text-slate-700">{labels.redirectTitle}</p>
+          <p className="font-medium text-slate-700">建议配置</p>
           <p className="mt-1 whitespace-pre-line">{redirectHint}</p>
           <Button size="sm" className="mt-2" onClick={copyHint}>
-            {labels.redirectCopy}
+            一键复制建议配置
           </Button>
           {message && <p className="mt-2 text-xs text-emerald-600">{message}</p>}
         </div>

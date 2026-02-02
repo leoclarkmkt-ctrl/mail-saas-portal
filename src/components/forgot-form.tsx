@@ -1,46 +1,93 @@
 "use client";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { forgotSchema } from "@/lib/validation/schemas";
-import type { z } from "zod";
+import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { safeTrim } from "@/lib/safe-trim";
 
-type ForgotValues = z.infer<typeof forgotSchema>;
+type ForgotLabels = {
+  email: string;
+  submit: string;
+  notice: string;
+  required: string;
+  failure: string;
+  networkError: string;
+};
 
-export function ForgotForm({ labels }: { labels: Record<string, string> }) {
+type MessageTone = "success" | "error";
+
+export function ForgotForm({ labels }: { labels: ForgotLabels }) {
+  const [email, setEmail] = useState("");
   const [message, setMessage] = useState<string | null>(null);
-  const form = useForm<ForgotValues>({
-    resolver: zodResolver(forgotSchema),
-    defaultValues: { personal_email: "" }
-  });
+  const [messageTone, setMessageTone] = useState<MessageTone>("error");
+  const [loading, setLoading] = useState(false);
 
-  const onSubmit = async (values: ForgotValues) => {
+  useEffect(() => {
     setMessage(null);
-    const res = await fetch("/api/forgot", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(values)
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setMessage(data.error ?? "Failed. Please check /status for configuration hints.");
+  }, [email]);
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    console.log("[forgot] submit clicked", { email });
+    const normalizedEmail = safeTrim(email).toLowerCase();
+
+    if (!normalizedEmail) {
+      setMessageTone("error");
+      setMessage(labels.required);
       return;
     }
-    setMessage(labels.notice);
+
+    setLoading(true);
+    setMessage(null);
+
+    try {
+      const res = await fetch("/api/forgot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ personal_email: normalizedEmail })
+      });
+      const responseText = await res.text();
+
+      if (!res.ok) {
+        let errorMessage = responseText;
+        try {
+          const parsedError = JSON.parse(responseText) as { message?: string; detail?: string };
+          errorMessage = parsedError.detail ?? parsedError.message ?? responseText;
+        } catch (error) {
+          console.warn("[forgot] response parse error", error);
+        }
+        setMessageTone("error");
+        setMessage(errorMessage || labels.failure);
+        return;
+      }
+
+      setMessageTone("success");
+      setMessage(labels.notice);
+    } catch (error) {
+      console.error("[forgot] submit error", error);
+      setMessageTone("error");
+      setMessage(labels.networkError);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <Label>{labels.email}</Label>
-        <Input type="email" {...form.register("personal_email")} />
+        <Input type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
       </div>
-      <Button type="submit">{labels.submit}</Button>
-      {message && <p className="text-sm text-slate-500">{message}</p>}
+      <Button type="submit" disabled={loading}>
+        {labels.submit}
+      </Button>
+      {message && (
+        <p className={messageTone === "success" ? "text-sm text-emerald-600" : "text-sm text-rose-500"}>
+          {message}
+        </p>
+      )}
     </form>
   );
 }

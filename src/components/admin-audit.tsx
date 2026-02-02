@@ -4,16 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-type AdminAuditLabels = {
-  searchPlaceholder: string;
-  search: string;
-  action: string;
-  user: string;
-  ip: string;
-  time: string;
-};
-
-export function AdminAudit({ labels }: { labels: AdminAuditLabels }) {
+export function AdminAudit() {
   const [query, setQuery] = useState("");
   const [logs, setLogs] = useState<any[]>([]);
 
@@ -30,17 +21,17 @@ export function AdminAudit({ labels }: { labels: AdminAuditLabels }) {
   return (
     <div className="space-y-4">
       <div className="flex gap-3">
-        <Input placeholder={labels.searchPlaceholder} value={query} onChange={(e) => setQuery(e.target.value)} />
-        <Button onClick={load}>{labels.search}</Button>
+        <Input placeholder="Search" value={query} onChange={(e) => setQuery(e.target.value)} />
+        <Button onClick={load}>Search</Button>
       </div>
       <div className="overflow-auto rounded-lg border border-slate-200 bg-white">
         <table className="min-w-full text-sm">
           <thead className="bg-slate-50 text-left">
             <tr>
-              <th className="p-3">{labels.action}</th>
-              <th className="p-3">{labels.user}</th>
-              <th className="p-3">{labels.ip}</th>
-              <th className="p-3">{labels.time}</th>
+              <th className="p-3">Action</th>
+              <th className="p-3">User</th>
+              <th className="p-3">IP</th>
+              <th className="p-3">Time</th>
             </tr>
           </thead>
           <tbody>
