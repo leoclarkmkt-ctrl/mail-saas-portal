@@ -90,19 +90,22 @@ export function RedeemForm({ labels }: { labels: Record<string, string> }) {
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
       <div>
         <Label>{labels.activationCode}</Label>
-        <Input {...form.register("activation_code")} />
+        <Input placeholder={labels.activationCodePlaceholder} {...form.register("activation_code")} />
       </div>
       <div>
         <Label>{labels.personalEmail}</Label>
         <Input type="email" {...form.register("personal_email")} />
+        <p className="mt-1 text-xs text-slate-500">{labels.personalEmailHelp}</p>
       </div>
       <div>
         <Label>{labels.eduUsername}</Label>
         <Input {...form.register("edu_username")} />
+        <p className="mt-1 text-xs text-slate-500">{labels.eduUsernameHelp}</p>
       </div>
       <div>
         <Label>{labels.password}</Label>
         <Input type="password" {...form.register("password")} />
+        <p className="mt-1 text-xs text-slate-500">{labels.passwordHelp}</p>
       </div>
       <Button type="submit">{labels.submit}</Button>
       {message && <p className="text-sm text-rose-500">{message}</p>}

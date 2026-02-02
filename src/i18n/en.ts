@@ -22,11 +22,15 @@ export const en = {
     adminHint: "Administrator"
   },
   redeem: {
-    title: "Activate or Renew",
-    activationCode: "Activation Code",
+    title: "Activate your Education Email with an Identity Code",
+    activationCode: "Enter your identity code",
+    activationCodePlaceholder: "Enter your identity code",
     personalEmail: "Personal Email",
+    personalEmailHelp: "Used for student console login and password recovery.",
     eduUsername: "Education Email Username",
+    eduUsernameHelp: "Customize your education email prefix, e.g. xxxx@nsuk.edu.kg",
     password: "Password",
+    passwordHelp: "Password must be at least 8 characters and include uppercase, lowercase, numbers, and special characters.",
     submit: "Activate",
     successTitle: "Activation Successful",
     webmail: "Webmail Address",

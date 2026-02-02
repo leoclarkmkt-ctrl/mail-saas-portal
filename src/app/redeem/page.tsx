@@ -16,9 +16,13 @@ export default function RedeemPage({ searchParams }: { searchParams?: Record<str
         <RedeemForm
           labels={{
             activationCode: dict.redeem.activationCode,
+            activationCodePlaceholder: dict.redeem.activationCodePlaceholder,
             personalEmail: dict.redeem.personalEmail,
+            personalEmailHelp: dict.redeem.personalEmailHelp,
             eduUsername: dict.redeem.eduUsername,
+            eduUsernameHelp: dict.redeem.eduUsernameHelp,
             password: dict.redeem.password,
+            passwordHelp: dict.redeem.passwordHelp,
             submit: dict.redeem.submit,
             successTitle: dict.redeem.successTitle,
             webmail: dict.redeem.webmail,
