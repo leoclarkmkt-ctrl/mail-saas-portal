@@ -49,7 +49,7 @@ pnpm dev
 
 ## End-to-end self-check (with Supabase configured)
 1. Use `seed.sql` codes to redeem on `/redeem`.
-2. Confirm activation code becomes `used` and a new `users` + `edu_accounts` row is created.
+2. Confirm activation code becomes `used` and a new `profiles` + `edu_accounts` row is created.
 3. Login with personal email on `/login`, reach `/dashboard`.
 4. Login with edu email on `/login` (mode: education), allowed only if `expires_at` is in the future.
 5. Change password in `/dashboard` and verify personal/edu login use the new password.
@@ -62,7 +62,8 @@ pnpm dev
 12. Review `/admin/audit` for recorded actions.
 
 ## Notes
-- Webmail is external: `https://mail.nsuk.edu.kg/`.
+- Portal is the management layer (activation, renewal, console). Webmail is external: `https://mail.nsuk.edu.kg/`.
+- Webmail service is hosted on VPS `173.254.220.67` (Mailcow/SOGo), and is not implemented in this repo.
 - All sensitive operations happen in server routes using the Supabase Service Role key.
 - The project uses `?lang=zh` or `?lang=en` to switch language and stores it in a cookie.
 - Password recovery emails are sent by Supabase Auth; configure email provider/templates in Supabase if needed.
