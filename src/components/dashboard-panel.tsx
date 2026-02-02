@@ -21,7 +21,7 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
   const [newPassword, setNewPassword] = useState("");
 
   const copyInfo = async () => {
-    const text = `Edu Email: ${data.eduEmail}\nWebmail: https://mail.nsuk.edu.kg/`;
+    const text = `${labels.eduEmail}: ${data.eduEmail}\n${labels.webmail}: https://mail.nsuk.edu.kg/`;
     await navigator.clipboard.writeText(text);
     setMessage(labels.copied);
   };
@@ -63,7 +63,7 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
       setMessage(payload.error ?? "Failed. Please check /status for configuration hints.");
       return;
     }
-    setMessage("Password updated. The same password applies to your education mailbox.");
+    setMessage(labels.passwordUpdated);
     setOldPassword("");
     setNewPassword("");
   };
@@ -94,7 +94,7 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
         </div>
         <div className="mt-4 flex flex-wrap gap-3">
           <Button onClick={() => window.open("https://mail.nsuk.edu.kg/", "_blank")}>{labels.webmail}</Button>
-          <Button variant="outline" onClick={copyWebmail}>Copy Webmail URL</Button>
+          <Button variant="outline" onClick={copyWebmail}>{labels.copyWebmail}</Button>
           <Button variant="outline" onClick={copyInfo}>{labels.copyInfo}</Button>
         </div>
       </div>
@@ -108,7 +108,7 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
       <div className="grid gap-6 md:grid-cols-2">
         <div className="rounded-xl border border-slate-200 bg-white p-6">
           <h3 className="text-lg font-semibold">{labels.changePassword}</h3>
-          <p className="text-xs text-slate-500">站内密码与教育邮箱密码一致，修改后同步生效。</p>
+          <p className="text-xs text-slate-500">{labels.passwordHint}</p>
           <div className="mt-4 space-y-3">
             <div>
               <Label>{labels.oldPassword}</Label>
@@ -123,7 +123,7 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-6">
           <h3 className="text-lg font-semibold">{labels.renew}</h3>
-          <p className="text-xs text-slate-500">输入新的激活码续费 1 年。</p>
+          <p className="text-xs text-slate-500">{labels.renewHint}</p>
           <div className="mt-4 space-y-3">
             <Label>{labels.activationCode}</Label>
             <Input value={renewCode} onChange={(e) => setRenewCode(e.target.value)} />

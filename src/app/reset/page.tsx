@@ -1,9 +1,11 @@
 import { getDictionary } from "@/i18n";
+import { getLangFromRequest } from "@/lib/i18n";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ResetForm } from "@/components/reset-form";
 
-export default function ResetPage() {
-  const dict = getDictionary();
+export default function ResetPage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
+  const lang = getLangFromRequest(searchParams);
+  const dict = getDictionary(lang);
   return (
     <Card>
       <CardHeader>

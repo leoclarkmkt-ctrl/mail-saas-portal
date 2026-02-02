@@ -22,20 +22,24 @@ export const zh = {
     adminHint: "管理员"
   },
   redeem: {
-    title: "激活或续费",
-    activationCode: "激活码",
+    title: "使用身份编码开通您的教育邮箱",
+    activationCode: "身份编码",
+    activationCodePlaceholder: "请输入身份编码",
+    activationCodeHelp: "用于开通或续期您的 NSUK 教育邮箱",
     personalEmail: "个人邮箱",
+    personalEmailHelp: "用于学生中心登录及密码找回",
     eduUsername: "教育邮箱用户名",
+    eduUsernameHelp: "自定义您的教育邮箱前缀，例如 xxxx@nsuk.edu.kg",
     password: "密码",
-    submit: "立即开通",
+    passwordHelp: "密码至少 8 位，且必须包含大写字母、小写字母、数字和特殊字符",
+    submit: "立即开通教育邮箱",
+    submitting: "正在提交...",
+    networkError: "网络异常，请稍后重试。",
     successTitle: "开通成功",
     webmail: "Webmail 地址",
     dashboard: "进入控制台",
     copyInfo: "复制登录信息",
-    renewNotice: "检测到已有账号，本次将进行续费。",
-    required: "请填写所有必填项。",
-    failure: "开通失败，请稍后重试。",
-    networkError: "网络异常，请稍后重试。"
+    renewNotice: "检测到已有账号，本次将进行续费。"
   },
   login: {
     title: "登录",
@@ -44,21 +48,14 @@ export const zh = {
     email: "邮箱",
     password: "密码",
     forgot: "忘记密码？",
-    submit: "登录",
-    required: "请输入邮箱和密码。",
-    success: "登录成功，正在跳转…",
-    failure: "登录失败，请稍后重试。",
-    networkError: "网络异常，请稍后重试。"
+    submit: "登录"
   },
   forgot: {
     title: "找回密码",
     description: "仅支持个人邮箱找回密码。",
     email: "个人邮箱",
     submit: "发送重置链接",
-    notice: "若邮箱存在，将发送重置链接。",
-    required: "请输入个人邮箱。",
-    failure: "发送失败，请稍后重试。",
-    networkError: "网络异常，请稍后重试。"
+    notice: "若邮箱存在，将发送重置链接。"
   },
   reset: {
     title: "重置密码",
@@ -74,12 +71,16 @@ export const zh = {
     personalEmail: "个人邮箱",
     eduEmail: "教育邮箱",
     expiresAt: "到期时间",
-    webmail: "打开 Webmail",
+    webmail: "登录教育邮箱",
     copyInfo: "复制登录信息",
+    copyWebmail: "复制 Webmail 链接",
     changePassword: "修改密码",
     oldPassword: "旧密码",
     newPassword: "新密码",
+    passwordHint: "站内密码与教育邮箱密码一致，修改后同步生效。",
+    passwordUpdated: "密码已更新，将同步应用到教育邮箱。",
     renew: "输入激活码续费",
+    renewHint: "输入新的激活码可续费 1 年。",
     renewSubmit: "续费",
     logout: "退出登录"
   },
@@ -89,12 +90,95 @@ export const zh = {
     codes: "激活码管理",
     users: "用户管理",
     audit: "审计日志",
-    email: "邮箱",
-    password: "密码",
-    submit: "登录",
-    required: "请输入邮箱和密码。",
-    success: "登录成功，正在跳转…",
-    failure: "登录失败，请稍后重试。",
-    networkError: "网络异常，请稍后重试。"
+    status: "系统状态",
+    overviewTitle: "管理员总览",
+    loginLabels: {
+      email: "邮箱",
+      password: "密码",
+      submit: "登录",
+      failed: "登录失败"
+    },
+    summaryLabels: {
+      loading: "加载中...",
+      activationCodes: "激活码",
+      unused: "未使用",
+      used: "已使用",
+      revoked: "已撤销",
+      users: "用户",
+      total: "总数",
+      eduAccounts: "教育邮箱账户",
+      active: "有效",
+      expired: "已过期",
+      last24h: "近 24 小时",
+      redeems: "兑换",
+      logins: "登录"
+    },
+    codesLabels: {
+      prefix: "前缀",
+      note: "备注",
+      generate: "生成",
+      exportCsv: "导出 CSV",
+      statuses: {
+        all: "全部",
+        unused: "未使用",
+        used: "已使用",
+        revoked: "已撤销"
+      },
+      code: "激活码",
+      status: "状态",
+      created: "创建时间",
+      actions: "操作",
+      revoke: "撤销"
+    },
+    usersLabels: {
+      searchPlaceholder: "搜索邮箱",
+      search: "搜索",
+      personalEmail: "个人邮箱",
+      eduEmail: "教育邮箱",
+      expires: "到期时间",
+      status: "状态",
+      actions: "操作",
+      renew: "续费",
+      suspend: "停用",
+      unsuspend: "解除停用",
+      resetPassword: "重置密码",
+      tempPassword: "临时密码",
+      suspended: "已停用"
+    },
+    auditLabels: {
+      searchPlaceholder: "搜索",
+      search: "搜索",
+      action: "动作",
+      user: "用户",
+      ip: "IP",
+      time: "时间"
+    }
+  },
+  status: {
+    title: "系统状态",
+    description: "检查环境变量、Supabase 连接、数据库初始化与 Auth Redirect URL 配置。",
+    panel: {
+      env: "环境变量是否齐全",
+      envDetailPrefix: "缺失: ",
+      envOk: "已配置",
+      supabase: "Supabase 是否可连接",
+      supabaseOk: "连接正常",
+      supabaseFail: "连接失败",
+      schema: "数据库 Schema 是否已初始化",
+      schemaOk: "已初始化",
+      schemaFail: "请在 Supabase SQL Editor 执行 schema.sql + seed.sql",
+      redirect: "Auth Redirect URLs 是否已配置",
+      redirectMissing: "未提供提示",
+      redirectTitle: "建议配置",
+      redirectCopy: "一键复制建议配置",
+      copied: "已复制",
+      loading: "加载中..."
+    }
+  },
+  footer: {
+    description: "NSUK 致力于推动中亚与全球科研合作，构建面向未来的科学共同体。",
+    copyright: "© 2026 NSUK. 保留所有权利。",
+    follow: "关注我们",
+    platforms: ["LinkedIn", "X", "YouTube", "ResearchGate"]
   }
 };

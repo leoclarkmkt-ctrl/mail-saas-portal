@@ -8,7 +8,20 @@ const STATUSES = ["all", "unused", "used", "revoked"] as const;
 
 type Status = (typeof STATUSES)[number];
 
-export function AdminCodes() {
+type AdminCodesLabels = {
+  prefix: string;
+  note: string;
+  generate: string;
+  exportCsv: string;
+  statuses: Record<Status, string>;
+  code: string;
+  status: string;
+  created: string;
+  actions: string;
+  revoke: string;
+};
+
+export function AdminCodes({ labels }: { labels: AdminCodesLabels }) {
   const [codes, setCodes] = useState<any[]>([]);
   const [quantity, setQuantity] = useState(10);
   const [prefix, setPrefix] = useState("");
@@ -67,10 +80,10 @@ export function AdminCodes() {
     <div className="space-y-4">
       <div className="flex flex-wrap gap-3">
         <Input type="number" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} />
-        <Input placeholder="Prefix" value={prefix} onChange={(e) => setPrefix(e.target.value.toUpperCase())} />
-        <Input placeholder="Note" value={note} onChange={(e) => setNote(e.target.value)} />
-        <Button onClick={generate}>Generate</Button>
-        <Button variant="outline" onClick={exportCsv}>Export CSV</Button>
+        <Input placeholder={labels.prefix} value={prefix} onChange={(e) => setPrefix(e.target.value.toUpperCase())} />
+        <Input placeholder={labels.note} value={note} onChange={(e) => setNote(e.target.value)} />
+        <Button onClick={generate}>{labels.generate}</Button>
+        <Button variant="outline" onClick={exportCsv}>{labels.exportCsv}</Button>
       </div>
       <div className="flex gap-2 text-sm">
         {STATUSES.map((item) => (
@@ -80,7 +93,7 @@ export function AdminCodes() {
             variant={status === item ? "default" : "outline"}
             onClick={() => setStatus(item)}
           >
-            {item}
+            {labels.statuses[item]}
           </Button>
         ))}
       </div>
@@ -89,11 +102,11 @@ export function AdminCodes() {
         <table className="min-w-full text-sm">
           <thead className="bg-slate-50 text-left">
             <tr>
-              <th className="p-3">Code</th>
-              <th className="p-3">Status</th>
-              <th className="p-3">Created</th>
-              <th className="p-3">Note</th>
-              <th className="p-3">Actions</th>
+              <th className="p-3">{labels.code}</th>
+              <th className="p-3">{labels.status}</th>
+              <th className="p-3">{labels.created}</th>
+              <th className="p-3">{labels.note}</th>
+              <th className="p-3">{labels.actions}</th>
             </tr>
           </thead>
           <tbody>
@@ -106,7 +119,7 @@ export function AdminCodes() {
                 <td className="p-3">
                   {code.status === "unused" && (
                     <Button size="sm" variant="outline" onClick={() => revoke(code.code)}>
-                      Revoke
+                      {labels.revoke}
                     </Button>
                   )}
                 </td>

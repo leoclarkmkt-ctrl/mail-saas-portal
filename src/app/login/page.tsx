@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { getDictionary } from "@/i18n";
+import { getLangFromRequest, withLang } from "@/lib/i18n";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { LoginForm } from "@/components/login-form";
 
-export default function LoginPage() {
-  const dict = getDictionary();
+export default function LoginPage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
+  const lang = getLangFromRequest(searchParams);
+  const dict = getDictionary(lang);
   return (
     <Card>
       <CardHeader>
@@ -17,14 +19,10 @@ export default function LoginPage() {
             eduTab: dict.login.eduTab,
             email: dict.login.email,
             password: dict.login.password,
-            submit: dict.login.submit,
-            required: dict.login.required,
-            success: dict.login.success,
-            failure: dict.login.failure,
-            networkError: dict.login.networkError
+            submit: dict.login.submit
           }}
         />
-        <Link className="text-sm text-slate-500" href="/forgot">
+        <Link className="text-sm text-slate-500" href={withLang("/forgot", lang)}>
           {dict.login.forgot}
         </Link>
       </CardContent>
