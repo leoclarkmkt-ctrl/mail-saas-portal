@@ -8,68 +8,86 @@ import { createUserSession } from "@/lib/auth/user-session";
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
-  getServerEnv();
-  const body = await request.json();
-  const parsed = redeemSchema.safeParse(body);
-  if (!parsed.success) {
-    return jsonError("Invalid input", 400);
-  }
-
-  const { activation_code, personal_email, edu_username, password } = parsed.data;
-  const supabase = createServerSupabaseClient();
-  const authAdmin = supabase.auth.admin;
-
-  let authUserId: string;
-  const { data: existingProfile } = await supabase
-    .from("profiles")
-    .select("user_id")
-    .eq("personal_email", personal_email)
-    .maybeSingle();
-  if (existingProfile?.user_id) {
-    authUserId = existingProfile.user_id;
-    const update = await authAdmin.updateUserById(authUserId, { password });
-    if (update.error) {
-      return jsonError(update.error.message ?? "Failed to update password", 400);
+  const safeString = (value: unknown) => {
+    if (value instanceof Error) return value.message;
+    if (typeof value === "string") return value;
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return "Unknown error";
     }
-  } else {
-    const created = await authAdmin.createUser({
-      email: personal_email,
-      password,
-      email_confirm: true
+  };
+
+  try {
+    try {
+      getServerEnv();
+    } catch (error) {
+      return jsonError("Missing environment configuration", 500, { detail: safeString(error) });
+    }
+    const body = await request.json();
+    const parsed = redeemSchema.safeParse(body);
+    if (!parsed.success) {
+      return jsonError("Invalid input", 400);
+    }
+
+    const { activation_code, personal_email, edu_username, password } = parsed.data;
+    const supabase = createServerSupabaseClient();
+    const authAdmin = supabase.auth.admin;
+
+    let authUserId: string;
+    const { data: existingProfile } = await supabase
+      .from("profiles")
+      .select("user_id")
+      .eq("personal_email", personal_email)
+      .maybeSingle();
+    if (existingProfile?.user_id) {
+      authUserId = existingProfile.user_id;
+      const update = await authAdmin.updateUserById(authUserId, { password });
+      if (update.error) {
+        return jsonError(update.error.message ?? "Failed to update password", 400);
+      }
+    } else {
+      const created = await authAdmin.createUser({
+        email: personal_email,
+        password,
+        email_confirm: true
+      });
+      if (created.error || !created.data.user) {
+        return jsonError(created.error?.message ?? "Failed to create user", 400);
+      }
+      authUserId = created.data.user.id;
+      await supabase.from("profiles").upsert(
+        { id: authUserId, user_id: authUserId, personal_email, is_suspended: false },
+        { onConflict: "user_id" }
+      );
+    }
+
+    const { data, error } = await supabase.rpc("redeem_activation_code", {
+      p_code: activation_code,
+      p_user_id: authUserId,
+      p_personal_email: personal_email,
+      p_edu_username: edu_username
     });
-    if (created.error || !created.data.user) {
-      return jsonError(created.error?.message ?? "Failed to create user", 400);
+
+    if (error || !data?.[0]) {
+      return jsonError(error?.message ?? "Redeem failed", 400);
     }
-    authUserId = created.data.user.id;
+
+    const result = data[0];
     await supabase.from("profiles").upsert(
-      { id: authUserId, user_id: authUserId, personal_email, is_suspended: false },
+      { id: authUserId, user_id: authUserId, personal_email },
       { onConflict: "user_id" }
     );
+    await createUserSession({ userId: result.user_id, mode: "personal" });
+
+    return jsonSuccess({
+      personal_email: result.personal_email,
+      edu_email: result.edu_email,
+      expires_at: result.expires_at,
+      password,
+      webmail: "https://mail.nsuk.edu.kg/"
+    });
+  } catch (error) {
+    return jsonError("Internal error", 500, { detail: safeString(error) });
   }
-
-  const { data, error } = await supabase.rpc("redeem_activation_code", {
-    p_code: activation_code,
-    p_user_id: authUserId,
-    p_personal_email: personal_email,
-    p_edu_username: edu_username
-  });
-
-  if (error || !data?.[0]) {
-    return jsonError(error?.message ?? "Redeem failed", 400);
-  }
-
-  const result = data[0];
-  await supabase.from("profiles").upsert(
-    { id: authUserId, user_id: authUserId, personal_email },
-    { onConflict: "user_id" }
-  );
-  await createUserSession({ userId: result.user_id, mode: "personal" });
-
-  return jsonSuccess({
-    personal_email: result.personal_email,
-    edu_email: result.edu_email,
-    expires_at: result.expires_at,
-    password,
-    webmail: "https://mail.nsuk.edu.kg/"
-  });
 }

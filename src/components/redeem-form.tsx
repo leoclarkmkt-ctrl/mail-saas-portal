@@ -100,44 +100,92 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setMessageKey(null);
+    setMessageKey("submitting");
     setMessageDetail(null);
     setStatus("validating");
+    setSubmitting(true);
     const values = form.getValues();
     const valid = validateValues(values);
     if (!valid) {
       setStatus("error");
       setMessageKey("submit_failed_generic");
+      setSubmitting(false);
       return;
     }
     setStatus("submitting");
-    setSubmitting(true);
-    console.log("Redeem submit payload", values);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
+    const payload = {
+      activation_code: values.activation_code,
+      personal_email: values.personal_email,
+      edu_username: values.edu_username,
+      password: values.password
+    };
+    const debugPayload = { ...payload, password: "***" };
+    console.debug("Redeem submit payload", debugPayload);
     try {
       const res = await fetch("/api/redeem", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values)
+        body: JSON.stringify(payload),
+        signal: controller.signal
       });
-      const data = await res.json().catch(async () => {
-        const text = await res.text();
-        return { error: text };
-      });
+      const raw = await res.text();
+      console.debug("Redeem response status", res.status);
+      console.debug("Redeem response raw", raw.slice(0, 300));
+      let parsed: Record<string, unknown> | null = null;
+      if (raw) {
+        try {
+          const candidate = JSON.parse(raw);
+          if (candidate && typeof candidate === "object") {
+            parsed = candidate as Record<string, unknown>;
+          }
+        } catch {
+          parsed = null;
+        }
+      }
       if (!res.ok) {
+        const errorMessage =
+          typeof parsed?.error === "string"
+            ? parsed.error
+            : typeof parsed?.message === "string"
+            ? parsed.message
+            : raw.slice(0, 300);
         setStatus("error");
         setMessageKey("serverErrorPrefix");
         const detail =
-          runtimeLang === "zh" ? copy.submitFailedGeneric : data.error || copy.submitFailedGeneric;
+          runtimeLang === "zh" ? copy.submitFailedGeneric : errorMessage || copy.submitFailedGeneric;
         setMessageDetail(detail);
         return;
       }
-      setResult(data);
+      if (
+        !parsed ||
+        typeof parsed.personal_email !== "string" ||
+        typeof parsed.edu_email !== "string" ||
+        typeof parsed.expires_at !== "string" ||
+        typeof parsed.password !== "string" ||
+        typeof parsed.webmail !== "string"
+      ) {
+        setStatus("error");
+        setMessageKey("serverErrorPrefix");
+        const detail = runtimeLang === "zh" ? copy.submitFailedGeneric : raw.slice(0, 300);
+        setMessageDetail(detail);
+        return;
+      }
+      setResult({
+        personal_email: parsed.personal_email,
+        edu_email: parsed.edu_email,
+        expires_at: parsed.expires_at,
+        password: parsed.password,
+        webmail: parsed.webmail
+      });
       setStatus("success");
       setMessageKey("submit_success");
     } catch {
       setStatus("error");
       setMessageKey("network_error");
     } finally {
+      clearTimeout(timeoutId);
       setSubmitting(false);
     }
   };
