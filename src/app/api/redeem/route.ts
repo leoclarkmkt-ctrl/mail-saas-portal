@@ -20,23 +20,29 @@ export async function POST(request: NextRequest) {
   const authAdmin = supabase.auth.admin;
 
   let authUserId: string;
-  const existing = await authAdmin.getUserByEmail(personal_email);
-  if (existing.data?.user) {
-    authUserId = existing.data.user.id;
+  const created = await authAdmin.createUser({
+    email: personal_email,
+    password,
+    email_confirm: true
+  });
+  if (created.data?.user) {
+    authUserId = created.data.user.id;
+  } else {
+    const list = await authAdmin.listUsers({ email: personal_email, perPage: 1 });
+    if (list.error) {
+      return jsonError(list.error.message ?? "Failed to find user", 400);
+    }
+    const existingUser = list.data?.users?.find(
+      (user) => user.email?.toLowerCase() === personal_email.toLowerCase()
+    );
+    if (!existingUser) {
+      return jsonError(created.error?.message ?? "Failed to create user", 400);
+    }
+    authUserId = existingUser.id;
     const update = await authAdmin.updateUserById(authUserId, { password });
     if (update.error) {
       return jsonError(update.error.message ?? "Failed to update password", 400);
     }
-  } else {
-    const created = await authAdmin.createUser({
-      email: personal_email,
-      password,
-      email_confirm: true
-    });
-    if (created.error || !created.data.user) {
-      return jsonError(created.error?.message ?? "Failed to create user", 400);
-    }
-    authUserId = created.data.user.id;
   }
 
   const { data, error } = await supabase.rpc("redeem_activation_code", {
