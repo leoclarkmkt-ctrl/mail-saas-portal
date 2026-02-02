@@ -4,6 +4,7 @@ export type RedeemMessageKey =
   | "required_activation_code"
   | "required_personal_email"
   | "required_username"
+  | "invalid_username"
   | "required_password"
   | "invalid_email"
   | "invalid_password_rules"
@@ -68,7 +69,7 @@ const zh: RedeemCopy = {
   serverErrorPrefix: "服务器返回：",
   dashboard: "进入控制台",
   copyInfo: "复制登录信息",
-  webmail: "Webmail 地址",
+  webmail: "教育邮箱登录地址",
   expiresAt: "到期时间",
   copied: "已复制",
   eduEmail: "教育邮箱",
@@ -83,6 +84,7 @@ const zh: RedeemCopy = {
     required_activation_code: "请输入身份编码",
     required_personal_email: "请输入个人邮箱",
     required_username: "请输入教育邮箱用户名",
+    invalid_username: "用户名仅允许字母、数字、点、下划线或短横线，长度 3-32 位",
     required_password: "请输入密码",
     invalid_email: "邮箱格式不正确",
     invalid_password_rules: "密码规则不符合要求",
@@ -135,6 +137,8 @@ const en: RedeemCopy = {
     required_activation_code: "Please enter your identity code.",
     required_personal_email: "Please enter your personal email.",
     required_username: "Please enter your education email username.",
+    invalid_username:
+  "Username must be 3-32 characters and use letters, numbers, dot, underscore, or hyphen only.",
     required_password: "Please enter your password.",
     invalid_email: "Invalid email format.",
     invalid_password_rules: "Password does not meet the required rules.",
