@@ -1,0 +1,177 @@
+export const zh = {
+  locale: "zh",
+  common: {
+    brand: "National Science University of Kyrgyzstan",
+    brandZh: "吉尔吉斯斯坦国立科学大学",
+    portal: "邮箱门户",
+    admin: "管理员",
+    switchToZh: "中文",
+    switchToEn: "English",
+    copy: "复制",
+    copied: "已复制",
+    submit: "提交",
+    cancel: "取消",
+    back: "返回"
+  },
+  home: {
+    title: "NSUK 官方邮箱门户",
+    subtitle: "面向学生与科研人员的安全、国际化教育邮箱服务。",
+    redeem: "开通教育邮箱",
+    webmail: "登录教育邮箱",
+    dashboard: "进入学生中心控制台",
+    adminHint: "管理员"
+  },
+  redeem: {
+    title: "激活或续费",
+    activationCode: "激活码",
+    personalEmail: "个人邮箱",
+    eduUsername: "教育邮箱用户名",
+    password: "密码",
+    submit: "立即开通",
+    successTitle: "开通成功",
+    webmail: "Webmail 地址",
+    dashboard: "进入控制台",
+    copyInfo: "复制登录信息",
+    renewNotice: "检测到已有账号，本次将进行续费。"
+  },
+  login: {
+    title: "登录",
+    personalTab: "个人邮箱登录",
+    eduTab: "教育邮箱登录",
+    email: "邮箱",
+    password: "密码",
+    forgot: "忘记密码？",
+    submit: "登录"
+  },
+  forgot: {
+    title: "找回密码",
+    description: "仅支持个人邮箱找回密码。",
+    email: "个人邮箱",
+    submit: "发送重置链接",
+    notice: "若邮箱存在，将发送重置链接。"
+  },
+  reset: {
+    title: "重置密码",
+    newPassword: "新密码",
+    submit: "重置密码"
+  },
+  dashboard: {
+    title: "学生控制台",
+    status: "状态",
+    active: "有效",
+    expired: "已过期",
+    suspended: "已冻结",
+    personalEmail: "个人邮箱",
+    eduEmail: "教育邮箱",
+    expiresAt: "到期时间",
+    webmail: "登录教育邮箱",
+    copyInfo: "复制登录信息",
+    copyWebmail: "复制 Webmail 链接",
+    changePassword: "修改密码",
+    oldPassword: "旧密码",
+    newPassword: "新密码",
+    passwordHint: "站内密码与教育邮箱密码一致，修改后同步生效。",
+    passwordUpdated: "密码已更新，将同步应用到教育邮箱。",
+    renew: "输入激活码续费",
+    renewHint: "输入新的激活码可续费 1 年。",
+    renewSubmit: "续费",
+    logout: "退出登录"
+  },
+  admin: {
+    loginTitle: "管理员登录",
+    summary: "总览",
+    codes: "激活码管理",
+    users: "用户管理",
+    audit: "审计日志",
+    status: "系统状态",
+    overviewTitle: "管理员总览",
+    loginLabels: {
+      email: "邮箱",
+      password: "密码",
+      submit: "登录",
+      failed: "登录失败"
+    },
+    summaryLabels: {
+      loading: "加载中...",
+      activationCodes: "激活码",
+      unused: "未使用",
+      used: "已使用",
+      revoked: "已撤销",
+      users: "用户",
+      total: "总数",
+      eduAccounts: "教育邮箱账户",
+      active: "有效",
+      expired: "已过期",
+      last24h: "近 24 小时",
+      redeems: "兑换",
+      logins: "登录"
+    },
+    codesLabels: {
+      prefix: "前缀",
+      note: "备注",
+      generate: "生成",
+      exportCsv: "导出 CSV",
+      statuses: {
+        all: "全部",
+        unused: "未使用",
+        used: "已使用",
+        revoked: "已撤销"
+      },
+      code: "激活码",
+      status: "状态",
+      created: "创建时间",
+      actions: "操作",
+      revoke: "撤销"
+    },
+    usersLabels: {
+      searchPlaceholder: "搜索邮箱",
+      search: "搜索",
+      personalEmail: "个人邮箱",
+      eduEmail: "教育邮箱",
+      expires: "到期时间",
+      status: "状态",
+      actions: "操作",
+      renew: "续费",
+      suspend: "停用",
+      unsuspend: "解除停用",
+      resetPassword: "重置密码",
+      tempPassword: "临时密码",
+      suspended: "已停用"
+    },
+    auditLabels: {
+      searchPlaceholder: "搜索",
+      search: "搜索",
+      action: "动作",
+      user: "用户",
+      ip: "IP",
+      time: "时间"
+    }
+  },
+  status: {
+    title: "系统状态",
+    description: "检查环境变量、Supabase 连接、数据库初始化与 Auth Redirect URL 配置。",
+    panel: {
+      env: "环境变量是否齐全",
+      envDetailPrefix: "缺失: ",
+      envOk: "已配置",
+      supabase: "Supabase 是否可连接",
+      supabaseOk: "连接正常",
+      supabaseFail: "连接失败",
+      schema: "数据库 Schema 是否已初始化",
+      schemaOk: "已初始化",
+      schemaFail: "请在 Supabase SQL Editor 执行 schema.sql + seed.sql",
+      redirect: "Auth Redirect URLs 是否已配置",
+      redirectMissing: "未提供提示",
+      redirectTitle: "建议配置",
+      redirectCopy: "一键复制建议配置",
+      copied: "已复制",
+      loading: "加载中..."
+    }
+  },
+  footer: {
+    description: "NSUK 致力于推动中亚与全球科研合作，构建面向未来的科学共同体。",
+    copyright: "© 2026 NSUK. 保留所有权利。",
+    follow: "关注我们",
+    platforms: ["LinkedIn", "X", "YouTube", "ResearchGate"]
+  }
+};
