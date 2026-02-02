@@ -51,8 +51,15 @@ export function ForgotForm({ labels }: { labels: ForgotLabels }) {
       const responseText = await res.text();
 
       if (!res.ok) {
+        let errorMessage = responseText;
+        try {
+          const parsedError = JSON.parse(responseText) as { message?: string; detail?: string };
+          errorMessage = parsedError.detail ?? parsedError.message ?? responseText;
+        } catch (error) {
+          console.warn("[forgot] response parse error", error);
+        }
         setMessageTone("error");
-        setMessage(responseText || labels.failure);
+        setMessage(errorMessage || labels.failure);
         return;
       }
 
