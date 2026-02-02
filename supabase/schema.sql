@@ -12,10 +12,9 @@ create table if not exists activation_codes (
   note text
 );
 
-create table if not exists users (
+create table if not exists profiles (
   id uuid primary key default gen_random_uuid(),
   personal_email text unique not null,
-  password_hash text not null,
   is_suspended boolean not null default false,
   suspended_reason text,
   created_at timestamptz not null default now(),
@@ -24,7 +23,7 @@ create table if not exists users (
 
 create table if not exists edu_accounts (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid unique references users(id) on delete cascade,
+  user_id uuid unique references auth.users(id) on delete cascade,
   edu_email text unique not null,
   edu_username text unique not null,
   quota_mb int not null default 5,
@@ -34,14 +33,7 @@ create table if not exists edu_accounts (
   updated_at timestamptz not null default now()
 );
 
-create table if not exists password_reset_tokens (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references users(id) on delete cascade,
-  token_hash text unique not null,
-  expires_at timestamptz not null,
-  used_at timestamptz,
-  created_at timestamptz not null default now()
-);
+-- password_reset_tokens removed (Supabase Auth handles recovery)
 
 create table if not exists audit_logs (
   id bigserial primary key,
@@ -53,7 +45,7 @@ create table if not exists audit_logs (
   created_at timestamptz not null default now()
 );
 
-create index if not exists idx_users_email on users (personal_email);
+create index if not exists idx_profiles_email on profiles (personal_email);
 create index if not exists idx_edu_email on edu_accounts (edu_email);
 create index if not exists idx_edu_username on edu_accounts (edu_username);
 create index if not exists idx_audit_action on audit_logs (action);
@@ -61,16 +53,16 @@ create index if not exists idx_audit_user on audit_logs (user_id);
 
 create or replace function redeem_activation_code(
   p_code text,
+  p_user_id uuid,
   p_personal_email text,
-  p_edu_username text,
-  p_password_hash text
+  p_edu_username text
 )
 returns table (user_id uuid, personal_email text, edu_email text, expires_at timestamptz)
 language plpgsql
 as $$
 declare
   v_code activation_codes%rowtype;
-  v_user users%rowtype;
+  v_user profiles%rowtype;
   v_edu edu_accounts%rowtype;
   v_now timestamptz := now();
   v_expires timestamptz;
@@ -83,32 +75,23 @@ begin
     raise exception 'Activation code invalid';
   end if;
 
-  select * into v_user from users where personal_email = v_personal;
+  select * into v_user from profiles where id = p_user_id;
+  if not found then
+    insert into profiles (id, personal_email) values (p_user_id, v_personal) returning * into v_user;
+  end if;
 
-  if found then
-    select * into v_edu from edu_accounts where user_id = v_user.id;
-    if not found then
-      if exists(select 1 from edu_accounts where edu_username = v_username) then
-        raise exception 'Edu username exists';
-      end if;
-      v_expires := v_now + interval '1 year';
-      insert into edu_accounts (user_id, edu_email, edu_username, expires_at, status)
-      values (v_user.id, v_edu_email, v_username, v_expires, 'active')
-      returning * into v_edu;
-    else
-      v_expires := (case when v_edu.expires_at > v_now then v_edu.expires_at else v_now end) + interval '1 year';
-      update edu_accounts set expires_at = v_expires, status = 'active', updated_at = v_now where id = v_edu.id
-      returning * into v_edu;
-    end if;
-    update users set password_hash = p_password_hash, updated_at = v_now where id = v_user.id;
-  else
+  select * into v_edu from edu_accounts where user_id = v_user.id;
+  if not found then
     if exists(select 1 from edu_accounts where edu_username = v_username) then
       raise exception 'Edu username exists';
     end if;
-    insert into users (personal_email, password_hash) values (v_personal, p_password_hash) returning * into v_user;
     v_expires := v_now + interval '1 year';
     insert into edu_accounts (user_id, edu_email, edu_username, expires_at, status)
     values (v_user.id, v_edu_email, v_username, v_expires, 'active')
+    returning * into v_edu;
+  else
+    v_expires := (case when v_edu.expires_at > v_now then v_edu.expires_at else v_now end) + interval '1 year';
+    update edu_accounts set expires_at = v_expires, status = 'active', updated_at = v_now where id = v_edu.id
     returning * into v_edu;
   end if;
 

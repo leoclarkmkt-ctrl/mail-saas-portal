@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
-import bcrypt from "bcryptjs";
 import { loginSchema } from "@/lib/validation/schemas";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerSupabaseAnonClient, createServerSupabaseClient } from "@/lib/supabase/server";
 import { jsonError, jsonSuccess } from "@/lib/utils/api";
 import { createUserSession } from "@/lib/auth/user-session";
 
@@ -15,11 +14,12 @@ export async function POST(request: NextRequest) {
   }
   const { email, password, mode } = parsed.data;
   const supabase = createServerSupabaseClient();
+  const authClient = createServerSupabaseAnonClient();
 
   if (mode === "personal") {
     const { data, error } = await supabase
-      .from("users")
-      .select("id, password_hash, is_suspended")
+      .from("profiles")
+      .select("id, is_suspended")
       .eq("personal_email", email)
       .single();
     if (error || !data) {
@@ -28,8 +28,8 @@ export async function POST(request: NextRequest) {
     if (data.is_suspended) {
       return jsonError("Account suspended", 403);
     }
-    const ok = await bcrypt.compare(password, data.password_hash);
-    if (!ok) {
+    const signIn = await authClient.auth.signInWithPassword({ email, password });
+    if (signIn.error) {
       return jsonError("Invalid credentials", 401);
     }
     await createUserSession({ userId: data.id, mode: "personal" });
@@ -42,19 +42,22 @@ export async function POST(request: NextRequest) {
 
   const { data, error } = await supabase
     .from("edu_accounts")
-    .select("id, edu_email, expires_at, status, user_id, users(password_hash, is_suspended)")
+    .select("id, edu_email, expires_at, status, user_id, profiles(id, personal_email, is_suspended)")
     .eq("edu_email", email)
     .single();
 
   if (error || !data) {
     return jsonError("Invalid credentials", 401);
   }
-  const user = data.users;
-  if (!user || user.is_suspended) {
+  const profile = data.profiles;
+  if (!profile || profile.is_suspended) {
     return jsonError("Account suspended", 403);
   }
-  const ok = await bcrypt.compare(password, user.password_hash);
-  if (!ok) {
+  const signIn = await authClient.auth.signInWithPassword({
+    email: profile.personal_email,
+    password
+  });
+  if (signIn.error) {
     return jsonError("Invalid credentials", 401);
   }
   const expired = new Date(data.expires_at) <= new Date();

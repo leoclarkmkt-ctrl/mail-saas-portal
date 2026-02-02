@@ -18,16 +18,12 @@ SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 SESSION_SECRET=
 APP_BASE_URL=http://localhost:3000
-EMAIL_SMTP_HOST=
-EMAIL_SMTP_PORT=587
-EMAIL_SMTP_USER=
-EMAIL_SMTP_PASS=
-EMAIL_FROM="NSUK Portal <noreply@nsuk.edu.kg>"
 ADMIN_EMAIL=admin@nsuk.edu.kg
 ADMIN_PASSWORD_HASH=
 ```
 
-> `SUPABASE_SERVICE_ROLE_KEY` must only exist on the server. **Never expose it to the browser**.
+  > `SUPABASE_SERVICE_ROLE_KEY` must only exist on the server. **Never expose it to the browser**.
+  > Password recovery emails are sent by Supabase Auth; configure email provider/templates in Supabase if needed.
 
 ## Database setup (Supabase)
 1. Create a Supabase project and open SQL editor.
@@ -53,12 +49,12 @@ pnpm dev
 
 ## End-to-end self-check (with Supabase configured)
 1. Use `seed.sql` codes to redeem on `/redeem`.
-2. Confirm activation code becomes `used` and a new `users` + `edu_accounts` row is created.
+2. Confirm activation code becomes `used` and a new `profiles` + `edu_accounts` row is created.
 3. Login with personal email on `/login`, reach `/dashboard`.
 4. Login with edu email on `/login` (mode: education), allowed only if `expires_at` is in the future.
 5. Change password in `/dashboard` and verify personal/edu login use the new password.
-6. Use `/forgot` to request a reset; if SMTP isn't configured, reset link prints in server logs.
-7. Use `/reset?token=...` to set a new password and verify login works.
+6. Use `/forgot` to request a reset; Supabase Auth sends the recovery email.
+7. Use `/reset` via the Supabase recovery link to set a new password and verify login works.
 8. Redeem another activation code on `/dashboard` renewal and check `expires_at` +1 year.
 9. Suspend a user from `/admin/users` and confirm login is blocked.
 10. Admin login via `/admin/login` using `ADMIN_EMAIL` and `ADMIN_PASSWORD_HASH`.
@@ -66,9 +62,11 @@ pnpm dev
 12. Review `/admin/audit` for recorded actions.
 
 ## Notes
-- Webmail is external: `https://mail.nsuk.edu.kg/`.
+- Portal is the management layer (activation, renewal, console). Webmail is external: `https://mail.nsuk.edu.kg/`.
+- Webmail service is hosted on VPS `173.254.220.67` (Mailcow/SOGo), and is not implemented in this repo.
 - All sensitive operations happen in server routes using the Supabase Service Role key.
 - The project uses `?lang=zh` or `?lang=en` to switch language and stores it in a cookie.
+- Password recovery emails are sent by Supabase Auth; configure email provider/templates in Supabase if needed.
 
 ## GitHub Actions 依赖安装 403 如何处理（无需本地操作）
 当 GitHub Actions 日志出现 `pnpm install failed: 403` 时，通常是因为 registry 被指向了私有源，但没有 token 导致拒绝访问。CI 已经在 workflow 中强制切回公共 npm registry，并提供可选 token 注入。

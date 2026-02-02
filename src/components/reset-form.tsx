@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,12 +15,24 @@ type ResetValues = z.infer<typeof resetSchema>;
 export function ResetForm({ labels }: { labels: Record<string, string> }) {
   const [message, setMessage] = useState<string | null>(null);
   const params = useSearchParams();
-  const token = params.get("token") ?? "";
+  const accessTokenFromQuery = params.get("access_token") ?? "";
+  const [accessTokenFromHash, setAccessTokenFromHash] = useState("");
+
+  useEffect(() => {
+    const hashToken = new URLSearchParams(window.location.hash.replace(/^#/, "")).get("access_token") ?? "";
+    setAccessTokenFromHash(hashToken);
+  }, []);
 
   const form = useForm<ResetValues>({
     resolver: zodResolver(resetSchema),
-    defaultValues: { token, new_password: "" }
+    defaultValues: { access_token: accessTokenFromQuery || accessTokenFromHash, new_password: "" }
   });
+
+  useEffect(() => {
+    if (accessTokenFromQuery || accessTokenFromHash) {
+      form.setValue("access_token", accessTokenFromQuery || accessTokenFromHash);
+    }
+  }, [accessTokenFromQuery, accessTokenFromHash, form]);
 
   const onSubmit = async (values: ResetValues) => {
     setMessage(null);

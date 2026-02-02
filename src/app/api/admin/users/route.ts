@@ -3,7 +3,6 @@ import { getAdminSession } from "@/lib/auth/admin-session";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { adminUserActionSchema } from "@/lib/validation/schemas";
 import { jsonError, jsonSuccess } from "@/lib/utils/api";
-import bcrypt from "bcryptjs";
 
 export const runtime = "nodejs";
 
@@ -13,7 +12,7 @@ export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams.get("query")?.toLowerCase() ?? "";
   const supabase = createServerSupabaseClient();
   const userMatches = await supabase
-    .from("users")
+    .from("profiles")
     .select("id")
     .ilike("personal_email", `%${query}%`)
     .limit(100);
@@ -22,7 +21,7 @@ export async function GET(request: NextRequest) {
 
   let eduQuery = supabase
     .from("edu_accounts")
-    .select("user_id, edu_email, expires_at, status, users(id, personal_email, is_suspended)")
+    .select("user_id, edu_email, expires_at, status, profiles(id, personal_email, is_suspended)")
     .or(`edu_email.ilike.%${query}%,edu_username.ilike.%${query}%`);
   if (userIds.length > 0) {
     eduQuery = eduQuery.in("user_id", userIds);
@@ -30,9 +29,9 @@ export async function GET(request: NextRequest) {
   const { data, error } = await eduQuery.limit(100);
   if (error) return jsonError(error.message, 400);
   const rows = (data ?? []).map((row) => ({
-    id: row.users?.id,
-    personal_email: row.users?.personal_email,
-    is_suspended: row.users?.is_suspended,
+    id: row.profiles?.id,
+    personal_email: row.profiles?.personal_email,
+    is_suspended: row.profiles?.is_suspended,
     edu_email: row.edu_email,
     expires_at: row.expires_at,
     status: row.status
@@ -60,7 +59,7 @@ export async function PATCH(request: NextRequest) {
 
   if (typeof parsed.data.suspend === "boolean") {
     const { error } = await supabase
-      .from("users")
+      .from("profiles")
       .update({ is_suspended: parsed.data.suspend, suspended_reason: parsed.data.reason ?? null })
       .eq("id", parsed.data.user_id);
     if (error) return jsonError(error.message, 400);
@@ -70,9 +69,10 @@ export async function PATCH(request: NextRequest) {
 
   if (parsed.data.reset_password) {
     const tempPassword = `NSUK-${Math.random().toString(36).slice(2, 8)}!`;
-    const password_hash = await bcrypt.hash(tempPassword, 10);
-    const { error } = await supabase.from("users").update({ password_hash }).eq("id", parsed.data.user_id);
-    if (error) return jsonError(error.message, 400);
+    const update = await supabase.auth.admin.updateUserById(parsed.data.user_id, {
+      password: tempPassword
+    });
+    if (update.error) return jsonError(update.error.message, 400);
     await supabase
       .from("audit_logs")
       .insert({ action: "admin_reset_password", user_id: parsed.data.user_id });

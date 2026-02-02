@@ -26,7 +26,7 @@ export const forgotSchema = z.object({
 });
 
 export const resetSchema = z.object({
-  token: z.string().min(10),
+  access_token: z.string().min(10),
   new_password: passwordSchema
 });
 

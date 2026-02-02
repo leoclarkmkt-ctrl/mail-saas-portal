@@ -10,3 +10,15 @@ export function createServerSupabaseClient() {
     auth: { persistSession: false }
   });
 }
+
+
+export function createServerSupabaseAnonClient() {
+  const url = process.env.SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anonKey) {
+    throw new Error("Missing Supabase anon environment variables.");
+  }
+  return createClient(url, anonKey, {
+    auth: { persistSession: false }
+  });
+}

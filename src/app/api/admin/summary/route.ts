@@ -12,7 +12,7 @@ export async function GET() {
 
   const supabase = createServerSupabaseClient();
   const { data: codeCounts } = await supabase.rpc("admin_code_counts");
-  const { count: userCount } = await supabase.from("users").select("id", { count: "exact", head: true });
+  const { count: userCount } = await supabase.from("profiles").select("id", { count: "exact", head: true });
   const { data: eduCounts } = await supabase.rpc("admin_edu_counts");
   const { data: activity } = await supabase.rpc("admin_activity_counts");
 
