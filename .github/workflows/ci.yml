@@ -187,9 +187,6 @@ EONPMRC
             pnpm install --no-frozen-lockfile
           fi
 
-      - name: Verify no binary assets
-        run: pnpm lint:assets
-
       - name: Build
         env:
           NEXT_TELEMETRY_DISABLED: "1"

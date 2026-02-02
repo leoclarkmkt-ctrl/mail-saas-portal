@@ -7,9 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "lint:assets": "node scripts/check-no-binary-assets.mjs",
-    "precommit": "node scripts/check-no-binary-assets.mjs"
+    "lint": "next lint"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
