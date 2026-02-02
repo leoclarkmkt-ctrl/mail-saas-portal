@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -53,7 +53,8 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
     }
   });
 
-  const statusText = useMemo(() => copy.status[status], [copy.status, status]);
+  const isRecord = (value: unknown): value is Record<string, unknown> =>
+    typeof value === "object" && value !== null;
 
   const setFieldError = (field: keyof RedeemValues, key: RedeemErrorKey) => {
     form.setError(field, { type: "manual", message: key });
@@ -100,7 +101,7 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setMessageKey("submitting");
+    setMessageKey("verifying");
     setMessageDetail(null);
     setStatus("validating");
     setSubmitting(true);
@@ -112,6 +113,53 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
       setSubmitting(false);
       return;
     }
+    const healthController = new AbortController();
+    const healthTimeout = setTimeout(() => healthController.abort(), 10000);
+    try {
+      const healthRes = await fetch("/api/health", { signal: healthController.signal });
+      const healthRaw = await healthRes.text();
+      let healthParsed: Record<string, unknown> | null = null;
+      if (healthRaw) {
+        try {
+          const candidate = JSON.parse(healthRaw);
+          if (isRecord(candidate)) {
+            healthParsed = candidate;
+          }
+        } catch {
+          healthParsed = null;
+        }
+      }
+      const healthOk = Boolean(healthParsed?.ok);
+      const supabaseInfo = isRecord(healthParsed?.supabase) ? healthParsed?.supabase : null;
+      const dbOk = Boolean(supabaseInfo && isRecord(supabaseInfo) && supabaseInfo.dbOk === true);
+      const authOk = Boolean(supabaseInfo && isRecord(supabaseInfo) && supabaseInfo.authOk === true);
+      console.debug("Redeem health check", { ok: healthOk, dbOk, authOk });
+      if (!healthParsed) {
+        setStatus("error");
+        setMessageKey("serverReturnedNonJson");
+        setSubmitting(false);
+        return;
+      }
+      if (!healthOk || !dbOk) {
+        setStatus("error");
+        setMessageKey("healthDbUnavailable");
+        setMessageDetail(copy.messages.healthDbUnavailableHint);
+        setSubmitting(false);
+        return;
+      }
+    } catch (error) {
+      setStatus("error");
+      if (error instanceof Error && error.name === "AbortError") {
+        setMessageKey("requestTimeout");
+      } else {
+        setMessageKey("healthCheckFailed");
+      }
+      setSubmitting(false);
+      return;
+    } finally {
+      clearTimeout(healthTimeout);
+    }
+
     setStatus("submitting");
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 20000);
@@ -137,8 +185,8 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
       if (raw) {
         try {
           const candidate = JSON.parse(raw);
-          if (candidate && typeof candidate === "object") {
-            parsed = candidate as Record<string, unknown>;
+          if (isRecord(candidate)) {
+            parsed = candidate;
           }
         } catch {
           parsed = null;
@@ -158,8 +206,13 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
         setMessageDetail(detail);
         return;
       }
+      if (!parsed) {
+        setStatus("error");
+        setMessageKey("serverReturnedNonJson");
+        setMessageDetail(raw.slice(0, 300));
+        return;
+      }
       if (
-        !parsed ||
         typeof parsed.personal_email !== "string" ||
         typeof parsed.edu_email !== "string" ||
         typeof parsed.expires_at !== "string" ||
@@ -167,9 +220,8 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
         typeof parsed.webmail !== "string"
       ) {
         setStatus("error");
-        setMessageKey("serverErrorPrefix");
-        const detail = runtimeLang === "zh" ? copy.submitFailedGeneric : raw.slice(0, 300);
-        setMessageDetail(detail);
+        setMessageKey("serverReturnedNonJson");
+        setMessageDetail(raw.slice(0, 300));
         return;
       }
       setResult({
@@ -181,9 +233,13 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
       });
       setStatus("success");
       setMessageKey("submit_success");
-    } catch {
+    } catch (error) {
       setStatus("error");
-      setMessageKey("network_error");
+      if (error instanceof Error && error.name === "AbortError") {
+        setMessageKey("requestTimeout");
+      } else {
+        setMessageKey("network_error");
+      }
     } finally {
       clearTimeout(timeoutId);
       setSubmitting(false);
@@ -274,16 +330,15 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
         )}
       </div>
       <Button type="submit" disabled={submitting}>
-        {submitting ? copy.messages.submitting : copy.buttons.submit}
+        {submitting ? copy.messages.verifying : copy.buttons.submit}
       </Button>
-      <div className="rounded-md border border-slate-200 bg-white p-3 text-xs text-slate-500">
-        {statusText}
-      </div>
-      {messageKey && (
+      {(messageKey || status === "idle") && messageKey !== "verifying" && (
         <p className="text-sm text-rose-500">
-          {messageKey === "serverErrorPrefix"
-            ? `${copy.serverErrorPrefix}${messageDetail ?? ""}`
-            : copy.messages[messageKey]}
+          {messageKey
+            ? messageKey === "serverErrorPrefix"
+              ? `${copy.serverErrorPrefix}${messageDetail ?? ""}`
+              : `${copy.messages[messageKey]}${messageDetail ? ` ${messageDetail}` : ""}`
+            : copy.status.idle}
         </p>
       )}
     </form>

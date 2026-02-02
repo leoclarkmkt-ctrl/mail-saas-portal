@@ -17,6 +17,8 @@ export async function POST(request: NextRequest) {
       return "Unknown error";
     }
   };
+  const isSchemaMissing = (message: string) =>
+    /relation .* does not exist|schema cache|permission denied/i.test(message);
 
   try {
     try {
@@ -44,7 +46,13 @@ export async function POST(request: NextRequest) {
       authUserId = existingProfile.user_id;
       const update = await authAdmin.updateUserById(authUserId, { password });
       if (update.error) {
-        return jsonError(update.error.message ?? "Failed to update password", 400);
+        const message = update.error.message ?? "Failed to update password";
+        if (isSchemaMissing(message)) {
+          return jsonError("Database schema missing", 500, {
+            detail: "schema missing: run supabase/schema.sql + migrations"
+          });
+        }
+        return jsonError(message, 400);
       }
     } else {
       const created = await authAdmin.createUser({
@@ -53,13 +61,28 @@ export async function POST(request: NextRequest) {
         email_confirm: true
       });
       if (created.error || !created.data.user) {
-        return jsonError(created.error?.message ?? "Failed to create user", 400);
+        const message = created.error?.message ?? "Failed to create user";
+        if (isSchemaMissing(message)) {
+          return jsonError("Database schema missing", 500, {
+            detail: "schema missing: run supabase/schema.sql + migrations"
+          });
+        }
+        return jsonError(message, 400);
       }
       authUserId = created.data.user.id;
-      await supabase.from("profiles").upsert(
+      const upsert = await supabase.from("profiles").upsert(
         { id: authUserId, user_id: authUserId, personal_email, is_suspended: false },
         { onConflict: "user_id" }
       );
+      if (upsert.error) {
+        const message = upsert.error.message;
+        if (isSchemaMissing(message)) {
+          return jsonError("Database schema missing", 500, {
+            detail: "schema missing: run supabase/schema.sql + migrations"
+          });
+        }
+        return jsonError(message, 400);
+      }
     }
 
     const { data, error } = await supabase.rpc("redeem_activation_code", {
@@ -70,14 +93,29 @@ export async function POST(request: NextRequest) {
     });
 
     if (error || !data?.[0]) {
-      return jsonError(error?.message ?? "Redeem failed", 400);
+      const message = error?.message ?? "Redeem failed";
+      if (isSchemaMissing(message)) {
+        return jsonError("Database schema missing", 500, {
+          detail: "schema missing: run supabase/schema.sql + migrations"
+        });
+      }
+      return jsonError(message, 400);
     }
 
     const result = data[0];
-    await supabase.from("profiles").upsert(
+    const finalUpsert = await supabase.from("profiles").upsert(
       { id: authUserId, user_id: authUserId, personal_email },
       { onConflict: "user_id" }
     );
+    if (finalUpsert.error) {
+      const message = finalUpsert.error.message;
+      if (isSchemaMissing(message)) {
+        return jsonError("Database schema missing", 500, {
+          detail: "schema missing: run supabase/schema.sql + migrations"
+        });
+      }
+      return jsonError(message, 400);
+    }
     await createUserSession({ userId: result.user_id, mode: "personal" });
 
     return jsonSuccess({

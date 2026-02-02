@@ -7,10 +7,15 @@ export type RedeemMessageKey =
   | "required_password"
   | "invalid_email"
   | "invalid_password_rules"
-  | "submitting"
+  | "verifying"
   | "submit_success"
   | "submit_failed_generic"
   | "network_error"
+  | "healthCheckFailed"
+  | "healthDbUnavailable"
+  | "healthDbUnavailableHint"
+  | "requestTimeout"
+  | "serverReturnedNonJson"
   | "serverErrorPrefix";
 
 export type RedeemCopy = {
@@ -81,10 +86,15 @@ const zh: RedeemCopy = {
     required_password: "请输入密码",
     invalid_email: "邮箱格式不正确",
     invalid_password_rules: "密码规则不符合要求",
-    submitting: "校验中",
+    verifying: "校验中",
     submit_success: "提交成功",
     submit_failed_generic: "提交失败，请检查信息后重试。",
     network_error: "网络异常，请稍后重试。",
+    healthCheckFailed: "健康检查失败，请稍后重试。",
+    healthDbUnavailable: "数据库连接不可用。",
+    healthDbUnavailableHint: "请联系管理员检查 Supabase 环境变量与数据库 schema。",
+    requestTimeout: "请求超时，请稍后重试。",
+    serverReturnedNonJson: "服务器返回了非预期响应。",
     serverErrorPrefix: "服务器返回："
   }
 };
@@ -128,10 +138,15 @@ const en: RedeemCopy = {
     required_password: "Please enter your password.",
     invalid_email: "Invalid email format.",
     invalid_password_rules: "Password does not meet the required rules.",
-    submitting: "Verifying",
+    verifying: "Verifying",
     submit_success: "Submission successful.",
     submit_failed_generic: "Submission failed. Please review your details and try again.",
     network_error: "Network error. Please try again.",
+    healthCheckFailed: "Health check failed. Please try again.",
+    healthDbUnavailable: "Database connection is unavailable.",
+    healthDbUnavailableHint: "Please contact the administrator to check Supabase env and schema.",
+    requestTimeout: "Request timed out. Please try again.",
+    serverReturnedNonJson: "Server returned a non-JSON response.",
     serverErrorPrefix: "Server: "
   }
 };
