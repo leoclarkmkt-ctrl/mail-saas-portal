@@ -31,7 +31,7 @@ export function LoginForm({ labels }: { labels: Record<string, string> }) {
     });
     const data = await res.json();
     if (!res.ok) {
-      setMessage(data.error ?? "Login failed");
+      setMessage(data.error ?? "Login failed. Please check /status for configuration hints.");
       return;
     }
     window.location.href = "/dashboard";

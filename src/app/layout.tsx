@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import "./globals.css";
+import Link from "next/link";
 import { LanguageSwitch } from "@/components/language-switch";
 import { getDictionary } from "@/i18n";
 
@@ -21,7 +22,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 <h1 className="text-lg font-semibold text-primary">{dict.common.brand}</h1>
                 <p className="text-sm text-slate-500">{dict.common.brandZh}</p>
               </div>
-              <LanguageSwitch />
+              <div className="flex items-center gap-2">
+                <Link href="/status" className="text-xs text-slate-500 hover:text-primary">
+                  System Status
+                </Link>
+                <LanguageSwitch />
+              </div>
             </div>
           </header>
           <main className="mx-auto w-full max-w-6xl px-6 py-10">{children}</main>
