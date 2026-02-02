@@ -62,6 +62,18 @@ pnpm dev
 11. Use `/admin/codes` to generate codes, export CSV, revoke unused codes.
 12. Review `/admin/audit` for recorded actions.
 
+## 上线后 10 分钟自检清单（无需本地）
+1) 打开 `/api/health`，确认 `ok: true`。
+2) 在 Supabase SQL Editor 执行 `supabase/schema.sql` 与 `supabase/seed.sql`。
+3) 访问 `/admin/login` 登录管理员。
+4) 在 `/admin/codes` 生成 3 个激活码，并点击导出 CSV。
+5) 打开 `/redeem` 使用激活码兑换（个人邮箱 + edu 用户名 + 密码）。
+6) 登录 `/dashboard`，确认 edu_email 与 expires_at 正常显示。
+7) 在 `/dashboard` 输入激活码续费，确认 expires_at +1 year。
+8) 用“教育邮箱模式登录”验证过期逻辑（过期禁止登录）。
+9) 在 `/dashboard` 修改密码，确认 personal/edu 都能用新密码登录。
+10) 点击 Webmail 按钮跳转到 https://mail.nsuk.edu.kg/。
+
 ## Notes
 - Portal is the management layer (activation, renewal, console). Webmail is external: `https://mail.nsuk.edu.kg/`.
 - Webmail service is hosted on VPS `173.254.220.67` (Mailcow/SOGo), and is not implemented in this repo.
