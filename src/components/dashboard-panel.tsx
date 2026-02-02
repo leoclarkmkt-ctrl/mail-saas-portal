@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { maskEmail } from "@/lib/utils/format";
 
 export type DashboardData = {
   personalEmail: string;
@@ -25,6 +26,16 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
     setMessage(labels.copied);
   };
 
+  const copyEdu = async () => {
+    await navigator.clipboard.writeText(data.eduEmail);
+    setMessage(labels.copied);
+  };
+
+  const copyWebmail = async () => {
+    await navigator.clipboard.writeText("https://mail.nsuk.edu.kg/");
+    setMessage(labels.copied);
+  };
+
   const renew = async () => {
     setMessage(null);
     const res = await fetch("/api/dashboard/renew", {
@@ -34,7 +45,7 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
     });
     const payload = await res.json();
     if (!res.ok) {
-      setMessage(payload.error ?? "Failed");
+      setMessage(payload.error ?? "Failed. Please check /status for configuration hints.");
       return;
     }
     window.location.reload();
@@ -49,10 +60,10 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
     });
     const payload = await res.json();
     if (!res.ok) {
-      setMessage(payload.error ?? "Failed");
+      setMessage(payload.error ?? "Failed. Please check /status for configuration hints.");
       return;
     }
-    setMessage("Password updated");
+    setMessage("Password updated. The same password applies to your education mailbox.");
     setOldPassword("");
     setNewPassword("");
   };
@@ -63,11 +74,14 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <p className="text-sm text-slate-500">{labels.personalEmail}</p>
-            <p className="text-lg font-semibold">{data.personalEmail}</p>
+            <p className="text-lg font-semibold">{maskEmail(data.personalEmail)}</p>
           </div>
           <div>
             <p className="text-sm text-slate-500">{labels.eduEmail}</p>
-            <p className="text-lg font-semibold">{data.eduEmail}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-lg font-semibold">{data.eduEmail}</p>
+              <Button size="sm" variant="outline" onClick={copyEdu}>{labels.copyInfo}</Button>
+            </div>
           </div>
           <div>
             <p className="text-sm text-slate-500">{labels.status}</p>
@@ -80,6 +94,7 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
         </div>
         <div className="mt-4 flex flex-wrap gap-3">
           <Button onClick={() => window.open("https://mail.nsuk.edu.kg/", "_blank")}>{labels.webmail}</Button>
+          <Button variant="outline" onClick={copyWebmail}>Copy Webmail URL</Button>
           <Button variant="outline" onClick={copyInfo}>{labels.copyInfo}</Button>
         </div>
       </div>
@@ -93,6 +108,7 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
       <div className="grid gap-6 md:grid-cols-2">
         <div className="rounded-xl border border-slate-200 bg-white p-6">
           <h3 className="text-lg font-semibold">{labels.changePassword}</h3>
+          <p className="text-xs text-slate-500">站内密码与教育邮箱密码一致，修改后同步生效。</p>
           <div className="mt-4 space-y-3">
             <div>
               <Label>{labels.oldPassword}</Label>
@@ -107,6 +123,7 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-6">
           <h3 className="text-lg font-semibold">{labels.renew}</h3>
+          <p className="text-xs text-slate-500">输入新的激活码续费 1 年。</p>
           <div className="mt-4 space-y-3">
             <Label>{labels.activationCode}</Label>
             <Input value={renewCode} onChange={(e) => setRenewCode(e.target.value)} />

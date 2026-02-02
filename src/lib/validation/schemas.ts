@@ -47,7 +47,8 @@ export const adminLoginSchema = z.object({
 export const adminGenerateCodesSchema = z.object({
   quantity: z.number().int().min(1).max(500),
   prefix: z.string().max(6).optional(),
-  length: z.number().int().min(16).max(24).default(20)
+  length: z.number().int().min(16).max(24).default(20),
+  note: z.string().max(200).optional()
 });
 
 export const adminRevokeCodeSchema = z.object({

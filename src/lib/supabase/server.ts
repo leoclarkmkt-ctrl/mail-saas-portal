@@ -1,24 +1,16 @@
 import { createClient } from "@supabase/supabase-js";
+import { getPublicEnv, getServerEnv } from "@/lib/env";
 
 export function createServerSupabaseClient() {
-  const url = process.env.SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !serviceRoleKey) {
-    throw new Error("Missing Supabase server environment variables.");
-  }
-  return createClient(url, serviceRoleKey, {
+  const { SUPABASE_SERVICE_ROLE_KEY, NEXT_PUBLIC_SUPABASE_URL } = getServerEnv();
+  return createClient(NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: { persistSession: false }
   });
 }
 
-
 export function createServerSupabaseAnonClient() {
-  const url = process.env.SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anonKey) {
-    throw new Error("Missing Supabase anon environment variables.");
-  }
-  return createClient(url, anonKey, {
+  const { NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY } = getPublicEnv();
+  return createClient(NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, {
     auth: { persistSession: false }
   });
 }

@@ -41,7 +41,7 @@ export function RedeemForm({ labels }: { labels: Record<string, string> }) {
     });
     const data = await res.json();
     if (!res.ok) {
-      setMessage(data.error ?? "Failed");
+      setMessage(data.error ?? "Failed. Please check /status for configuration hints.");
       return;
     }
     setResult(data);

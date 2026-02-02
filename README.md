@@ -24,6 +24,7 @@ ADMIN_PASSWORD_HASH=
 
   > `SUPABASE_SERVICE_ROLE_KEY` must only exist on the server. **Never expose it to the browser**.
   > Password recovery emails are sent by Supabase Auth; configure email provider/templates in Supabase if needed.
+  > `APP_BASE_URL` must match your Vercel domain (e.g. https://portal.nsuk.edu.kg) for recovery redirects to work.
 
 ## Database setup (Supabase)
 1. Create a Supabase project and open SQL editor.
@@ -61,12 +62,41 @@ pnpm dev
 11. Use `/admin/codes` to generate codes, export CSV, revoke unused codes.
 12. Review `/admin/audit` for recorded actions.
 
+## 上线后 10 分钟自检清单（无需本地）
+1) 打开 `/api/health`，确认 `ok: true`。
+2) 在 Supabase SQL Editor 执行 `supabase/schema.sql` 与 `supabase/seed.sql`。
+3) 访问 `/admin/login` 登录管理员。
+4) 在 `/admin/codes` 生成 3 个激活码，并点击导出 CSV。
+5) 打开 `/redeem` 使用激活码兑换（个人邮箱 + edu 用户名 + 密码）。
+6) 登录 `/dashboard`，确认 edu_email 与 expires_at 正常显示。
+7) 在 `/dashboard` 输入激活码续费，确认 expires_at +1 year。
+8) 用“教育邮箱模式登录”验证过期逻辑（过期禁止登录）。
+9) 在 `/dashboard` 修改密码，确认 personal/edu 都能用新密码登录。
+10) 点击 Webmail 按钮跳转到 https://mail.nsuk.edu.kg/。
+
 ## Notes
 - Portal is the management layer (activation, renewal, console). Webmail is external: `https://mail.nsuk.edu.kg/`.
 - Webmail service is hosted on VPS `173.254.220.67` (Mailcow/SOGo), and is not implemented in this repo.
 - All sensitive operations happen in server routes using the Supabase Service Role key.
 - The project uses `?lang=zh` or `?lang=en` to switch language and stores it in a cookie.
 - Password recovery emails are sent by Supabase Auth; configure email provider/templates in Supabase if needed.
+
+## Supabase Auth 必配项（小白版）
+为避免忘记密码/重置密码失败，请在 Supabase 控制台完成以下配置：
+
+1) **Authentication → URL Configuration**
+   - **Site URL** = `APP_BASE_URL`（例如 `https://portal.nsuk.edu.kg`）
+   - **Redirect URLs** 必须包含：
+     - `APP_BASE_URL/reset`
+     - `APP_BASE_URL/login`
+     - `APP_BASE_URL/dashboard`
+
+2) **Authentication → Email Templates（可选）**
+   - 默认模板即可；需要更好体验再自定义。
+
+3) **邮件不发送怎么办**
+   - 需要在 Supabase 的 Email provider 中配置邮件服务。
+   - 若未配置 provider，重置邮件可能无法送达。
 
 ## GitHub Actions 依赖安装 403 如何处理（无需本地操作）
 当 GitHub Actions 日志出现 `pnpm install failed: 403` 时，通常是因为 registry 被指向了私有源，但没有 token 导致拒绝访问。CI 已经在 workflow 中强制切回公共 npm registry，并提供可选 token 注入。

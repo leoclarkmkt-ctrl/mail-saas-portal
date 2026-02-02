@@ -1,12 +1,14 @@
 import { NextRequest } from "next/server";
 import { changePasswordSchema } from "@/lib/validation/schemas";
 import { createServerSupabaseAnonClient, createServerSupabaseClient } from "@/lib/supabase/server";
+import { getServerEnv } from "@/lib/env";
 import { getUserSession } from "@/lib/auth/user-session";
 import { jsonError, jsonSuccess } from "@/lib/utils/api";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  getServerEnv();
   const session = await getUserSession();
   if (!session) {
     return jsonError("Unauthorized", 401);

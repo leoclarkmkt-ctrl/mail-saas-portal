@@ -1,12 +1,14 @@
 import { NextRequest } from "next/server";
 import { redeemSchema } from "@/lib/validation/schemas";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getServerEnv } from "@/lib/env";
 import { jsonError, jsonSuccess } from "@/lib/utils/api";
 import { createUserSession } from "@/lib/auth/user-session";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  getServerEnv();
   const body = await request.json();
   const parsed = redeemSchema.safeParse(body);
   if (!parsed.success) {
