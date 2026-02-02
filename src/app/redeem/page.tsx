@@ -17,6 +17,7 @@ export default function RedeemPage({ searchParams }: { searchParams?: Record<str
           labels={{
             activationCode: dict.redeem.activationCode,
             activationCodePlaceholder: dict.redeem.activationCodePlaceholder,
+            activationCodeHelp: dict.redeem.activationCodeHelp,
             personalEmail: dict.redeem.personalEmail,
             personalEmailHelp: dict.redeem.personalEmailHelp,
             eduUsername: dict.redeem.eduUsername,
@@ -24,6 +25,8 @@ export default function RedeemPage({ searchParams }: { searchParams?: Record<str
             password: dict.redeem.password,
             passwordHelp: dict.redeem.passwordHelp,
             submit: dict.redeem.submit,
+            submitting: dict.redeem.submitting,
+            networkError: dict.redeem.networkError,
             successTitle: dict.redeem.successTitle,
             webmail: dict.redeem.webmail,
             dashboard: dict.redeem.dashboard,

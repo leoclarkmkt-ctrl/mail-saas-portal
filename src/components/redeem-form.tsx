@@ -37,17 +37,21 @@ export function RedeemForm({ labels }: { labels: Record<string, string> }) {
 
   const onSubmit = async (values: RedeemValues) => {
     setMessage(null);
-    const res = await fetch("/api/redeem", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(values)
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setMessage(data.error ?? "Failed. Please check /status for configuration hints.");
-      return;
+    try {
+      const res = await fetch("/api/redeem", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values)
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setMessage(data.error ?? "Failed. Please check /status for configuration hints.");
+        return;
+      }
+      setResult(data);
+    } catch {
+      setMessage(labels.networkError ?? "Network error. Please try again.");
     }
-    setResult(data);
   };
 
   const copyInfo = async () => {
@@ -91,23 +95,38 @@ export function RedeemForm({ labels }: { labels: Record<string, string> }) {
       <div>
         <Label>{labels.activationCode}</Label>
         <Input placeholder={labels.activationCodePlaceholder} {...form.register("activation_code")} />
+        <p className="mt-1 text-xs text-slate-500">{labels.activationCodeHelp}</p>
+        {form.formState.errors.activation_code?.message && (
+          <p className="mt-1 text-xs text-rose-500">{form.formState.errors.activation_code.message}</p>
+        )}
       </div>
       <div>
         <Label>{labels.personalEmail}</Label>
         <Input type="email" {...form.register("personal_email")} />
         <p className="mt-1 text-xs text-slate-500">{labels.personalEmailHelp}</p>
+        {form.formState.errors.personal_email?.message && (
+          <p className="mt-1 text-xs text-rose-500">{form.formState.errors.personal_email.message}</p>
+        )}
       </div>
       <div>
         <Label>{labels.eduUsername}</Label>
         <Input {...form.register("edu_username")} />
         <p className="mt-1 text-xs text-slate-500">{labels.eduUsernameHelp}</p>
+        {form.formState.errors.edu_username?.message && (
+          <p className="mt-1 text-xs text-rose-500">{form.formState.errors.edu_username.message}</p>
+        )}
       </div>
       <div>
         <Label>{labels.password}</Label>
         <Input type="password" {...form.register("password")} />
         <p className="mt-1 text-xs text-slate-500">{labels.passwordHelp}</p>
+        {form.formState.errors.password?.message && (
+          <p className="mt-1 text-xs text-rose-500">{form.formState.errors.password.message}</p>
+        )}
       </div>
-      <Button type="submit">{labels.submit}</Button>
+      <Button type="submit" disabled={form.formState.isSubmitting}>
+        {form.formState.isSubmitting ? labels.submitting : labels.submit}
+      </Button>
       {message && <p className="text-sm text-rose-500">{message}</p>}
     </form>
   );
