@@ -69,7 +69,7 @@ const zh: RedeemCopy = {
   serverErrorPrefix: "服务器返回：",
   dashboard: "进入控制台",
   copyInfo: "复制登录信息",
-  webmail: "Webmail 地址",
+  webmail: "教育邮箱登录地址",
   expiresAt: "到期时间",
   copied: "已复制",
   eduEmail: "教育邮箱",
@@ -137,7 +137,8 @@ const en: RedeemCopy = {
     required_activation_code: "Please enter your identity code.",
     required_personal_email: "Please enter your personal email.",
     required_username: "Please enter your education email username.",
-    invalid_username: "Username must be 3-32 characters and use letters, numbers, dot, underscore, or hyphen only.",
+    invalid_username:
+  "Username must be 3-32 characters and use letters, numbers, dot, underscore, or hyphen only.",
     required_password: "Please enter your password.",
     invalid_email: "Invalid email format.",
     invalid_password_rules: "Password does not meet the required rules.",

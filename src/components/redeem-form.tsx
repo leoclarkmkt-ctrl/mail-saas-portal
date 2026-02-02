@@ -3,17 +3,16 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { redeemSchema } from "@/lib/validation/schemas";
+import type { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { RedeemCopy, RedeemStatusKey } from "@/lib/redeem-copy";
+import type { RedeemCopy, RedeemMessageKey, RedeemStatusKey } from "@/lib/redeem-copy";
 
-type RedeemValues = {
-  activation_code: string;
-  personal_email: string;
-  edu_username: string;
-  password: string;
-};
+type RedeemValues = z.infer<typeof redeemSchema>;
 
 type RedeemResult = {
   personal_email: string;
@@ -32,94 +31,88 @@ type RedeemErrorKey =
   | "required_activation_code"
   | "required_personal_email"
   | "required_username"
-  | "invalid_username"
   | "required_password"
   | "invalid_email"
   | "invalid_password_rules";
 
-type RedeemField = "activation_code" | "personal_email" | "edu_username" | "password";
-
 export function RedeemForm({ copy, lang }: RedeemFormProps) {
   const [result, setResult] = useState<RedeemResult | null>(null);
+  const [messageKey, setMessageKey] = useState<RedeemMessageKey | null>(null);
+  const [messageDetail, setMessageDetail] = useState<string | null>(null);
   const [status, setStatus] = useState<RedeemStatusKey>("idle");
   const [submitting, setSubmitting] = useState(false);
-  const [activationCode, setActivationCode] = useState("");
-  const [personalEmail, setPersonalEmail] = useState("");
-  const [eduUsername, setEduUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [fieldErrors, setFieldErrors] = useState<Partial<Record<RedeemField, RedeemErrorKey>>>({});
-  const [serverError, setServerError] = useState<string | null>(null);
   const params = useSearchParams();
   const runtimeLang = params.get("lang") === "zh" ? "zh" : params.get("lang") === "en" ? "en" : lang;
+  const form = useForm<RedeemValues>({
+    resolver: zodResolver(redeemSchema),
+    defaultValues: {
+      activation_code: "",
+      personal_email: "",
+      edu_username: "",
+      password: ""
+    }
+  });
 
   const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === "object" && value !== null;
 
-  const safeTrim = (value: unknown) => String(value ?? "").trim();
-
-  const validateValues = (values: RedeemValues) => {
-    const errors: Partial<Record<RedeemField, RedeemErrorKey>> = {};
-    const activationValue = safeTrim(values.activation_code);
-    const personalValue = safeTrim(values.personal_email);
-    const eduValue = safeTrim(values.edu_username);
-    const passwordValue = safeTrim(values.password);
-
-    if (!activationValue) {
-      errors.activation_code = "required_activation_code";
-    }
-    if (!personalValue) {
-      errors.personal_email = "required_personal_email";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(personalValue)) {
-      errors.personal_email = "invalid_email";
-    }
-    if (!eduValue) {
-      errors.edu_username = "required_username";
-    } else if (!/^[a-zA-Z0-9._-]{3,32}$/.test(eduValue)) {
-      errors.edu_username = "invalid_username";
-    }
-    if (!passwordValue) {
-      errors.password = "required_password";
-    } else {
-      const passwordOk =
-        passwordValue.length >= 8 &&
-        /[A-Z]/.test(passwordValue) &&
-        /[a-z]/.test(passwordValue) &&
-        /\d/.test(passwordValue) &&
-        /[^A-Za-z0-9]/.test(passwordValue);
-      if (!passwordOk) {
-        errors.password = "invalid_password_rules";
-      }
-    }
-
-    return {
-      errors,
-      values: {
-        activation_code: activationValue,
-        personal_email: personalValue,
-        edu_username: eduValue,
-        password: passwordValue
-      }
-    };
+  const setFieldError = (field: keyof RedeemValues, key: RedeemErrorKey) => {
+    form.setError(field, { type: "manual", message: key });
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const validateValues = (values: RedeemValues) => {
+    let valid = true;
+    form.clearErrors();
+    if (!String(values.activation_code ?? "").trim()) {
+      setFieldError("activation_code", "required_activation_code");
+      valid = false;
+    }
+    if (!String(values.personal_email ?? "").trim()) {
+      setFieldError("personal_email", "required_personal_email");
+      valid = false;
+    } else {
+      const emailOk = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(values.personal_email);
+      if (!emailOk) {
+        setFieldError("personal_email", "invalid_email");
+        valid = false;
+      }
+    }
+    if (!String(values.edu_username ?? "").trim()) {
+      setFieldError("edu_username", "required_username");
+      valid = false;
+    }
+    if (!String(values.password ?? "").trim()) {
+      setFieldError("password", "required_password");
+      valid = false;
+    } else {
+      const passwordOk =
+        values.password.length >= 8 &&
+        /[A-Z]/.test(values.password) &&
+        /[a-z]/.test(values.password) &&
+        /\\d/.test(values.password) &&
+        /[^A-Za-z0-9]/.test(values.password);
+      if (!passwordOk) {
+        setFieldError("password", "invalid_password_rules");
+        valid = false;
+      }
+    }
+    return valid;
+  };
+
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setMessageKey("verifying");
+    setMessageDetail(null);
     setStatus("validating");
     setSubmitting(true);
-    setServerError(null);
     try {
-      const validation = validateValues({
-        activation_code: activationCode,
-        personal_email: personalEmail,
-        edu_username: eduUsername,
-        password
-      });
-      setFieldErrors(validation.errors);
-      if (Object.keys(validation.errors).length > 0) {
+      const values = form.getValues();
+      const valid = validateValues(values);
+      if (!valid) {
         setStatus("error");
+        setMessageKey("submit_failed_generic");
         return;
       }
-      const values = validation.values;
       const healthController = new AbortController();
       const healthTimeout = setTimeout(() => healthController.abort(), 10000);
       try {
@@ -143,14 +136,22 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
         console.debug("Redeem health check", { ok: healthOk, dbOk, authOk });
         if (!healthParsed) {
           setStatus("error");
+          setMessageKey("serverReturnedNonJson");
           return;
         }
         if (!healthOk || !dbOk) {
           setStatus("error");
+          setMessageKey("healthDbUnavailable");
+          setMessageDetail(copy.messages.healthDbUnavailableHint);
           return;
         }
       } catch (error) {
         setStatus("error");
+        if (error instanceof Error && error.name === "AbortError") {
+          setMessageKey("requestTimeout");
+        } else {
+          setMessageKey("healthCheckFailed");
+        }
         return;
       } finally {
         clearTimeout(healthTimeout);
@@ -196,12 +197,16 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
               ? parsed.message
               : raw.slice(0, 300);
           setStatus("error");
-          const detail = errorMessage || copy.submitFailedGeneric;
-          setServerError(`${copy.serverErrorPrefix}${detail}`);
+          setMessageKey("serverErrorPrefix");
+          const detail =
+            runtimeLang === "zh" ? copy.submitFailedGeneric : errorMessage || copy.submitFailedGeneric;
+          setMessageDetail(detail);
           return;
         }
         if (!parsed) {
           setStatus("error");
+          setMessageKey("serverReturnedNonJson");
+          setMessageDetail(raw.slice(0, 300));
           return;
         }
         if (
@@ -212,6 +217,8 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
           typeof parsed.webmail !== "string"
         ) {
           setStatus("error");
+          setMessageKey("serverReturnedNonJson");
+          setMessageDetail(raw.slice(0, 300));
           return;
         }
         setResult({
@@ -222,13 +229,21 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
           webmail: parsed.webmail
         });
         setStatus("success");
+        setMessageKey("submit_success");
       } catch (error) {
         setStatus("error");
+        if (error instanceof Error && error.name === "AbortError") {
+          setMessageKey("requestTimeout");
+        } else {
+          setMessageKey("network_error");
+        }
       } finally {
         clearTimeout(timeoutId);
       }
     } catch {
       setStatus("error");
+      setMessageKey("submit_failed_generic");
+      setMessageDetail(null);
       return;
     } finally {
       setSubmitting(false);
@@ -237,9 +252,9 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
 
   const copyInfo = async () => {
     if (!result) return;
-    const text = `${copy.fields.personalEmail}: ${result.personal_email}\n${copy.eduEmail}: ${result.edu_email}\n${copy.webmail}: ${result.webmail}\n${copy.expiresAt}: ${result.expires_at}`;
+    const text = `${copy.eduEmail}: ${result.edu_email}\n${copy.fields.password}: ${result.password}\n${copy.webmail}: ${result.webmail}`;
     await navigator.clipboard.writeText(text);
-    setServerError(null);
+    setMessageKey(null);
   };
 
   if (result) {
@@ -265,69 +280,71 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
             {copy.dashboard}
           </Button>
         </div>
-        {serverError && <p className="text-sm text-slate-500">{serverError}</p>}
+        {messageKey && (
+          <p className="text-sm text-slate-500">
+            {messageKey === "serverErrorPrefix"
+              ? `${copy.serverErrorPrefix}${messageDetail ?? ""}`
+              : copy.messages[messageKey]}
+          </p>
+        )}
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={onSubmit} className="space-y-4">
       <div>
         <Label>{copy.fields.activationCode}</Label>
-        <Input
-          placeholder={copy.fields.activationCodePlaceholder}
-          value={activationCode}
-          onChange={(event) => setActivationCode(event.target.value)}
-        />
+        <Input placeholder={copy.fields.activationCodePlaceholder} {...form.register("activation_code")} />
         <p className="mt-1 text-xs text-slate-500">{copy.fields.activationCodeHelp}</p>
-        {fieldErrors.activation_code && (
+        {form.formState.errors.activation_code?.message && (
           <p className="mt-1 text-xs text-rose-500">
-            {copy.messages[fieldErrors.activation_code]}
+            {copy.messages[form.formState.errors.activation_code.message as RedeemErrorKey]}
           </p>
         )}
       </div>
       <div>
         <Label>{copy.fields.personalEmail}</Label>
-        <Input
-          type="email"
-          value={personalEmail}
-          onChange={(event) => setPersonalEmail(event.target.value)}
-        />
+        <Input type="email" {...form.register("personal_email")} />
         <p className="mt-1 text-xs text-slate-500">{copy.fields.personalEmailHelp}</p>
-        {fieldErrors.personal_email && (
+        {form.formState.errors.personal_email?.message && (
           <p className="mt-1 text-xs text-rose-500">
-            {copy.messages[fieldErrors.personal_email]}
+            {copy.messages[form.formState.errors.personal_email.message as RedeemErrorKey]}
           </p>
         )}
       </div>
       <div>
         <Label>{copy.fields.eduUsername}</Label>
-        <Input value={eduUsername} onChange={(event) => setEduUsername(event.target.value)} />
+        <Input {...form.register("edu_username")} />
         <p className="mt-1 text-xs text-slate-500">{copy.fields.eduUsernameHelp}</p>
-        {fieldErrors.edu_username && (
+        {form.formState.errors.edu_username?.message && (
           <p className="mt-1 text-xs text-rose-500">
-            {copy.messages[fieldErrors.edu_username]}
+            {copy.messages[form.formState.errors.edu_username.message as RedeemErrorKey]}
           </p>
         )}
       </div>
       <div>
         <Label>{copy.fields.password}</Label>
-        <Input
-          type="password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-        />
+        <Input type="password" {...form.register("password")} />
         <p className="mt-1 text-xs text-slate-500">{copy.fields.passwordHelp}</p>
-        {fieldErrors.password && (
+        {form.formState.errors.password?.message && (
           <p className="mt-1 text-xs text-rose-500">
-            {copy.messages[fieldErrors.password]}
+            {copy.messages[form.formState.errors.password.message as RedeemErrorKey]}
           </p>
         )}
       </div>
       <Button type="submit" disabled={submitting}>
         {submitting ? copy.messages.verifying : copy.buttons.submit}
       </Button>
-      {serverError && <p className="text-sm text-rose-500">{serverError}</p>}
+      {(messageKey || status === "idle") && messageKey !== "verifying" && (
+        <p className="text-sm text-rose-500">
+          {messageKey
+            ? messageKey === "serverErrorPrefix"
+              ? `${copy.serverErrorPrefix}${messageDetail ?? ""}`
+              : `${copy.messages[messageKey]}${messageDetail ? ` ${messageDetail}` : ""}`
+            : copy.status.idle}
+        </p>
+      )}
     </form>
   );
 }
