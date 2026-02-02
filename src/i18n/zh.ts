@@ -1,0 +1,83 @@
+export const zh = {
+  locale: "zh",
+  common: {
+    brand: "National Science University of Kyrgyzstan",
+    brandZh: "吉尔吉斯斯坦国立科学大学",
+    portal: "邮箱门户",
+    admin: "管理员",
+    switchToZh: "中文",
+    switchToEn: "English",
+    copy: "复制",
+    copied: "已复制",
+    submit: "提交",
+    cancel: "取消",
+    back: "返回"
+  },
+  home: {
+    title: "NSUK 官方邮箱门户",
+    subtitle: "面向学生与科研人员的安全、国际化教育邮箱服务。",
+    redeem: "开通教育邮箱",
+    webmail: "登录教育邮箱",
+    dashboard: "进入学生中心控制台",
+    adminHint: "管理员"
+  },
+  redeem: {
+    title: "激活或续费",
+    activationCode: "激活码",
+    personalEmail: "个人邮箱",
+    eduUsername: "教育邮箱用户名",
+    password: "密码",
+    submit: "立即开通",
+    successTitle: "开通成功",
+    webmail: "Webmail 地址",
+    dashboard: "进入控制台",
+    copyInfo: "复制登录信息",
+    renewNotice: "检测到已有账号，本次将进行续费。"
+  },
+  login: {
+    title: "登录",
+    personalTab: "个人邮箱登录",
+    eduTab: "教育邮箱登录",
+    email: "邮箱",
+    password: "密码",
+    forgot: "忘记密码？",
+    submit: "登录"
+  },
+  forgot: {
+    title: "找回密码",
+    description: "仅支持个人邮箱找回密码。",
+    email: "个人邮箱",
+    submit: "发送重置链接",
+    notice: "若邮箱存在，将发送重置链接。"
+  },
+  reset: {
+    title: "重置密码",
+    newPassword: "新密码",
+    submit: "重置密码"
+  },
+  dashboard: {
+    title: "学生控制台",
+    status: "状态",
+    active: "有效",
+    expired: "已过期",
+    suspended: "已冻结",
+    personalEmail: "个人邮箱",
+    eduEmail: "教育邮箱",
+    expiresAt: "到期时间",
+    webmail: "打开 Webmail",
+    copyInfo: "复制登录信息",
+    changePassword: "修改密码",
+    oldPassword: "旧密码",
+    newPassword: "新密码",
+    renew: "输入激活码续费",
+    renewSubmit: "续费",
+    logout: "退出登录"
+  },
+  admin: {
+    loginTitle: "管理员登录",
+    summary: "总览",
+    codes: "激活码管理",
+    users: "用户管理",
+    audit: "审计日志"
+  }
+};

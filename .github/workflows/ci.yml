@@ -1,0 +1,193 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Debug registry
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "pnpm registry: $(pnpm config get registry)"
+          echo "npm registry: $(npm config get registry)"
+
+          if [ -f .npmrc ]; then
+            echo "repo .npmrc found (masked):"
+            sed -E \
+              -e 's|(//.*:_authToken=).*|\1***MASKED***|' \
+              -e 's|(_authToken=).*|\1***MASKED***|' \
+              -e 's|(_auth=).*|\1***MASKED***|' \
+              -e 's|(TOKEN|token)=.*|\1=***MASKED***|' \
+              .npmrc || true
+          else
+            echo "repo .npmrc not found"
+          fi
+
+          if [ -f "$HOME/.npmrc" ]; then
+            echo "~/.npmrc found (masked):"
+            sed -E \
+              -e 's|(//.*:_authToken=).*|\1***MASKED***|' \
+              -e 's|(_authToken=).*|\1***MASKED***|' \
+              -e 's|(_auth=).*|\1***MASKED***|' \
+              -e 's|(TOKEN|token)=.*|\1=***MASKED***|' \
+              "$HOME/.npmrc" || true
+          else
+            echo "~/.npmrc not found"
+          fi
+
+      - name: Detect private registry needs
+        shell: bash
+        run: |
+          set -euo pipefail
+          private_registry_found=false
+          github_packages_scope_found=false
+          npm_scoped_dependency_found=false
+
+          if [ -f .npmrc ]; then
+            if grep -nE "(@[^:]+:registry=|registry=)" .npmrc >/dev/null 2>&1; then
+              private_registry_found=true
+              echo "Detected registry settings in repo .npmrc:"
+              grep -nE "(@[^:]+:registry=|registry=)" .npmrc || true
+            fi
+            if grep -nE "npm.pkg.github.com" .npmrc >/dev/null 2>&1; then
+              github_packages_scope_found=true
+              echo "Detected GitHub Packages registry in .npmrc."
+            fi
+            if grep -nEi "artifactory|nexus|jfrog" .npmrc >/dev/null 2>&1; then
+              private_registry_found=true
+              echo "Detected private registry domain in .npmrc (Artifactory/Nexus/JFrog)."
+            fi
+          fi
+
+          if grep -nE "\"@[^/]+/" package.json >/dev/null 2>&1; then
+            npm_scoped_dependency_found=true
+            echo "Detected scoped dependencies in package.json (may be private):"
+            grep -nE "\"@[^/]+/" package.json || true
+          fi
+
+          missing_tokens=()
+          if [ "${private_registry_found}" = "true" ]; then
+            if [ -z "${PRIVATE_REGISTRY_TOKEN:-}" ]; then
+              missing_tokens+=("PRIVATE_REGISTRY_TOKEN")
+            fi
+          fi
+
+          if [ "${github_packages_scope_found}" = "true" ]; then
+            if [ -z "${GH_PACKAGES_TOKEN:-}" ] && [ -z "${GITHUB_TOKEN:-}" ]; then
+              missing_tokens+=("GH_PACKAGES_TOKEN")
+            fi
+          fi
+
+          if [ "${npm_scoped_dependency_found}" = "true" ]; then
+            if [ -z "${NPM_TOKEN:-}" ]; then
+              echo "Scoped dependency detected; if any scope is private on npmjs, you may need NPM_TOKEN."
+            fi
+          fi
+
+          if [ "${#missing_tokens[@]}" -gt 0 ]; then
+            echo "::error::Private registry detected but required secrets are missing: ${missing_tokens[*]}"
+            echo "::error::Please add missing secrets in GitHub UI: Settings → Secrets and variables → Actions → New repository secret."
+            exit 1
+          fi
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GH_PACKAGES_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
+          PRIVATE_REGISTRY_TOKEN: ${{ secrets.PRIVATE_REGISTRY_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Force public registry and optional auth
+        shell: bash
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GH_PACKAGES_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
+          PRIVATE_REGISTRY_TOKEN: ${{ secrets.PRIVATE_REGISTRY_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ -f .npmrc ]; then
+            mv .npmrc .npmrc.ci-backup
+          fi
+
+          pnpm config set registry https://registry.npmjs.org/
+          npm config set registry https://registry.npmjs.org/
+          pnpm config set fetch-retries 5
+          pnpm config set fetch-retry-mintimeout 20000
+          pnpm config set fetch-retry-maxtimeout 120000
+          pnpm config set network-timeout 600000
+
+          cat > "$HOME/.npmrc" <<'EONPMRC'
+registry=https://registry.npmjs.org/
+EONPMRC
+
+          if [ -n "${NPM_TOKEN:-}" ]; then
+            echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> "$HOME/.npmrc"
+          fi
+
+          if [ -n "${GH_PACKAGES_TOKEN:-}" ]; then
+            echo "//npm.pkg.github.com/:_authToken=${GH_PACKAGES_TOKEN}" >> "$HOME/.npmrc"
+          elif [ -n "${GITHUB_TOKEN:-}" ]; then
+            echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> "$HOME/.npmrc"
+          fi
+
+          if [ -n "${PRIVATE_REGISTRY_TOKEN:-}" ]; then
+            echo "//your-private-registry.example.com/:_authToken=${PRIVATE_REGISTRY_TOKEN}" >> "$HOME/.npmrc"
+          fi
+
+          if [ -f .npmrc.ci-backup ]; then
+            scopes=$(grep -oE "@[^:]+:registry=" .npmrc.ci-backup | sed -E 's/:registry=$//' | sort -u || true)
+            if [ -n "${scopes}" ]; then
+              while read -r scope; do
+                if grep -nE "${scope}:registry=https://npm.pkg.github.com" .npmrc.ci-backup >/dev/null 2>&1; then
+                  if [ -n "${GH_PACKAGES_TOKEN:-}" ] || [ -n "${GITHUB_TOKEN:-}" ]; then
+                    echo "${scope}:registry=https://npm.pkg.github.com" >> "$HOME/.npmrc"
+                  else
+                    echo "${scope}:registry=https://registry.npmjs.org/" >> "$HOME/.npmrc"
+                  fi
+                else
+                  echo "${scope}:registry=https://registry.npmjs.org/" >> "$HOME/.npmrc"
+                fi
+              done <<< "${scopes}"
+            fi
+          fi
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f pnpm-lock.yaml ]; then
+            if pnpm install --frozen-lockfile; then
+              echo "Installed with frozen lockfile."
+            else
+              echo "Frozen lockfile failed; falling back to --no-frozen-lockfile."
+              pnpm install --no-frozen-lockfile
+            fi
+          else
+            echo "pnpm-lock.yaml missing; using --no-frozen-lockfile."
+            pnpm install --no-frozen-lockfile
+          fi
+
+      - name: Build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+        run: pnpm build
