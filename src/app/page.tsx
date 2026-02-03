@@ -13,6 +13,9 @@ export default function HomePage({ searchParams }: { searchParams?: Record<strin
           <h2 className="text-3xl font-semibold text-primary">{dict.home.title}</h2>
           <p className="mt-3 max-w-xl text-slate-600">{dict.home.subtitle}</p>
         </div>
+        <Link className="text-xs text-slate-400 hover:text-primary" href={withLang("/admin/login", lang)}>
+          {dict.home.adminHint}
+        </Link>
       </div>
       <div className="mt-10 grid gap-4 md:grid-cols-3">
         <Link href={withLang("/redeem", lang)}>
