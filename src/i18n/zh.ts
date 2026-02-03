@@ -36,7 +36,7 @@ export const zh = {
     submitting: "正在提交...",
     networkError: "网络异常，请稍后重试。",
     successTitle: "开通成功",
-    webmail: "Webmail 地址",
+    webmail: "教育邮箱地址",
     dashboard: "进入控制台",
     copyInfo: "复制登录信息",
     renewNotice: "检测到已有账号，本次将进行续费。"
@@ -73,7 +73,7 @@ export const zh = {
     expiresAt: "到期时间",
     webmail: "登录教育邮箱",
     copyInfo: "复制登录信息",
-    copyWebmail: "复制 Webmail 链接",
+    copyWebmail: "复制教育邮箱信息",
     changePassword: "修改密码",
     oldPassword: "旧密码",
     newPassword: "新密码",

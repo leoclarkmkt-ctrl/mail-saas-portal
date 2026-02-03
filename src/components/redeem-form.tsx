@@ -31,6 +31,7 @@ type RedeemErrorKey =
   | "required_activation_code"
   | "required_personal_email"
   | "required_username"
+  | "invalid_username"
   | "required_password"
   | "invalid_email"
   | "invalid_password_rules";
@@ -229,14 +230,8 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
           webmail: parsed.webmail
         });
         setStatus("success");
-        setMessageKey("submit_success");
       } catch (error) {
         setStatus("error");
-        if (error instanceof Error && error.name === "AbortError") {
-          setMessageKey("requestTimeout");
-        } else {
-          setMessageKey("network_error");
-        }
       } finally {
         clearTimeout(timeoutId);
       }

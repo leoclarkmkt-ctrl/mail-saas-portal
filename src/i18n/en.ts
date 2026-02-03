@@ -16,8 +16,8 @@ export const en = {
   home: {
     title: "NSUK Official Mail Portal",
     subtitle: "Secure, international academic email services for students and researchers.",
-    redeem: "Activate Education Mailbox",
-    webmail: "Open Education Mail",
+    redeem: "Activate Education Email",
+    webmail: "Open Education Email",
     dashboard: "Go to Student Console",
     adminHint: "Administrator"
   },
@@ -36,7 +36,7 @@ export const en = {
     submitting: "Submitting...",
     networkError: "Network error. Please try again.",
     successTitle: "Activation Successful",
-    webmail: "Webmail Address",
+    webmail: "Education Email URL",
     dashboard: "Go to Dashboard",
     copyInfo: "Copy Login Info",
     renewNotice: "Detected existing account. This activation will renew the subscription." 
@@ -71,9 +71,9 @@ export const en = {
     personalEmail: "Personal Email",
     eduEmail: "Education Email",
     expiresAt: "Expires At",
-    webmail: "Open Education Mail",
+    webmail: "Open Education Email",
     copyInfo: "Copy Login Info",
-    copyWebmail: "Copy Webmail URL",
+    copyWebmail: "Copy Education Email Info",
     changePassword: "Change Password",
     oldPassword: "Current Password",
     newPassword: "New Password",
