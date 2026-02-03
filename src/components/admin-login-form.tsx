@@ -23,23 +23,33 @@ export function AdminLoginForm({ labels }: { labels: AdminLoginLabels }) {
   const [message, setMessage] = useState<string | null>(null);
   const params = useSearchParams();
   const lang = params.get("lang") ?? undefined;
+
   const form = useForm<AdminLoginValues>({
     resolver: zodResolver(adminLoginSchema),
-    defaultValues: { email: "", password: "" }
+    defaultValues: { email: "", password: "" },
   });
 
   const onSubmit = async (values: AdminLoginValues) => {
     setMessage(null);
+
     const res = await fetch("/api/admin/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(values)
+      body: JSON.stringify(values),
     });
-    const data = await res.json();
+
+    let data: any = null;
+    try {
+      data = await res.json();
+    } catch {
+      // ignore JSON parse error
+    }
+
     if (!res.ok) {
-      setMessage(data.error ?? labels.failed);
+      setMessage(data?.error ?? labels.failed);
       return;
     }
+
     const resolvedLang = lang === "en" || lang === "zh" ? lang : undefined;
     window.location.href = resolvedLang ? `/admin?lang=${resolvedLang}` : "/admin";
   };
@@ -50,11 +60,14 @@ export function AdminLoginForm({ labels }: { labels: AdminLoginLabels }) {
         <Label>{labels.email}</Label>
         <Input type="email" {...form.register("email")} />
       </div>
+
       <div>
         <Label>{labels.password}</Label>
         <Input type="password" {...form.register("password")} />
       </div>
+
       <Button type="submit">{labels.submit}</Button>
+
       {message && <p className="text-sm text-rose-500">{message}</p>}
     </form>
   );

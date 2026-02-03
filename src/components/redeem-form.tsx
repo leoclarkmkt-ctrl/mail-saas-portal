@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import type { FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -42,16 +41,19 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
   const [messageDetail, setMessageDetail] = useState<string | null>(null);
   const [status, setStatus] = useState<RedeemStatusKey>("idle");
   const [submitting, setSubmitting] = useState(false);
+
   const params = useSearchParams();
-  const runtimeLang = params.get("lang") === "zh" ? "zh" : params.get("lang") === "en" ? "en" : lang;
+  const runtimeLang =
+    params.get("lang") === "zh" ? "zh" : params.get("lang") === "en" ? "en" : lang;
+
   const form = useForm<RedeemValues>({
     resolver: zodResolver(redeemSchema),
     defaultValues: {
       activation_code: "",
       personal_email: "",
       edu_username: "",
-      password: ""
-    }
+      password: "",
+    },
   });
 
   const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -61,80 +63,100 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
     form.setError(field, { type: "manual", message: key });
   };
 
+  /** 手动补一层“更友好”的错误提示（不依赖 schema 文案） */
   const validateValues = (values: RedeemValues) => {
     let valid = true;
     form.clearErrors();
-    if (!String(values.activation_code ?? "").trim()) {
+
+    const activation = String(values.activation_code ?? "").trim();
+    const personal = String(values.personal_email ?? "").trim();
+    const edu = String(values.edu_username ?? "").trim();
+    const pass = String(values.password ?? "").trim();
+
+    if (!activation) {
       setFieldError("activation_code", "required_activation_code");
       valid = false;
     }
-    if (!String(values.personal_email ?? "").trim()) {
+
+    if (!personal) {
       setFieldError("personal_email", "required_personal_email");
       valid = false;
-    } else {
-      const emailOk = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(values.personal_email);
-      if (!emailOk) {
-        setFieldError("personal_email", "invalid_email");
-        valid = false;
-      }
-    }
-    if (!String(values.edu_username ?? "").trim()) {
-      setFieldError("edu_username", "required_username");
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(personal)) {
+      setFieldError("personal_email", "invalid_email");
       valid = false;
     }
-    if (!String(values.password ?? "").trim()) {
+
+    if (!edu) {
+      setFieldError("edu_username", "required_username");
+      valid = false;
+    } else if (!/^[a-zA-Z0-9._-]{3,32}$/.test(edu)) {
+      setFieldError("edu_username", "invalid_username");
+      valid = false;
+    }
+
+    if (!pass) {
       setFieldError("password", "required_password");
       valid = false;
     } else {
       const passwordOk =
-        values.password.length >= 8 &&
-        /[A-Z]/.test(values.password) &&
-        /[a-z]/.test(values.password) &&
-        /\\d/.test(values.password) &&
-        /[^A-Za-z0-9]/.test(values.password);
+        pass.length >= 8 &&
+        /[A-Z]/.test(pass) &&
+        /[a-z]/.test(pass) &&
+        /\d/.test(pass) &&
+        /[^A-Za-z0-9]/.test(pass);
       if (!passwordOk) {
         setFieldError("password", "invalid_password_rules");
         valid = false;
       }
     }
-    return valid;
+
+    return {
+      valid,
+      values: {
+        activation_code: activation,
+        personal_email: personal,
+        edu_username: edu,
+        password: pass,
+      },
+    };
   };
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const onSubmit = async (values: RedeemValues) => {
     setMessageKey("verifying");
     setMessageDetail(null);
     setStatus("validating");
     setSubmitting(true);
+
     try {
-      const values = form.getValues();
-      const valid = validateValues(values);
-      if (!valid) {
+      const validated = validateValues(values);
+      if (!validated.valid) {
         setStatus("error");
         setMessageKey("submit_failed_generic");
         return;
       }
+
+      // 1) 先做健康检查，避免用户一直提交但后端没配置好
       const healthController = new AbortController();
       const healthTimeout = setTimeout(() => healthController.abort(), 10000);
+
       try {
         const healthRes = await fetch("/api/health", { signal: healthController.signal });
         const healthRaw = await healthRes.text();
+
         let healthParsed: Record<string, unknown> | null = null;
         if (healthRaw) {
           try {
             const candidate = JSON.parse(healthRaw);
-            if (isRecord(candidate)) {
-              healthParsed = candidate;
-            }
+            if (isRecord(candidate)) healthParsed = candidate;
           } catch {
             healthParsed = null;
           }
         }
+
         const healthOk = Boolean(healthParsed?.ok);
-        const supabaseInfo = isRecord(healthParsed?.supabase) ? healthParsed?.supabase : null;
-        const dbOk = Boolean(supabaseInfo && isRecord(supabaseInfo) && supabaseInfo.dbOk === true);
-        const authOk = Boolean(supabaseInfo && isRecord(supabaseInfo) && supabaseInfo.authOk === true);
-        console.debug("Redeem health check", { ok: healthOk, dbOk, authOk });
+        const supabaseInfo = isRecord(healthParsed?.supabase) ? (healthParsed?.supabase as any) : null;
+        const dbOk = Boolean(supabaseInfo && supabaseInfo.dbOk === true);
+
         if (!healthParsed) {
           setStatus("error");
           setMessageKey("serverReturnedNonJson");
@@ -158,59 +180,56 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
         clearTimeout(healthTimeout);
       }
 
+      // 2) 正式提交
       setStatus("submitting");
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 20000);
-      const payload = {
-        activation_code: values.activation_code,
-        personal_email: values.personal_email,
-        edu_username: values.edu_username,
-        password: values.password
-      };
+
+      const payload = validated.values;
       const debugPayload = { ...payload, password: "***" };
       console.debug("Redeem submit payload", debugPayload);
+
       try {
         const res = await fetch("/api/redeem", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
-          signal: controller.signal
+          signal: controller.signal,
         });
+
         const raw = await res.text();
-        console.debug("Redeem response status", res.status);
-        console.debug("Redeem response raw", raw.slice(0, 300));
         let parsed: Record<string, unknown> | null = null;
+
         if (raw) {
           try {
             const candidate = JSON.parse(raw);
-            if (isRecord(candidate)) {
-              parsed = candidate;
-            }
+            if (isRecord(candidate)) parsed = candidate;
           } catch {
             parsed = null;
           }
         }
+
         if (!res.ok) {
           const errorMessage =
             typeof parsed?.error === "string"
-              ? parsed.error
+              ? (parsed.error as string)
               : typeof parsed?.message === "string"
-              ? parsed.message
+              ? (parsed.message as string)
               : raw.slice(0, 300);
+
           setStatus("error");
           setMessageKey("serverErrorPrefix");
+
           const detail =
             runtimeLang === "zh" ? copy.submitFailedGeneric : errorMessage || copy.submitFailedGeneric;
           setMessageDetail(detail);
+
           return;
         }
-        if (!parsed) {
-          setStatus("error");
-          setMessageKey("serverReturnedNonJson");
-          setMessageDetail(raw.slice(0, 300));
-          return;
-        }
+
         if (
+          !parsed ||
           typeof parsed.personal_email !== "string" ||
           typeof parsed.edu_email !== "string" ||
           typeof parsed.expires_at !== "string" ||
@@ -222,16 +241,25 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
           setMessageDetail(raw.slice(0, 300));
           return;
         }
+
         setResult({
           personal_email: parsed.personal_email,
           edu_email: parsed.edu_email,
           expires_at: parsed.expires_at,
           password: parsed.password,
-          webmail: parsed.webmail
+          webmail: parsed.webmail,
         });
+
         setStatus("success");
+        setMessageKey(null);
+        setMessageDetail(null);
       } catch (error) {
         setStatus("error");
+        if (error instanceof Error && error.name === "AbortError") {
+          setMessageKey("requestTimeout");
+        } else {
+          setMessageKey("submit_failed_generic");
+        }
       } finally {
         clearTimeout(timeoutId);
       }
@@ -239,7 +267,6 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
       setStatus("error");
       setMessageKey("submit_failed_generic");
       setMessageDetail(null);
-      return;
     } finally {
       setSubmitting(false);
     }
@@ -248,7 +275,7 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
   const copyInfo = async () => {
     if (!result) return;
 
-    // 统一只生成一份可复制信息（避免重复 const 声明导致编译失败）
+    // ✅ 只保留一个变量，避免 duplicate const text
     const clipboardText =
       `${copy.fields.personalEmail}: ${result.personal_email}\n` +
       `${copy.eduEmail}: ${result.edu_email}\n` +
@@ -257,12 +284,9 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
       `${copy.expiresAt}: ${result.expires_at}`;
 
     await navigator.clipboard.writeText(clipboardText);
-
-    // 清理消息提示（这里不要 setServerError，因为此版本没有 serverError state）
     setMessageKey(null);
     setMessageDetail(null);
   };
-
 
   if (result) {
     return (
@@ -270,12 +294,22 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
           {copy.successTitle}
         </div>
+
         <div className="space-y-2 text-sm text-slate-600">
-          <p>{copy.fields.personalEmail}: {result.personal_email}</p>
-          <p>{copy.eduEmail}: {result.edu_email}</p>
-          <p>{copy.expiresAt}: {result.expires_at}</p>
-          <p>{copy.webmail}: {result.webmail}</p>
+          <p>
+            {copy.fields.personalEmail}: {result.personal_email}
+          </p>
+          <p>
+            {copy.eduEmail}: {result.edu_email}
+          </p>
+          <p>
+            {copy.expiresAt}: {result.expires_at}
+          </p>
+          <p>
+            {copy.webmail}: {result.webmail}
+          </p>
         </div>
+
         <div className="flex flex-wrap gap-3">
           <Button onClick={copyInfo}>{copy.copyInfo}</Button>
           <Button
@@ -287,11 +321,12 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
             {copy.dashboard}
           </Button>
         </div>
+
         {messageKey && (
           <p className="text-sm text-slate-500">
             {messageKey === "serverErrorPrefix"
               ? `${copy.serverErrorPrefix}${messageDetail ?? ""}`
-              : copy.messages[messageKey]}
+              : (copy.messages as any)[messageKey]}
           </p>
         )}
       </div>
@@ -299,10 +334,13 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
       <div>
         <Label>{copy.fields.activationCode}</Label>
-        <Input placeholder={copy.fields.activationCodePlaceholder} {...form.register("activation_code")} />
+        <Input
+          placeholder={copy.fields.activationCodePlaceholder}
+          {...form.register("activation_code")}
+        />
         <p className="mt-1 text-xs text-slate-500">{copy.fields.activationCodeHelp}</p>
         {form.formState.errors.activation_code?.message && (
           <p className="mt-1 text-xs text-rose-500">
@@ -310,6 +348,7 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
           </p>
         )}
       </div>
+
       <div>
         <Label>{copy.fields.personalEmail}</Label>
         <Input type="email" {...form.register("personal_email")} />
@@ -320,6 +359,7 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
           </p>
         )}
       </div>
+
       <div>
         <Label>{copy.fields.eduUsername}</Label>
         <Input {...form.register("edu_username")} />
@@ -330,6 +370,7 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
           </p>
         )}
       </div>
+
       <div>
         <Label>{copy.fields.password}</Label>
         <Input type="password" {...form.register("password")} />
@@ -340,16 +381,16 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
           </p>
         )}
       </div>
+
       <Button type="submit" disabled={submitting}>
         {submitting ? copy.messages.verifying : copy.buttons.submit}
       </Button>
-      {(messageKey || status === "idle") && messageKey !== "verifying" && (
+
+      {messageKey && messageKey !== "verifying" && (
         <p className="text-sm text-rose-500">
-          {messageKey
-            ? messageKey === "serverErrorPrefix"
-              ? `${copy.serverErrorPrefix}${messageDetail ?? ""}`
-              : `${copy.messages[messageKey]}${messageDetail ? ` ${messageDetail}` : ""}`
-            : copy.status.idle}
+          {messageKey === "serverErrorPrefix"
+            ? `${copy.serverErrorPrefix}${messageDetail ?? ""}`
+            : `${copy.messages[messageKey]}${messageDetail ? ` ${messageDetail}` : ""}`}
         </p>
       )}
     </form>
