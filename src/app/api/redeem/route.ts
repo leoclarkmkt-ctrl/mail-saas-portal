@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getServerEnv } from "@/lib/env";
 import { jsonError, jsonSuccess } from "@/lib/utils/api";
 import { createUserSession } from "@/lib/auth/user-session";
+import { createMailbox } from "@/lib/mailcow";
 
 export const runtime = "nodejs";
 
@@ -19,17 +20,38 @@ export async function POST(request: NextRequest) {
   };
   const isSchemaMissing = (message: string) =>
     /relation .* does not exist|schema cache|permission denied/i.test(message);
+  const lang = request.nextUrl.searchParams.get("lang") === "zh" ? "zh" : "en";
+  const message = (key: string) => {
+    const zh = {
+      missingEnv: "缺少服务器环境配置",
+      invalidInput: "提交内容无效",
+      schemaMissing: "数据库结构缺失",
+      redeemFailed: "兑换失败",
+      mailcowFailed: "邮箱创建失败，请稍后重试。",
+      internalError: "服务器内部错误"
+    };
+    const en = {
+      missingEnv: "Missing environment configuration",
+      invalidInput: "Invalid input",
+      schemaMissing: "Database schema missing",
+      redeemFailed: "Redeem failed",
+      mailcowFailed: "Mailbox creation failed. Please try again.",
+      internalError: "Internal error"
+    };
+    const dict = lang === "zh" ? zh : en;
+    return dict[key as keyof typeof dict] ?? dict.internalError;
+  };
 
   try {
     try {
       getServerEnv();
     } catch (error) {
-      return jsonError("Missing environment configuration", 500, { detail: safeString(error) });
+      return jsonError(message("missingEnv"), 500, { detail: safeString(error) });
     }
     const body = await request.json();
     const parsed = redeemSchema.safeParse(body);
     if (!parsed.success) {
-      return jsonError("Invalid input", 400);
+      return jsonError(message("invalidInput"), 400);
     }
 
     const { activation_code, personal_email, edu_username, password } = parsed.data;
@@ -46,13 +68,13 @@ export async function POST(request: NextRequest) {
       authUserId = existingProfile.user_id;
       const update = await authAdmin.updateUserById(authUserId, { password });
       if (update.error) {
-        const message = update.error.message ?? "Failed to update password";
-        if (isSchemaMissing(message)) {
-          return jsonError("Database schema missing", 500, {
+        const errorMessage = update.error.message ?? "Failed to update password";
+        if (isSchemaMissing(errorMessage)) {
+          return jsonError(message("schemaMissing"), 500, {
             detail: "schema missing: run supabase/schema.sql + migrations"
           });
         }
-        return jsonError(message, 400);
+        return jsonError(errorMessage, 400);
       }
     } else {
       const created = await authAdmin.createUser({
@@ -61,13 +83,13 @@ export async function POST(request: NextRequest) {
         email_confirm: true
       });
       if (created.error || !created.data.user) {
-        const message = created.error?.message ?? "Failed to create user";
-        if (isSchemaMissing(message)) {
-          return jsonError("Database schema missing", 500, {
+        const errorMessage = created.error?.message ?? "Failed to create user";
+        if (isSchemaMissing(errorMessage)) {
+          return jsonError(message("schemaMissing"), 500, {
             detail: "schema missing: run supabase/schema.sql + migrations"
           });
         }
-        return jsonError(message, 400);
+        return jsonError(errorMessage, 400);
       }
       authUserId = created.data.user.id;
       const upsert = await supabase.from("profiles").upsert(
@@ -75,13 +97,13 @@ export async function POST(request: NextRequest) {
         { onConflict: "user_id" }
       );
       if (upsert.error) {
-        const message = upsert.error.message;
-        if (isSchemaMissing(message)) {
-          return jsonError("Database schema missing", 500, {
+        const errorMessage = upsert.error.message;
+        if (isSchemaMissing(errorMessage)) {
+          return jsonError(message("schemaMissing"), 500, {
             detail: "schema missing: run supabase/schema.sql + migrations"
           });
         }
-        return jsonError(message, 400);
+        return jsonError(errorMessage, 400);
       }
     }
 
@@ -93,28 +115,38 @@ export async function POST(request: NextRequest) {
     });
 
     if (error || !data?.[0]) {
-      const message = error?.message ?? "Redeem failed";
-      if (isSchemaMissing(message)) {
-        return jsonError("Database schema missing", 500, {
+      const failureMessage = error?.message ?? message("redeemFailed");
+      if (isSchemaMissing(failureMessage)) {
+        return jsonError(message("schemaMissing"), 500, {
           detail: "schema missing: run supabase/schema.sql + migrations"
         });
       }
-      return jsonError(message, 400);
+      return jsonError(failureMessage, 400);
     }
 
     const result = data[0];
+    const mailcowResult = await createMailbox(result.edu_email, password);
+    if (!mailcowResult.ok) {
+      await supabase
+        .from("activation_codes")
+        .update({ status: "unused", used_at: null, used_by_user_id: null })
+        .eq("code", activation_code);
+      return jsonError(message("mailcowFailed"), 502, {
+        detail: mailcowResult.detail ?? mailcowResult.error
+      });
+    }
     const finalUpsert = await supabase.from("profiles").upsert(
       { id: authUserId, user_id: authUserId, personal_email },
       { onConflict: "user_id" }
     );
     if (finalUpsert.error) {
-      const message = finalUpsert.error.message;
-      if (isSchemaMissing(message)) {
-        return jsonError("Database schema missing", 500, {
+      const errorMessage = finalUpsert.error.message;
+      if (isSchemaMissing(errorMessage)) {
+        return jsonError(message("schemaMissing"), 500, {
           detail: "schema missing: run supabase/schema.sql + migrations"
         });
       }
-      return jsonError(message, 400);
+      return jsonError(errorMessage, 400);
     }
     await createUserSession({ userId: result.user_id, mode: "personal" });
 
@@ -126,6 +158,6 @@ export async function POST(request: NextRequest) {
       webmail: "https://mail.nsuk.edu.kg/"
     });
   } catch (error) {
-    return jsonError("Internal error", 500, { detail: safeString(error) });
+    return jsonError(message("internalError"), 500, { detail: safeString(error) });
   }
 }

@@ -1,8 +1,9 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth/admin-session";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { adminUserActionSchema } from "@/lib/validation/schemas";
 import { jsonError, jsonSuccess } from "@/lib/utils/api";
+import { setMailboxActive } from "@/lib/mailcow";
 
 export const runtime = "nodejs";
 
@@ -58,9 +59,27 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   const session = await getAdminSession();
   if (!session) return jsonError("Unauthorized", 401);
+  const lang = request.nextUrl.searchParams.get("lang") === "zh" ? "zh" : "en";
+  const message = (key: string) => {
+    const zh = {
+      invalidInput: "提交内容无效",
+      mailcowFailed: "邮箱状态更新失败",
+      userNotFound: "未找到用户"
+    };
+    const en = {
+      invalidInput: "Invalid input",
+      mailcowFailed: "Failed to update mailbox status",
+      userNotFound: "User not found"
+    };
+    const dict = lang === "zh" ? zh : en;
+    return dict[key as keyof typeof dict] ?? dict.invalidInput;
+  };
+  const errorResponse = (code: string, msg: string, detail: unknown, status: number) =>
+    NextResponse.json({ code, message: msg, detail }, { status });
+
   const body = await request.json();
   const parsed = adminUserActionSchema.safeParse(body);
-  if (!parsed.success) return jsonError("Invalid input", 400);
+  if (!parsed.success) return errorResponse("invalid_input", message("invalidInput"), null, 400);
 
   const supabase = createServerSupabaseClient();
   if (parsed.data.years) {
@@ -74,6 +93,28 @@ export async function PATCH(request: NextRequest) {
   }
 
   if (typeof parsed.data.suspend === "boolean") {
+    const { data: eduAccount, error: eduError } = await supabase
+      .from("edu_accounts")
+      .select("edu_email")
+      .eq("user_id", parsed.data.user_id)
+      .maybeSingle();
+    if (eduError || !eduAccount?.edu_email) {
+      return errorResponse(
+        "edu_not_found",
+        message("userNotFound"),
+        eduError?.message ?? null,
+        404
+      );
+    }
+    const mailcowResult = await setMailboxActive(eduAccount.edu_email, !parsed.data.suspend);
+    if (!mailcowResult.ok) {
+      return errorResponse(
+        "mailcow_failed",
+        message("mailcowFailed"),
+        mailcowResult.detail ?? mailcowResult.error,
+        502
+      );
+    }
     const { error } = await supabase
       .from("profiles")
       .update({ is_suspended: parsed.data.suspend, suspended_reason: parsed.data.reason ?? null })

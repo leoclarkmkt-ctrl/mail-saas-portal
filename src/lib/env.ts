@@ -11,6 +11,11 @@ const REQUIRED_SERVER = [
   "ADMIN_PASSWORD_HASH"
 ] as const;
 
+const REQUIRED_MAILCOW = [
+  "MAILCOW_API_BASE_URL",
+  "MAILCOW_API_KEY"
+] as const;
+
 function getMissing(keys: readonly string[]) {
   return keys.filter((key) => !process.env[key]);
 }
@@ -44,6 +49,25 @@ export function getServerEnv() {
 
 export function getEnvStatus() {
   const missing = getMissing([...REQUIRED_PUBLIC, ...REQUIRED_SERVER]);
+  return {
+    ok: missing.length === 0,
+    missing
+  };
+}
+
+export function getMailcowEnv() {
+  const missing = getMissing(REQUIRED_MAILCOW);
+  if (missing.length > 0) {
+    throw new Error(`Missing env: ${missing.join(", ")}`);
+  }
+  return {
+    MAILCOW_API_BASE_URL: process.env.MAILCOW_API_BASE_URL as string,
+    MAILCOW_API_KEY: process.env.MAILCOW_API_KEY as string
+  };
+}
+
+export function getMailcowEnvStatus() {
+  const missing = getMissing(REQUIRED_MAILCOW);
   return {
     ok: missing.length === 0,
     missing

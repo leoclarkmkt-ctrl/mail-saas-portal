@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getMailcowEnvStatus } from "@/lib/env";
+import { checkMailcowStatus } from "@/lib/mailcow";
 
 export const runtime = "nodejs";
 
@@ -20,6 +22,7 @@ export async function GET() {
   const missing = required.filter((key) => !process.env[key]);
   const envOk = missing.length === 0;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  const mailcowEnv = getMailcowEnvStatus();
 
   const responseHeaders = { "Cache-Control": "no-store" };
 
@@ -28,6 +31,7 @@ export async function GET() {
       {
         ok: false,
         env: { ok: false, missing },
+        mailcow: { ok: mailcowEnv.ok, missing: mailcowEnv.missing },
         supabase: {
           ok: false,
           url: supabaseUrl,
@@ -79,11 +83,29 @@ export async function GET() {
     schemaHints.push(safeMessage(error));
   }
 
-  const ok = envOk && dbOk;
+  let mailcowOk = false;
+  let mailcowError: string | undefined;
+  if (mailcowEnv.ok) {
+    const mailcowStatus = await checkMailcowStatus();
+    mailcowOk = mailcowStatus.ok;
+    if (!mailcowStatus.ok) {
+      mailcowError = mailcowStatus.error ?? "Mailcow unavailable";
+    }
+  } else {
+    mailcowOk = false;
+    mailcowError = "Missing Mailcow environment variables";
+  }
+
+  const ok = envOk && dbOk && mailcowOk;
   return NextResponse.json(
     {
       ok,
       env: { ok: envOk, missing },
+      mailcow: {
+        ok: mailcowOk,
+        error: mailcowError,
+        missing: mailcowEnv.ok ? undefined : mailcowEnv.missing
+      },
       supabase: {
         ok: dbOk,
         url: supabaseUrl,
