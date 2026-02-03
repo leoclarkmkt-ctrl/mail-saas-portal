@@ -247,13 +247,22 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
 
   const copyInfo = async () => {
     if (!result) return;
-    const text = `${copy.fields.personalEmail}: ${result.personal_email}\n${copy.eduEmail}: ${result.edu_email}\n${copy.webmail}: ${result.webmail}\n${copy.expiresAt}: ${result.expires_at}`;
-    await navigator.clipboard.writeText(text);
-    setServerError(null);
-    const text = `${copy.eduEmail}: ${result.edu_email}\n${copy.fields.password}: ${result.password}\n${copy.webmail}: ${result.webmail}`;
-    await navigator.clipboard.writeText(text);
+
+    // 统一只生成一份可复制信息（避免重复 const 声明导致编译失败）
+    const clipboardText =
+      `${copy.fields.personalEmail}: ${result.personal_email}\n` +
+      `${copy.eduEmail}: ${result.edu_email}\n` +
+      `${copy.fields.password}: ${result.password}\n` +
+      `${copy.webmail}: ${result.webmail}\n` +
+      `${copy.expiresAt}: ${result.expires_at}`;
+
+    await navigator.clipboard.writeText(clipboardText);
+
+    // 清理消息提示（这里不要 setServerError，因为此版本没有 serverError state）
     setMessageKey(null);
+    setMessageDetail(null);
   };
+
 
   if (result) {
     return (
