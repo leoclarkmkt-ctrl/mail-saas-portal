@@ -31,6 +31,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 <Link className="hover:text-slate-900" href={withLang("/admin/login", dict.locale)}>
                   {dict.common.admin}
                 </Link>
+              <div className="flex items-center gap-2">
                 <LanguageSwitch />
               </div>
             </div>
