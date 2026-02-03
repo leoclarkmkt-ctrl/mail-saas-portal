@@ -21,7 +21,6 @@ export default function HomePage({ searchParams }: { searchParams?: Record<strin
           </Button>
         </Link>
         <a href="https://mail.nsuk.edu.kg" target="_blank" rel="noreferrer">
-        <a href="https://mail.nsuk.edu.kg/" target="_blank" rel="noreferrer">
           <Button className="w-full" size="lg" variant="outline">
             {dict.home.webmail}
           </Button>
