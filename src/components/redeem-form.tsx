@@ -247,6 +247,9 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
 
   const copyInfo = async () => {
     if (!result) return;
+    const text = `${copy.fields.personalEmail}: ${result.personal_email}\n${copy.eduEmail}: ${result.edu_email}\n${copy.webmail}: ${result.webmail}\n${copy.expiresAt}: ${result.expires_at}`;
+    await navigator.clipboard.writeText(text);
+    setServerError(null);
     const text = `${copy.eduEmail}: ${result.edu_email}\n${copy.fields.password}: ${result.password}\n${copy.webmail}: ${result.webmail}`;
     await navigator.clipboard.writeText(text);
     setMessageKey(null);

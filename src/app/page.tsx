@@ -29,7 +29,7 @@ export default function HomePage({ searchParams }: { searchParams?: Record<strin
           </Button>
         </a>
         <Link href={withLang("/dashboard", lang)}>
-          <Button className="w-full" size="lg" variant="ghost">
+          <Button className="w-full" size="lg" variant="outline">
             {dict.home.dashboard}
           </Button>
         </Link>
