@@ -3,7 +3,7 @@ import "./globals.css";
 import Link from "next/link";
 import { LanguageSwitch } from "@/components/language-switch";
 import { SiteFooter } from "@/components/site-footer";
-import { getDictionary } from "@/i18n";
+import { getDictionary, getLocale } from "@/i18n";
 import { withLang } from "@/lib/i18n";
 
 export const metadata = {
@@ -15,9 +15,10 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  const dict = getDictionary();
+  const locale = getLocale();
+  const dict = getDictionary(locale);
   return (
-    <html lang={dict.locale}>
+    <html lang={locale}>
       <body>
         <div className="min-h-screen bg-slate-50 text-slate-900">
           <header className="border-b border-slate-200 bg-white">
@@ -28,10 +29,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 <p className="text-sm text-slate-500">{dict.common.brandZh}</p>
               </div>
               <div className="flex items-center gap-4 text-sm text-slate-600">
-                <Link className="hover:text-slate-900" href={withLang("/admin/login", dict.locale)}>
+                <Link className="hover:text-slate-900" href={withLang("/admin/login", locale)}>
                   {dict.common.admin}
                 </Link>
-              <div className="flex items-center gap-2">
                 <LanguageSwitch />
               </div>
             </div>

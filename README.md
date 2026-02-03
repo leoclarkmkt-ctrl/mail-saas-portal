@@ -22,7 +22,6 @@ ADMIN_EMAIL=admin@nsuk.edu.kg
 ADMIN_PASSWORD_HASH=
 ```
 
-  > Required Supabase envs: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `APP_BASE_URL`, `SESSION_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD_HASH`.
   > `SUPABASE_SERVICE_ROLE_KEY` must only exist on the server. **Never expose it to the browser**.
   > Password recovery emails are sent by Supabase Auth; configure email provider/templates in Supabase if needed.
   > `APP_BASE_URL` must match your Vercel domain (e.g. https://portal.nsuk.edu.kg) for recovery redirects to work.
