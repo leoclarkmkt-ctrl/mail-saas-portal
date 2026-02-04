@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { changePasswordSchema } from "@/lib/validation/schemas";
 import { createServerSupabaseAnonClient, createServerSupabaseClient } from "@/lib/supabase/server";
-import { getServerEnv } from "@/lib/env";
+import { getSessionEnv } from "@/lib/env";
 import { clearUserSession, getUserSession } from "@/lib/auth/user-session";
 import { jsonSuccess } from "@/lib/utils/api";
 import { updateMailboxPassword } from "@/lib/mailcow";
@@ -9,7 +9,7 @@ import { updateMailboxPassword } from "@/lib/mailcow";
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
-  getServerEnv();
+  getSessionEnv();
   const lang = request.nextUrl.searchParams.get("lang") === "zh" ? "zh" : "en";
   const message = (key: string) => {
     const zh = {

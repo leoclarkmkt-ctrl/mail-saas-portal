@@ -8,6 +8,7 @@ import type { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { readJsonResponse } from "@/lib/utils/safe-json";
 
 type ForgotValues = z.infer<typeof forgotSchema>;
 
@@ -30,12 +31,7 @@ export function ForgotForm({ labels }: { labels: Record<string, string> }) {
       body: JSON.stringify(values),
     });
 
-    let data: any = null;
-    try {
-      data = await res.json();
-    } catch {
-      // ignore JSON parse error
-    }
+    const { data } = await readJsonResponse<{ error?: string }>(res);
 
     if (!res.ok) {
       setMessage(data?.error ?? "Failed. Please check /status for configuration hints.");

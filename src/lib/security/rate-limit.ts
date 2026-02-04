@@ -8,6 +8,11 @@ type RateLimitConfig = {
   windowSeconds: number;
 };
 
+type RateLimitEnv = {
+  UPSTASH_REDIS_REST_URL: string;
+  UPSTASH_REDIS_REST_TOKEN: string;
+};
+
 type RateLimitResult = {
   retryAfterSeconds: number;
   limit: number;
@@ -18,22 +23,21 @@ type RateLimitResult = {
 let redisClient: Redis | null = null;
 const limiterCache = new Map<string, Ratelimit>();
 
-const getRedis = () => {
+const getRedis = (env: RateLimitEnv) => {
   if (redisClient) return redisClient;
-  const { UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN } = getRateLimitEnv();
   redisClient = new Redis({
-    url: UPSTASH_REDIS_REST_URL,
-    token: UPSTASH_REDIS_REST_TOKEN
+    url: env.UPSTASH_REDIS_REST_URL,
+    token: env.UPSTASH_REDIS_REST_TOKEN
   });
   return redisClient;
 };
 
-const getLimiter = (keyPrefix: string, config: RateLimitConfig) => {
+const getLimiter = (keyPrefix: string, config: RateLimitConfig, env: RateLimitEnv) => {
   const cacheKey = `${keyPrefix}:${config.requests}:${config.windowSeconds}`;
   const cached = limiterCache.get(cacheKey);
   if (cached) return cached;
   const limiter = new Ratelimit({
-    redis: getRedis(),
+    redis: getRedis(env),
     limiter: Ratelimit.fixedWindow(config.requests, `${config.windowSeconds} s`),
     analytics: true,
     prefix: `ratelimit:${keyPrefix}`
@@ -71,8 +75,15 @@ export async function enforceRateLimit(
   config: RateLimitConfig
 ): Promise<NextResponse | null> {
   try {
+    const env = getRateLimitEnv();
+    if (!env) {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("Rate limit disabled: missing UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN.");
+      }
+      return null;
+    }
     const ip = extractClientIp(request);
-    const limiter = getLimiter(keyPrefix, config);
+    const limiter = getLimiter(keyPrefix, config, env);
     const result = await limiter.limit(`${keyPrefix}:${ip}`);
     if (result.success) return null;
 

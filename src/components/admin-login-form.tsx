@@ -9,6 +9,7 @@ import type { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { readJsonResponse } from "@/lib/utils/safe-json";
 
 type AdminLoginValues = z.infer<typeof adminLoginSchema>;
 
@@ -38,12 +39,7 @@ export function AdminLoginForm({ labels }: { labels: AdminLoginLabels }) {
       body: JSON.stringify(values),
     });
 
-    let data: any = null;
-    try {
-      data = await res.json();
-    } catch {
-      // ignore JSON parse error
-    }
+    const { data } = await readJsonResponse<{ error?: string }>(res);
 
     if (!res.ok) {
       setMessage(data?.error ?? labels.failed);

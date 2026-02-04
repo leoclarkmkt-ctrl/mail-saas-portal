@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { loginSchema } from "@/lib/validation/schemas";
 import { createServerSupabaseAnonClient, createServerSupabaseClient } from "@/lib/supabase/server";
-import { getServerEnv } from "@/lib/env";
+import { getSessionEnv } from "@/lib/env";
 import { jsonError, jsonSuccess } from "@/lib/utils/api";
 import { createUserSession } from "@/lib/auth/user-session";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     windowSeconds: 60
   });
   if (rateLimitResponse) return rateLimitResponse;
-  getServerEnv();
+  getSessionEnv();
   const body = await request.json();
   const parsed = loginSchema.safeParse(body);
   if (!parsed.success) {

@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { redeemSchema } from "@/lib/validation/schemas";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getServerEnv } from "@/lib/env";
+import { getSessionEnv, getSupabaseServiceEnv } from "@/lib/env";
 import { jsonError, jsonSuccess } from "@/lib/utils/api";
 import { createUserSession } from "@/lib/auth/user-session";
 import { createMailbox } from "@/lib/mailcow";
@@ -55,7 +55,8 @@ export async function POST(request: NextRequest) {
 
   try {
     try {
-      getServerEnv();
+      getSupabaseServiceEnv();
+      getSessionEnv();
     } catch (error) {
       return jsonError(message("missingEnv"), 500, { detail: safeString(error) });
     }
