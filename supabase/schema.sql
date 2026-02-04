@@ -80,20 +80,20 @@ begin
     insert into profiles (id, personal_email) values (p_user_id, v_personal) returning * into v_user;
   end if;
 
+  -- 🆕 新增检查：用户是否已拥有教育邮箱
   select * into v_edu from edu_accounts where user_id = v_user.id;
-  if not found then
-    if exists(select 1 from edu_accounts where edu_username = v_username) then
-      raise exception 'Edu username exists';
-    end if;
-    v_expires := v_now + interval '1 year';
-    insert into edu_accounts (user_id, edu_email, edu_username, expires_at, status)
-    values (v_user.id, v_edu_email, v_username, v_expires, 'active')
-    returning * into v_edu;
-  else
-    v_expires := (case when v_edu.expires_at > v_now then v_edu.expires_at else v_now end) + interval '1 year';
-    update edu_accounts set expires_at = v_expires, status = 'active', updated_at = v_now where id = v_edu.id
-    returning * into v_edu;
+  if found then
+    raise exception 'User already has education account';
   end if;
+
+  -- 创建新的教育账户
+  if exists(select 1 from edu_accounts where edu_username = v_username) then
+    raise exception 'Edu username exists';
+  end if;
+  v_expires := v_now + interval '1 year';
+  insert into edu_accounts (user_id, edu_email, edu_username, expires_at, status)
+  values (v_user.id, v_edu_email, v_username, v_expires, 'active')
+  returning * into v_edu;
 
   update activation_codes
   set status = 'used', used_at = v_now, used_by_user_id = v_user.id
