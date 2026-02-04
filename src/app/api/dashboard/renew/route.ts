@@ -55,8 +55,12 @@ export async function POST(request: NextRequest) {
       action: "user_renew_mailcow_failed",
       meta: { detail: mailcowResult.detail ?? mailcowResult.error }
     });
-    return jsonError("Mailbox enable failed", 502, {
-      detail: mailcowResult.detail ?? mailcowResult.error
+    return jsonSuccess({
+      ok: true,
+      renewed: true,
+      enabled: false,
+      expires_at: data?.[0]?.expires_at,
+      message: "Renewed. Mailbox enable failed; please retry later."
     });
   }
 
@@ -65,5 +69,10 @@ export async function POST(request: NextRequest) {
     action: "user_renew"
   });
 
-  return jsonSuccess({ ok: true, expires_at: data?.[0]?.expires_at, enabled: true });
+  return jsonSuccess({
+    ok: true,
+    renewed: true,
+    enabled: true,
+    expires_at: data?.[0]?.expires_at
+  });
 }

@@ -29,6 +29,10 @@ MAILCOW_API_KEY=
 
 # Cron (required for expiry job)
 CRON_SECRET=
+
+# Cron schedule example (VPS)
+# */5 * * * * curl -sS -X POST https://portal.nsuk.edu.kg/api/cron/expire \\
+#   -H "Authorization: Bearer $CRON_SECRET"
 ```
 
   > `SUPABASE_SERVICE_ROLE_KEY` must only exist on the server. **Never expose it to the browser**.

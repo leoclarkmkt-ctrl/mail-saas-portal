@@ -67,7 +67,8 @@ export default async function DashboardPage({ searchParams }: { searchParams?: R
           passwordHint: dict.dashboard.passwordHint,
           passwordUpdated: dict.dashboard.passwordUpdated,
           renewHint: dict.dashboard.renewHint,
-          expiredNotice: dict.dashboard.expiredNotice
+          expiredNotice: dict.dashboard.expiredNotice,
+          renewEnableFailed: dict.dashboard.renewEnableFailed
         }}
       />
     </div>

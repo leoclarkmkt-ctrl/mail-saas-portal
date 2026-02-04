@@ -17,6 +17,7 @@ export type DashboardData = {
 
 export function DashboardPanel({ data, labels }: { data: DashboardData; labels: Record<string, string> }) {
   const [message, setMessage] = useState<string | null>(null);
+  const [renewEnabled, setRenewEnabled] = useState<boolean | null>(null);
   const [renewCode, setRenewCode] = useState("");
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -49,6 +50,12 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
       setMessage(payload.error ?? "Failed. Please check /status for configuration hints.");
       return;
     }
+    if (payload.enabled === false) {
+      setRenewEnabled(false);
+      setMessage(payload.message ?? labels.renewEnableFailed);
+      return;
+    }
+    setRenewEnabled(true);
     window.location.reload();
   };
 
@@ -108,6 +115,11 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
       {!data.suspended && data.expired && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
           {labels.expiredNotice}
+        </div>
+      )}
+      {renewEnabled === false && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+          {labels.renewEnableFailed}
         </div>
       )}
 
