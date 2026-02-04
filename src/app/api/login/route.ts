@@ -4,10 +4,16 @@ import { createServerSupabaseAnonClient, createServerSupabaseClient } from "@/li
 import { getServerEnv } from "@/lib/env";
 import { jsonError, jsonSuccess } from "@/lib/utils/api";
 import { createUserSession } from "@/lib/auth/user-session";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = await enforceRateLimit(request, "login", {
+    requests: 5,
+    windowSeconds: 60
+  });
+  if (rateLimitResponse) return rateLimitResponse;
   getServerEnv();
   const body = await request.json();
   const parsed = loginSchema.safeParse(body);

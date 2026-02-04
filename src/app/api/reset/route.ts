@@ -3,10 +3,16 @@ import { resetSchema } from "@/lib/validation/schemas";
 import { createServerSupabaseAnonClient, createServerSupabaseClient } from "@/lib/supabase/server";
 import { getServerEnv } from "@/lib/env";
 import { jsonError, jsonSuccess } from "@/lib/utils/api";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = await enforceRateLimit(request, "reset", {
+    requests: 3,
+    windowSeconds: 60
+  });
+  if (rateLimitResponse) return rateLimitResponse;
   getServerEnv();
   const body = await request.json();
   const parsed = resetSchema.safeParse(body);

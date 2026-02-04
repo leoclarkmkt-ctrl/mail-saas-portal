@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { adminUserActionSchema } from "@/lib/validation/schemas";
 import { jsonError, jsonSuccess } from "@/lib/utils/api";
 import { setMailboxActive } from "@/lib/mailcow";
+import { randomString } from "@/lib/security/random";
 
 export const runtime = "nodejs";
 
@@ -125,7 +126,7 @@ export async function PATCH(request: NextRequest) {
   }
 
   if (parsed.data.reset_password) {
-    const tempPassword = `NSUK-${Math.random().toString(36).slice(2, 8)}!`;
+    const tempPassword = `NSUK-${randomString(8, "ABCDEFGHIJKLMNOPQRSTUVWXYZ23456789")}!`;
     const update = await supabase.auth.admin.updateUserById(parsed.data.user_id, {
       password: tempPassword
     });

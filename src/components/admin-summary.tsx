@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 
 type AdminSummaryLabels = {
   loading: string;
@@ -20,12 +21,37 @@ type AdminSummaryLabels = {
 
 export function AdminSummary({ labels }: { labels: AdminSummaryLabels }) {
   const [data, setData] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/summary");
+      if (!res.ok) {
+        throw new Error("Failed to load");
+      }
+      const payload = await res.json();
+      setData(payload);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load");
+      setData(null);
+    }
+  }, []);
 
   useEffect(() => {
-    fetch("/api/admin/summary")
-      .then((res) => res.json())
-      .then(setData);
-  }, []);
+    void load();
+  }, [load]);
+
+  if (error) {
+    return (
+      <div className="space-y-2">
+        <p className="text-sm text-rose-500">{error}</p>
+        <Button size="sm" onClick={load}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
 
   if (!data) {
     return <p className="text-sm text-slate-500">{labels.loading}</p>;

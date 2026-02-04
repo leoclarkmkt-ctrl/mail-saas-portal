@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useId } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { forgotSchema } from "@/lib/validation/schemas";
@@ -13,6 +13,8 @@ type ForgotValues = z.infer<typeof forgotSchema>;
 
 export function ForgotForm({ labels }: { labels: Record<string, string> }) {
   const [message, setMessage] = useState<string | null>(null);
+  const emailId = useId();
+  const messageId = useId();
 
   const form = useForm<ForgotValues>({
     resolver: zodResolver(forgotSchema),
@@ -46,13 +48,22 @@ export function ForgotForm({ labels }: { labels: Record<string, string> }) {
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
       <div>
-        <Label>{labels.email}</Label>
-        <Input type="email" {...form.register("personal_email")} />
+        <Label htmlFor={emailId}>{labels.email}</Label>
+        <Input
+          id={emailId}
+          type="email"
+          aria-describedby={message ? messageId : undefined}
+          {...form.register("personal_email")}
+        />
       </div>
 
       <Button type="submit">{labels.submit}</Button>
 
-      {message && <p className="text-sm text-slate-500">{message}</p>}
+      {message && (
+        <p className="text-sm text-slate-500" id={messageId}>
+          {message}
+        </p>
+      )}
     </form>
   );
 }

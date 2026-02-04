@@ -3,15 +3,12 @@ import { getAdminSession } from "@/lib/auth/admin-session";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { adminGenerateCodesSchema, adminRevokeCodeSchema } from "@/lib/validation/schemas";
 import { jsonError, jsonSuccess } from "@/lib/utils/api";
+import { randomString } from "@/lib/security/random";
 
 const CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 function generateCode(length: number) {
-  let result = "";
-  for (let i = 0; i < length; i += 1) {
-    result += CHARS[Math.floor(Math.random() * CHARS.length)];
-  }
-  return result;
+  return randomString(length, CHARS);
 }
 
 export const runtime = "nodejs";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useId } from "react";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,6 +18,9 @@ export function ResetForm({ labels }: { labels: Record<string, string> }) {
   const accessTokenFromQuery = params.get("access_token") ?? "";
   const [accessTokenFromHash, setAccessTokenFromHash] = useState("");
   const lang = params.get("lang") ?? undefined;
+  const passwordId = useId();
+  const messageId = useId();
+  const tokenMessageId = useId();
 
   useEffect(() => {
     const hashToken = new URLSearchParams(window.location.hash.replace(/^#/, "")).get("access_token") ?? "";
@@ -34,6 +37,12 @@ export function ResetForm({ labels }: { labels: Record<string, string> }) {
       form.setValue("access_token", accessTokenFromQuery || accessTokenFromHash);
     }
   }, [accessTokenFromQuery, accessTokenFromHash, form]);
+
+  const hasToken = Boolean(accessTokenFromQuery || accessTokenFromHash);
+  const tokenMessage =
+    lang === "zh"
+      ? "重置链接无效或已过期，请重新发起找回流程。"
+      : "Reset link is invalid or expired. Please request a new one.";
 
   const onSubmit = async (values: ResetValues) => {
     setMessage(null);
@@ -55,11 +64,29 @@ export function ResetForm({ labels }: { labels: Record<string, string> }) {
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
       <div>
-        <Label>{labels.newPassword}</Label>
-        <Input type="password" {...form.register("new_password")} />
+        <Label htmlFor={passwordId}>{labels.newPassword}</Label>
+        <Input
+          id={passwordId}
+          type="password"
+          aria-describedby={
+            !hasToken ? tokenMessageId : message ? messageId : undefined
+          }
+          {...form.register("new_password")}
+        />
       </div>
-      <Button type="submit">{labels.submit}</Button>
-      {message && <p className="text-sm text-slate-500">{message}</p>}
+      <Button type="submit" disabled={!hasToken}>
+        {labels.submit}
+      </Button>
+      {!hasToken && (
+        <p className="text-sm text-rose-500" id={tokenMessageId}>
+          {tokenMessage}
+        </p>
+      )}
+      {message && (
+        <p className="text-sm text-slate-500" id={messageId}>
+          {message}
+        </p>
+      )}
     </form>
   );
 }
