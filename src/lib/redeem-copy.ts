@@ -8,6 +8,7 @@ export type RedeemMessageKey =
   | "required_password"
   | "invalid_email"
   | "invalid_password_rules"
+  | "personalEmailDomainBlocked"
   | "verifying"
   | "submit_success"
   | "submit_failed_generic"
@@ -88,6 +89,7 @@ const zh: RedeemCopy = {
     required_password: "请输入密码",
     invalid_email: "邮箱格式不正确",
     invalid_password_rules: "密码规则不符合要求",
+    personalEmailDomainBlocked: "个人邮箱不能使用 @nsuk.edu.kg，请填写你的常用个人邮箱（如 Gmail/Outlook 等）。",
     verifying: "校验中",
     submit_success: "提交成功",
     submit_failed_generic: "提交失败，请检查信息后重试。",
@@ -141,6 +143,7 @@ const en: RedeemCopy = {
     required_password: "Please enter your password.",
     invalid_email: "Invalid email format.",
     invalid_password_rules: "Password does not meet the required rules.",
+    personalEmailDomainBlocked: "Personal email cannot be an @nsuk.edu.kg address. Please use a personal mailbox (e.g., Gmail/Outlook).",
     verifying: "Verifying",
     submit_success: "Submission successful.",
     submit_failed_generic: "Submission failed. Please review your details and try again.",

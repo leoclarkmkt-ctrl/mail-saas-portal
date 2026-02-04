@@ -6,6 +6,7 @@ import { jsonError, jsonSuccess } from "@/lib/utils/api";
 import { createUserSession } from "@/lib/auth/user-session";
 import { createMailbox } from "@/lib/mailcow";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
+import { isBlockedPersonalEmail } from "@/lib/validation/email-domain";
 
 export const runtime = "nodejs";
 
@@ -35,7 +36,8 @@ export async function POST(request: NextRequest) {
       redeemFailed: "兑换失败",
       mailcowFailed: "邮箱创建失败，请稍后重试。",
       internalError: "服务器内部错误",
-      alreadyHasEducationAccount: "您已拥有教育邮箱，请登录学生中心控制台查看！"
+      alreadyHasEducationAccount: "您已拥有教育邮箱，请登录学生中心控制台查看！",
+      personalEmailDomainBlocked: "个人邮箱不能使用 @nsuk.edu.kg，请填写你的常用个人邮箱（如 Gmail/Outlook 等）。"
     };
     const en = {
       missingEnv: "Missing environment configuration",
@@ -44,7 +46,8 @@ export async function POST(request: NextRequest) {
       redeemFailed: "Redeem failed",
       mailcowFailed: "Mailbox creation failed. Please try again.",
       internalError: "Internal error",
-      alreadyHasEducationAccount: "You already have an education account. Please log in to your student console!"
+      alreadyHasEducationAccount: "You already have an education account. Please log in to your student console!",
+      personalEmailDomainBlocked: "Personal email cannot be an @nsuk.edu.kg address. Please use a personal mailbox (e.g., Gmail/Outlook)."
     };
     const dict = lang === "zh" ? zh : en;
     return dict[key as keyof typeof dict] ?? dict.internalError;
@@ -63,6 +66,10 @@ export async function POST(request: NextRequest) {
     }
 
     const { activation_code, personal_email, edu_username, password } = parsed.data;
+    const normalizedPersonalEmail = personal_email.trim().toLowerCase();
+    if (isBlockedPersonalEmail(normalizedPersonalEmail)) {
+      return jsonError(message("personalEmailDomainBlocked"), 400);
+    }
     const supabase = createServerSupabaseClient();
     const authAdmin = supabase.auth.admin;
 
@@ -71,7 +78,7 @@ export async function POST(request: NextRequest) {
     const { data: existingProfile } = await supabase
       .from("profiles")
       .select("user_id")
-      .eq("personal_email", personal_email)
+      .eq("personal_email", normalizedPersonalEmail)
       .maybeSingle();
     if (existingProfile?.user_id) {
       authUserId = existingProfile.user_id;
@@ -87,7 +94,7 @@ export async function POST(request: NextRequest) {
       }
     } else {
       const created = await authAdmin.createUser({
-        email: personal_email,
+        email: normalizedPersonalEmail,
         password,
         email_confirm: true
       });
@@ -103,7 +110,7 @@ export async function POST(request: NextRequest) {
       authUserId = created.data.user.id;
       createdNewUser = true;
       const upsert = await supabase.from("profiles").upsert(
-        { id: authUserId, user_id: authUserId, personal_email, is_suspended: false },
+        { id: authUserId, user_id: authUserId, personal_email: normalizedPersonalEmail, is_suspended: false },
         { onConflict: "user_id" }
       );
       if (upsert.error) {
@@ -120,7 +127,7 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabase.rpc("redeem_activation_code", {
       p_code: activation_code,
       p_user_id: authUserId,
-      p_personal_email: personal_email,
+      p_personal_email: normalizedPersonalEmail,
       p_edu_username: edu_username
     });
 
@@ -178,7 +185,7 @@ export async function POST(request: NextRequest) {
       });
     }
     const finalUpsert = await supabase.from("profiles").upsert(
-      { id: authUserId, user_id: authUserId, personal_email },
+      { id: authUserId, user_id: authUserId, personal_email: normalizedPersonalEmail },
       { onConflict: "user_id" }
     );
     if (finalUpsert.error) {
