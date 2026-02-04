@@ -29,7 +29,7 @@ export function setCookie(name: string, value: string, maxAgeSeconds: number) {
     name,
     value,
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
     maxAge: maxAgeSeconds
@@ -41,7 +41,7 @@ export function clearCookie(name: string) {
     name,
     value: "",
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
     maxAge: 0

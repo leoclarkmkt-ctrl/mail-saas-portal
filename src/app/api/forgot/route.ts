@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { forgotSchema } from "@/lib/validation/schemas";
 import { createServerSupabaseAnonClient } from "@/lib/supabase/server";
-import { getServerEnv } from "@/lib/env";
+import { getAppBaseUrl } from "@/lib/env";
 import { jsonSuccess } from "@/lib/utils/api";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createServerSupabaseAnonClient();
-  const { APP_BASE_URL } = getServerEnv();
+  const { APP_BASE_URL } = getAppBaseUrl();
   const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.personal_email, {
     redirectTo: `${APP_BASE_URL}/reset`
   });

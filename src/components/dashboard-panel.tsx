@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { maskEmail } from "@/lib/utils/format";
+import { readJsonResponse } from "@/lib/utils/safe-json";
 
 export type DashboardData = {
   personalEmail: string;
@@ -53,14 +54,14 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ activation_code: renewCode })
       });
-      const payload = await res.json();
+      const { data: payload, text } = await readJsonResponse<{ error?: string; enabled?: boolean; message?: string }>(res);
       if (!res.ok) {
-        setMessage(payload.error ?? "Failed. Please check /status for configuration hints.");
+        setMessage(payload?.error ?? text ?? "Failed. Please check /status for configuration hints.");
         return;
       }
-      if (payload.enabled === false) {
+      if (payload?.enabled === false) {
         setRenewEnabled(false);
-        setMessage(payload.message ?? labels.renewEnableFailed);
+        setMessage(payload?.message ?? labels.renewEnableFailed);
         return;
       }
       setRenewEnabled(true);
@@ -79,9 +80,9 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ old_password: oldPassword, new_password: newPassword })
       });
-      const payload = await res.json();
+      const { data: payload, text } = await readJsonResponse<{ error?: string }>(res);
       if (!res.ok) {
-        setMessage(payload.error ?? "Failed. Please check /status for configuration hints.");
+        setMessage(payload?.error ?? text ?? "Failed. Please check /status for configuration hints.");
         return;
       }
       setMessage(labels.passwordUpdated);

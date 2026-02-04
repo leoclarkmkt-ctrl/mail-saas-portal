@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import bcrypt from "bcryptjs";
 import { adminLoginSchema } from "@/lib/validation/schemas";
+import { getAdminEnv } from "@/lib/env";
 import { jsonError, jsonSuccess } from "@/lib/utils/api";
 import { createAdminSession } from "@/lib/auth/admin-session";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
@@ -18,10 +19,14 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) {
     return jsonError("Invalid input", 400);
   }
-  const email = process.env.ADMIN_EMAIL?.toLowerCase();
-  const hash = process.env.ADMIN_PASSWORD_HASH;
-  if (!email || !hash) {
-    return jsonError("Admin not configured", 500);
+  let email: string;
+  let hash: string;
+  try {
+    const env = getAdminEnv();
+    email = env.ADMIN_EMAIL.toLowerCase();
+    hash = env.ADMIN_PASSWORD_HASH;
+  } catch (error) {
+    return jsonError(error instanceof Error ? error.message : "Admin not configured", 500);
   }
   if (parsed.data.email !== email) {
     return jsonError("Invalid credentials", 401);

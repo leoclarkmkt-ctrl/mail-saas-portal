@@ -9,7 +9,7 @@ type FailureEntry = {
   reason: string;
 };
 
-export async function POST(request: NextRequest) {
+const runExpireJob = async (request: NextRequest) => {
   const authHeader = request.headers.get("authorization");
   const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
   const cronSecret = process.env.CRON_SECRET;
@@ -68,4 +68,12 @@ export async function POST(request: NextRequest) {
     failed: failures.length,
     failures: failures.length > 0 ? failures : undefined
   });
+};
+
+export async function GET(request: NextRequest) {
+  return runExpireJob(request);
+}
+
+export async function POST(request: NextRequest) {
+  return runExpireJob(request);
 }

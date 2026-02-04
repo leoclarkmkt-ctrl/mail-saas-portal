@@ -9,6 +9,7 @@ import type { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { readJsonResponse } from "@/lib/utils/safe-json";
 
 type ResetValues = z.infer<typeof resetSchema>;
 
@@ -51,9 +52,9 @@ export function ResetForm({ labels }: { labels: Record<string, string> }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(values)
     });
-    const data = await res.json();
+    const { data, text } = await readJsonResponse<{ error?: string }>(res);
     if (!res.ok) {
-      setMessage(data.error ?? "Failed. Please check /status for configuration hints.");
+      setMessage(data?.error ?? text ?? "Failed. Please check /status for configuration hints.");
       return;
     }
     setMessage("Success");

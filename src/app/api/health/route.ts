@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getAdminSession } from "@/lib/auth/admin-session";
 import { getEnvStatus, getMailcowEnvStatus } from "@/lib/env";
 import { checkMailcowStatus } from "@/lib/mailcow";
 
 export const runtime = "nodejs";
 
 export async function GET() {
+  const session = await getAdminSession();
+  const isAdmin = Boolean(session);
   const safeMessage = (value: unknown) => {
     const message = value instanceof Error ? value.message : String(value);
     return message.length > 200 ? message.slice(0, 200) : message;
@@ -20,6 +23,15 @@ export async function GET() {
   const responseHeaders = { "Cache-Control": "no-store" };
 
   if (!envOk) {
+    if (!isAdmin) {
+      return NextResponse.json(
+        {
+          ok: false,
+          time: new Date().toISOString()
+        },
+        { headers: responseHeaders }
+      );
+    }
     return NextResponse.json(
       {
         ok: false,
@@ -90,6 +102,19 @@ export async function GET() {
   }
 
   const ok = envOk && dbOk && mailcowOk;
+  if (!isAdmin) {
+    return NextResponse.json(
+      {
+        ok,
+        supabase: {
+          ok: dbOk,
+          dbOk
+        },
+        time: new Date().toISOString()
+      },
+      { headers: responseHeaders }
+    );
+  }
   return NextResponse.json(
     {
       ok,
