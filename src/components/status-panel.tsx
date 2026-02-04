@@ -31,17 +31,30 @@ const statusLine = (ok: boolean, label: string, detail?: string) => (
   </div>
 );
 
-type HealthPayload = {
-  ok: boolean;
-  missing_env: string[];
-  supabase: string;
-  schema: string;
+type HealthResponse = {
+  ok?: boolean;
+  missing_env?: string[];
+  env?: {
+    ok?: boolean;
+    missing?: string[];
+  };
+  supabase?: {
+    ok?: boolean;
+    authOk?: boolean;
+    dbOk?: boolean;
+    schemaHints?: string[];
+  };
+  mailcow?: {
+    ok?: boolean;
+    missing?: string[];
+    error?: string;
+  };
   auth_redirect_hint?: string;
   message?: string;
 };
 
 export function StatusPanel({ labels }: { labels: StatusLabels }) {
-  const [data, setData] = useState<HealthPayload | null>(null);
+  const [data, setData] = useState<HealthResponse | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -66,24 +79,29 @@ export function StatusPanel({ labels }: { labels: StatusLabels }) {
     return <p className="text-sm text-slate-500">{labels.loading}</p>;
   }
 
+  // Back-compat: older /api/health returned `missing_env`; keep fallback for legacy deployments.
+  const missingEnv = data?.missing_env ?? data?.env?.missing ?? [];
+  const supabaseOk = Boolean(data?.supabase?.ok ?? data?.supabase?.dbOk);
+  const schemaOk = Boolean(data?.supabase?.dbOk);
+
   return (
     <div className="space-y-4">
       {statusLine(
-        data.missing_env.length === 0,
+        missingEnv.length === 0,
         labels.env,
-        data.missing_env.length > 0
-          ? `${labels.envDetailPrefix}${data.missing_env.join(", ")}`
+        missingEnv.length > 0
+          ? `${labels.envDetailPrefix}${missingEnv.join(", ")}`
           : labels.envOk
       )}
       {statusLine(
-        data.supabase === "ok",
+        supabaseOk,
         labels.supabase,
-        data.supabase === "ok" ? labels.supabaseOk : labels.supabaseFail
+        supabaseOk ? labels.supabaseOk : labels.supabaseFail
       )}
       {statusLine(
-        data.schema === "ok",
+        schemaOk,
         labels.schema,
-        data.schema === "ok" ? labels.schemaOk : labels.schemaFail
+        schemaOk ? labels.schemaOk : labels.schemaFail
       )}
       {statusLine(Boolean(redirectHint), labels.redirect, redirectHint || labels.redirectMissing)}
 

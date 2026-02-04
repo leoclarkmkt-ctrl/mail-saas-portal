@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getMailcowEnvStatus } from "@/lib/env";
+import { getEnvStatus, getMailcowEnvStatus } from "@/lib/env";
 import { checkMailcowStatus } from "@/lib/mailcow";
 
 export const runtime = "nodejs";
@@ -11,16 +11,9 @@ export async function GET() {
     return message.length > 200 ? message.slice(0, 200) : message;
   };
 
-  const required = [
-    "NEXT_PUBLIC_SUPABASE_URL",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-    "SUPABASE_URL",
-    "SUPABASE_SERVICE_ROLE_KEY",
-    "SESSION_SECRET",
-    "APP_BASE_URL"
-  ];
-  const missing = required.filter((key) => !process.env[key]);
-  const envOk = missing.length === 0;
+  const envStatus = getEnvStatus();
+  const missing = envStatus.missing;
+  const envOk = envStatus.ok;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
   const mailcowEnv = getMailcowEnvStatus();
 

@@ -12,14 +12,20 @@ A Next.js App Router portal for **National Science University of Kyrgyzstan (NSU
 Copy `.env.example` to `.env.local` and fill values:
 
 ```
+# Supabase (required)
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
+
+# Session / Admin (required)
 SESSION_SECRET=
 APP_BASE_URL=http://localhost:3000
 ADMIN_EMAIL=admin@nsuk.edu.kg
 ADMIN_PASSWORD_HASH=
+
+# Mailcow (required for email operations & health check)
+MAILCOW_API_BASE_URL=
+MAILCOW_API_KEY=
 ```
 
   > `SUPABASE_SERVICE_ROLE_KEY` must only exist on the server. **Never expose it to the browser**.
