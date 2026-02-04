@@ -23,6 +23,10 @@ APP_BASE_URL=http://localhost:3000
 ADMIN_EMAIL=admin@nsuk.edu.kg
 ADMIN_PASSWORD_HASH=
 
+# Rate limit (required)
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+
 # Mailcow (required for email operations & health check)
 MAILCOW_API_BASE_URL=
 MAILCOW_API_KEY=

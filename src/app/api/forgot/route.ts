@@ -3,10 +3,16 @@ import { forgotSchema } from "@/lib/validation/schemas";
 import { createServerSupabaseAnonClient } from "@/lib/supabase/server";
 import { getServerEnv } from "@/lib/env";
 import { jsonSuccess } from "@/lib/utils/api";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = await enforceRateLimit(request, "forgot", {
+    requests: 3,
+    windowSeconds: 60
+  });
+  if (rateLimitResponse) return rateLimitResponse;
   const body = await request.json();
   const parsed = forgotSchema.safeParse(body);
   if (!parsed.success) {

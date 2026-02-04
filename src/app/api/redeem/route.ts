@@ -5,10 +5,16 @@ import { getServerEnv } from "@/lib/env";
 import { jsonError, jsonSuccess } from "@/lib/utils/api";
 import { createUserSession } from "@/lib/auth/user-session";
 import { createMailbox } from "@/lib/mailcow";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = await enforceRateLimit(request, "redeem", {
+    requests: 3,
+    windowSeconds: 60
+  });
+  if (rateLimitResponse) return rateLimitResponse;
   const safeString = (value: unknown) => {
     if (value instanceof Error) return value.message;
     if (typeof value === "string") return value;
@@ -61,6 +67,7 @@ export async function POST(request: NextRequest) {
     const authAdmin = supabase.auth.admin;
 
     let authUserId: string;
+    let createdNewUser = false;
     const { data: existingProfile } = await supabase
       .from("profiles")
       .select("user_id")
@@ -94,6 +101,7 @@ export async function POST(request: NextRequest) {
         return jsonError(errorMessage, 400);
       }
       authUserId = created.data.user.id;
+      createdNewUser = true;
       const upsert = await supabase.from("profiles").upsert(
         { id: authUserId, user_id: authUserId, personal_email, is_suspended: false },
         { onConflict: "user_id" }
@@ -135,12 +143,38 @@ export async function POST(request: NextRequest) {
     const result = data[0];
     const mailcowResult = await createMailbox(result.edu_email, password);
     if (!mailcowResult.ok) {
+      let cleanupError: string | null = null;
+      if (createdNewUser) {
+        try {
+          const { error: profileDeleteError } = await supabase
+            .from("profiles")
+            .delete()
+            .eq("user_id", authUserId);
+          if (profileDeleteError) {
+            cleanupError = profileDeleteError.message;
+          }
+          const { error: authDeleteError } = await authAdmin.deleteUser(authUserId);
+          if (authDeleteError) {
+            cleanupError = cleanupError
+              ? `${cleanupError}; auth delete: ${authDeleteError.message}`
+              : `auth delete: ${authDeleteError.message}`;
+          }
+        } catch (error) {
+          cleanupError = error instanceof Error ? error.message : String(error);
+        }
+        await supabase.from("audit_logs").insert({
+          user_id: authUserId,
+          action: "redeem_mailcow_failed_cleanup",
+          meta: cleanupError ? { error: cleanupError } : { ok: true }
+        });
+      }
       await supabase
         .from("activation_codes")
         .update({ status: "unused", used_at: null, used_by_user_id: null })
         .eq("code", activation_code);
       return jsonError(message("mailcowFailed"), 502, {
-        detail: mailcowResult.detail ?? mailcowResult.error
+        detail: mailcowResult.detail ?? mailcowResult.error,
+        cleanup_error: cleanupError ?? undefined
       });
     }
     const finalUpsert = await supabase.from("profiles").upsert(

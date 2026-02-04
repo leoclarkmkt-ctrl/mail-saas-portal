@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -25,16 +25,25 @@ export function AdminUsers({ labels }: { labels: AdminUsersLabels }) {
   const [users, setUsers] = useState<any[]>([]);
   const [years, setYears] = useState(1);
   const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const search = () => {
-    fetch(`/api/admin/users?query=${encodeURIComponent(query)}`)
-      .then((res) => res.json())
-      .then((data) => setUsers(data.users ?? []));
-  };
+  const search = useCallback(async () => {
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/users?query=${encodeURIComponent(query)}`);
+      if (!res.ok) {
+        throw new Error("Failed to load");
+      }
+      const data = await res.json();
+      setUsers(data.users ?? []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load");
+    }
+  }, [query]);
 
   useEffect(() => {
-    search();
-  }, []);
+    void search();
+  }, [search]);
 
   const renew = async (userId: string) => {
     await fetch("/api/admin/users", {
@@ -73,6 +82,14 @@ export function AdminUsers({ labels }: { labels: AdminUsersLabels }) {
         <Button onClick={search}>{labels.search}</Button>
         <Input type="number" value={years} onChange={(e) => setYears(Number(e.target.value))} />
       </div>
+      {error && (
+        <div className="flex items-center gap-3 text-sm text-rose-500">
+          <span>{error}</span>
+          <Button size="sm" variant="outline" onClick={search}>
+            Retry
+          </Button>
+        </div>
+      )}
       {message && <p className="text-sm text-slate-500">{message}</p>}
       <div className="overflow-auto rounded-lg border border-slate-200 bg-white">
         <table className="min-w-full text-sm">
