@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useId } from "react";
-import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema } from "@/lib/validation/schemas";
@@ -15,15 +14,12 @@ const modes = ["personal", "edu"] as const;
 
 type LoginValues = z.infer<typeof loginSchema>;
 
-export function LoginForm({ labels }: { labels: Record<string, string> }) {
+export function LoginForm({ labels, lang }: { labels: Record<string, string>; lang: "en" | "zh" }) {
   const [mode, setMode] = useState<(typeof modes)[number]>("personal");
   const [message, setMessage] = useState<string | null>(null);
   const emailId = useId();
   const passwordId = useId();
   const messageId = useId();
-
-  const params = useSearchParams();
-  const lang = params.get("lang") ?? undefined;
 
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),

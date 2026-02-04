@@ -6,13 +6,19 @@ import { ResetForm } from "@/components/reset-form";
 export default function ResetPage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
   const lang = getLangFromRequest(searchParams);
   const dict = getDictionary(lang);
+  const accessTokenValue = searchParams?.access_token;
+  const accessToken = Array.isArray(accessTokenValue) ? accessTokenValue[0] : accessTokenValue;
   return (
     <Card>
       <CardHeader>
         <h2 className="text-2xl font-semibold text-primary">{dict.reset.title}</h2>
       </CardHeader>
       <CardContent>
-        <ResetForm labels={{ newPassword: dict.reset.newPassword, submit: dict.reset.submit }} />
+        <ResetForm
+          labels={{ newPassword: dict.reset.newPassword, submit: dict.reset.submit }}
+          lang={lang}
+          accessToken={accessToken}
+        />
       </CardContent>
     </Card>
   );
