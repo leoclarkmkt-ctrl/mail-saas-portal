@@ -1,26 +1,54 @@
 import { NextRequest } from "next/server";
-import { loginSchema } from "@/lib/validation/schemas";
 import { createServerSupabaseAnonClient, createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSessionEnv } from "@/lib/env";
-import { jsonError, jsonSuccess } from "@/lib/utils/api";
+import { jsonFieldError, jsonSuccess } from "@/lib/utils/api";
 import { createUserSession } from "@/lib/auth/user-session";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  /**
+   * Error keys:
+   * - login_personal_email_required
+   * - login_personal_email_not_found
+   * - login_personal_password_required
+   * - login_personal_password_invalid
+   * - login_edu_email_required
+   * - login_edu_email_not_found
+   * - login_edu_password_required
+   * - login_edu_password_invalid
+   */
   const rateLimitResponse = await enforceRateLimit(request, "login", {
     requests: 5,
     windowSeconds: 60
   });
   if (rateLimitResponse) return rateLimitResponse;
   getSessionEnv();
-  const body = await request.json();
-  const parsed = loginSchema.safeParse(body);
-  if (!parsed.success) {
-    return jsonError("Invalid input", 400);
+  let body: Record<string, unknown> = {};
+  try {
+    body = (await request.json()) as Record<string, unknown>;
+  } catch {
+    return jsonFieldError("email", "login_personal_email_required", 400);
   }
-  const { email, password, mode } = parsed.data;
+  const email = String(body.email ?? "").trim().toLowerCase();
+  const password = String(body.password ?? "").trim();
+  const mode = body.mode === "edu" ? "edu" : "personal";
+
+  if (!email) {
+    return jsonFieldError(
+      "email",
+      mode === "personal" ? "login_personal_email_required" : "login_edu_email_required",
+      400
+    );
+  }
+  if (!password) {
+    return jsonFieldError(
+      "password",
+      mode === "personal" ? "login_personal_password_required" : "login_edu_password_required",
+      400
+    );
+  }
   const supabase = createServerSupabaseClient();
   const authClient = createServerSupabaseAnonClient();
 
@@ -31,14 +59,14 @@ export async function POST(request: NextRequest) {
       .eq("personal_email", email)
       .single();
     if (error || !data) {
-      return jsonError("Invalid credentials", 401);
+      return jsonFieldError("email", "login_personal_email_not_found", 404);
     }
     if (data.is_suspended) {
-      return jsonError("Account suspended", 403);
+      return jsonFieldError("email", "unknown", 401);
     }
     const signIn = await authClient.auth.signInWithPassword({ email, password });
     if (signIn.error) {
-      return jsonError("Invalid credentials", 401);
+      return jsonFieldError("password", "login_personal_password_invalid", 401);
     }
     await createUserSession({ userId: data.user_id, mode: "personal" });
     await supabase.from("audit_logs").insert({
@@ -55,7 +83,7 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (error || !data) {
-    return jsonError("Invalid credentials", 401);
+    return jsonFieldError("email", "login_edu_email_not_found", 404);
   }
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
@@ -63,22 +91,22 @@ export async function POST(request: NextRequest) {
     .eq("user_id", data.user_id)
     .single();
   if (profileError || !profile) {
-    return jsonError("Invalid credentials", 401);
+    return jsonFieldError("email", "login_edu_email_not_found", 404);
   }
   if (profile.is_suspended) {
-    return jsonError("Account suspended", 403);
+    return jsonFieldError("email", "unknown", 401);
   }
   const signIn = await authClient.auth.signInWithPassword({
     email: profile.personal_email,
     password
   });
   if (signIn.error) {
-    return jsonError("Invalid credentials", 401);
+    return jsonFieldError("password", "login_edu_password_invalid", 401);
   }
   const expired = new Date(data.expires_at) <= new Date();
   if (expired) {
     await supabase.from("edu_accounts").update({ status: "expired" }).eq("id", data.id);
-    return jsonError("Account expired", 403);
+    return jsonFieldError("email", "unknown", 401);
   }
   await createUserSession({ userId: data.user_id, mode: "edu" });
   await supabase.from("audit_logs").insert({

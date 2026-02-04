@@ -1,8 +1,7 @@
 import { NextRequest } from "next/server";
-import { redeemSchema } from "@/lib/validation/schemas";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSessionEnv, getSupabaseServiceEnv } from "@/lib/env";
-import { jsonError, jsonSuccess } from "@/lib/utils/api";
+import { jsonError, jsonFieldError, jsonSuccess } from "@/lib/utils/api";
 import { createUserSession } from "@/lib/auth/user-session";
 import { createMailbox } from "@/lib/mailcow";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
@@ -11,6 +10,21 @@ import { isBlockedPersonalEmail } from "@/lib/validation/email-domain";
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  /**
+   * Error keys:
+   * - activation_code_required
+   * - activation_code_not_found
+   * - activation_code_used
+   * - personal_email_required
+   * - personal_email_invalid
+   * - personal_email_disallowed_domain
+   * - personal_email_exists
+   * - edu_username_required
+   * - edu_username_invalid
+   * - edu_username_exists
+   * - password_required
+   * - password_invalid
+   */
   const rateLimitResponse = await enforceRateLimit(request, "redeem", {
     requests: 3,
     windowSeconds: 60
@@ -60,76 +74,135 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       return jsonError(message("missingEnv"), 500, { detail: safeString(error) });
     }
-    const body = await request.json();
-    const parsed = redeemSchema.safeParse(body);
-    if (!parsed.success) {
-      return jsonError(message("invalidInput"), 400);
+    let body: Record<string, unknown> = {};
+    try {
+      body = (await request.json()) as Record<string, unknown>;
+    } catch {
+      return jsonFieldError("activation_code", "activation_code_required", 400);
     }
 
-    const { activation_code, personal_email, edu_username, password } = parsed.data;
-    const normalizedPersonalEmail = personal_email.trim().toLowerCase();
+    const activation_code = String(body.activation_code ?? "").trim();
+    const personal_email = String(body.personal_email ?? "").trim();
+    const edu_username = String(body.edu_username ?? "").trim();
+    const password = String(body.password ?? "").trim();
+
+    if (!activation_code) {
+      return jsonFieldError("activation_code", "activation_code_required", 400);
+    }
+    if (!personal_email) {
+      return jsonFieldError("personal_email", "personal_email_required", 400);
+    }
+    const normalizedPersonalEmail = personal_email.toLowerCase();
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(normalizedPersonalEmail)) {
+      return jsonFieldError("personal_email", "personal_email_invalid", 400);
+    }
+    if (!edu_username) {
+      return jsonFieldError("edu_username", "edu_username_required", 400);
+    }
+    const normalizedEduUsername = edu_username.toLowerCase();
+    if (!/^[a-zA-Z0-9._-]{3,32}$/.test(normalizedEduUsername)) {
+      return jsonFieldError("edu_username", "edu_username_invalid", 400);
+    }
+    if (!password) {
+      return jsonFieldError("password", "password_required", 400);
+    }
+    const passwordOk =
+      password.length >= 8 &&
+      /[A-Z]/.test(password) &&
+      /[a-z]/.test(password) &&
+      /\d/.test(password) &&
+      /[^A-Za-z0-9]/.test(password);
+    if (!passwordOk) {
+      return jsonFieldError("password", "password_invalid", 400);
+    }
+
     if (isBlockedPersonalEmail(normalizedPersonalEmail)) {
-      return jsonError(message("personalEmailDomainBlocked"), 400);
+      return jsonFieldError("personal_email", "personal_email_disallowed_domain", 400);
     }
     const supabase = createServerSupabaseClient();
     const authAdmin = supabase.auth.admin;
 
-    let authUserId: string;
-    let createdNewUser = false;
+    const { data: codeRecord, error: codeError } = await supabase
+      .from("activation_codes")
+      .select("status")
+      .eq("code", activation_code)
+      .maybeSingle();
+    if (codeError) {
+      const errorMessage = codeError.message;
+      if (isSchemaMissing(errorMessage)) {
+        return jsonError(message("schemaMissing"), 500, {
+          detail: "schema missing: run supabase/schema.sql + migrations"
+        });
+      }
+      return jsonError(errorMessage, 500);
+    }
+    if (!codeRecord) {
+      return jsonFieldError("activation_code", "activation_code_not_found", 404);
+    }
+    if (codeRecord.status !== "unused") {
+      return jsonFieldError("activation_code", "activation_code_used", 409);
+    }
+
     const { data: existingProfile } = await supabase
       .from("profiles")
       .select("user_id")
       .eq("personal_email", normalizedPersonalEmail)
       .maybeSingle();
     if (existingProfile?.user_id) {
-      authUserId = existingProfile.user_id;
-      const update = await authAdmin.updateUserById(authUserId, { password });
-      if (update.error) {
-        const errorMessage = update.error.message ?? "Failed to update password";
-        if (isSchemaMissing(errorMessage)) {
-          return jsonError(message("schemaMissing"), 500, {
-            detail: "schema missing: run supabase/schema.sql + migrations"
-          });
-        }
-        return jsonError(errorMessage, 400);
+      return jsonFieldError("personal_email", "personal_email_exists", 409);
+    }
+
+    const { data: existingEduUsername } = await supabase
+      .from("edu_accounts")
+      .select("id")
+      .eq("edu_username", normalizedEduUsername)
+      .maybeSingle();
+    if (existingEduUsername?.id) {
+      return jsonFieldError("edu_username", "edu_username_exists", 409);
+    }
+
+    const created = await authAdmin.createUser({
+      email: normalizedPersonalEmail,
+      password,
+      email_confirm: true
+    });
+    if (created.error || !created.data.user) {
+      const errorMessage = created.error?.message ?? "Failed to create user";
+      if (/already registered/i.test(errorMessage)) {
+        return jsonFieldError("personal_email", "personal_email_exists", 409);
       }
-    } else {
-      const created = await authAdmin.createUser({
-        email: normalizedPersonalEmail,
-        password,
-        email_confirm: true
-      });
-      if (created.error || !created.data.user) {
-        const errorMessage = created.error?.message ?? "Failed to create user";
-        if (isSchemaMissing(errorMessage)) {
-          return jsonError(message("schemaMissing"), 500, {
-            detail: "schema missing: run supabase/schema.sql + migrations"
-          });
-        }
-        return jsonError(errorMessage, 400);
+      if (isSchemaMissing(errorMessage)) {
+        return jsonError(message("schemaMissing"), 500, {
+          detail: "schema missing: run supabase/schema.sql + migrations"
+        });
       }
-      authUserId = created.data.user.id;
-      createdNewUser = true;
-      const upsert = await supabase.from("profiles").upsert(
-        { id: authUserId, user_id: authUserId, personal_email: normalizedPersonalEmail, is_suspended: false },
-        { onConflict: "user_id" }
-      );
-      if (upsert.error) {
-        const errorMessage = upsert.error.message;
-        if (isSchemaMissing(errorMessage)) {
-          return jsonError(message("schemaMissing"), 500, {
-            detail: "schema missing: run supabase/schema.sql + migrations"
-          });
-        }
-        return jsonError(errorMessage, 400);
+      return jsonError(errorMessage, 400);
+    }
+    const authUserId = created.data.user.id;
+    const createdNewUser = true;
+    const upsert = await supabase.from("profiles").upsert(
+      { id: authUserId, user_id: authUserId, personal_email: normalizedPersonalEmail, is_suspended: false },
+      { onConflict: "user_id" }
+    );
+    if (upsert.error) {
+      const errorMessage = upsert.error.message;
+      if (/duplicate key|unique/i.test(errorMessage)) {
+        return jsonFieldError("personal_email", "personal_email_exists", 409);
       }
+      if (isSchemaMissing(errorMessage)) {
+        return jsonError(message("schemaMissing"), 500, {
+          detail: "schema missing: run supabase/schema.sql + migrations"
+        });
+      }
+      return jsonError(errorMessage, 400);
     }
 
     const { data, error } = await supabase.rpc("redeem_activation_code", {
       p_code: activation_code,
       p_user_id: authUserId,
       p_personal_email: normalizedPersonalEmail,
-      p_edu_username: edu_username
+      p_edu_username: normalizedEduUsername
     });
 
     if (error || !data?.[0]) {
@@ -137,7 +210,13 @@ export async function POST(request: NextRequest) {
 
       // 🆕 新增：检查是否是"已拥有教育邮箱"的错误
       if (failureMessage.includes("User already has education account")) {
-        return jsonError(message("alreadyHasEducationAccount"), 400);
+        return jsonFieldError("personal_email", "personal_email_exists", 409);
+      }
+      if (failureMessage.includes("Activation code invalid")) {
+        return jsonFieldError("activation_code", "activation_code_used", 409);
+      }
+      if (failureMessage.includes("Edu username exists")) {
+        return jsonFieldError("edu_username", "edu_username_exists", 409);
       }
 
       if (isSchemaMissing(failureMessage)) {

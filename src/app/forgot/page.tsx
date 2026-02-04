@@ -15,6 +15,7 @@ export default function ForgotPage({ searchParams }: { searchParams?: Record<str
       <CardContent>
         <ForgotForm
           lang={lang}
+          errors={dict.errors}
           labels={{
             email: dict.forgot.email,
             submit: dict.forgot.submit,

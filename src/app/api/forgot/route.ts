@@ -1,27 +1,45 @@
 import { NextRequest } from "next/server";
-import { forgotSchema } from "@/lib/validation/schemas";
 import { createServerSupabaseAnonClient } from "@/lib/supabase/server";
 import { getAppBaseUrl } from "@/lib/env";
-import { jsonSuccess } from "@/lib/utils/api";
+import { jsonFieldError, jsonSuccess } from "@/lib/utils/api";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  /**
+   * Error keys:
+   * - forgot_email_required
+   * - forgot_email_not_found
+   */
   const rateLimitResponse = await enforceRateLimit(request, "forgot", {
     requests: 3,
     windowSeconds: 60
   });
   if (rateLimitResponse) return rateLimitResponse;
-  const body = await request.json();
-  const parsed = forgotSchema.safeParse(body);
-  if (!parsed.success) {
-    return jsonSuccess({ ok: true });
+  let body: Record<string, unknown> = {};
+  try {
+    body = (await request.json()) as Record<string, unknown>;
+  } catch {
+    return jsonFieldError("personal_email", "forgot_email_required", 400);
+  }
+  const personal_email = String(body.personal_email ?? "").trim().toLowerCase();
+  if (!personal_email) {
+    return jsonFieldError("personal_email", "forgot_email_required", 400);
   }
 
   const supabase = createServerSupabaseAnonClient();
   const { APP_BASE_URL } = getAppBaseUrl();
-  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.personal_email, {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("personal_email", personal_email)
+    .maybeSingle();
+  if (!profile) {
+    return jsonFieldError("personal_email", "forgot_email_not_found", 404);
+  }
+
+  const { error } = await supabase.auth.resetPasswordForEmail(personal_email, {
     redirectTo: `${APP_BASE_URL}/reset`
   });
 
@@ -34,6 +52,7 @@ export async function POST(request: NextRequest) {
         hint: "Supabase Auth URL 配置未允许该回跳地址。请在 Supabase → Authentication → URL Configuration 添加 Redirect URL: APP_BASE_URL/reset (e.g. https://portal.nsuk.edu.kg/reset)."
       });
     }
+    return jsonFieldError("personal_email", "unknown", 400, message);
   }
 
   return jsonSuccess({ ok: true });

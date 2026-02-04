@@ -2,15 +2,17 @@
 
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { redeemSchema } from "@/lib/validation/schemas";
-import type { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { RedeemCopy, RedeemMessageKey, RedeemStatusKey } from "@/lib/redeem-copy";
 
-type RedeemValues = z.infer<typeof redeemSchema>;
+type RedeemValues = {
+  activation_code: string;
+  personal_email: string;
+  edu_username: string;
+  password: string;
+};
 
 type RedeemResult = {
   personal_email: string;
@@ -22,19 +24,11 @@ type RedeemResult = {
 
 type RedeemFormProps = {
   copy: RedeemCopy;
+  errors: Record<string, string>;
   lang: "en" | "zh";
 };
 
-type RedeemErrorKey =
-  | "required_activation_code"
-  | "required_personal_email"
-  | "required_username"
-  | "invalid_username"
-  | "required_password"
-  | "invalid_email"
-  | "invalid_password_rules";
-
-export function RedeemForm({ copy, lang }: RedeemFormProps) {
+export function RedeemForm({ copy, errors, lang }: RedeemFormProps) {
   const [result, setResult] = useState<RedeemResult | null>(null);
   const [messageKey, setMessageKey] = useState<RedeemMessageKey | null>(null);
   const [messageDetail, setMessageDetail] = useState<string | null>(null);
@@ -42,7 +36,6 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
   const [submitting, setSubmitting] = useState(false);
 
   const form = useForm<RedeemValues>({
-    resolver: zodResolver(redeemSchema),
     defaultValues: {
       activation_code: "",
       personal_email: "",
@@ -54,8 +47,11 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
   const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === "object" && value !== null;
 
-  const setFieldError = (field: keyof RedeemValues, key: RedeemErrorKey) => {
-    form.setError(field, { type: "manual", message: key });
+  const resolveErrorMessage = (key?: string) =>
+    errors[key ?? ""] ?? errors.unknown ?? "Request failed";
+
+  const setFieldError = (field: keyof RedeemValues, key: string) => {
+    form.setError(field, { type: "manual", message: resolveErrorMessage(key) });
   };
 
   /** 手动补一层“更友好”的错误提示（不依赖 schema 文案） */
@@ -69,28 +65,28 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
     const pass = String(values.password ?? "").trim();
 
     if (!activation) {
-      setFieldError("activation_code", "required_activation_code");
+      setFieldError("activation_code", "activation_code_required");
       valid = false;
     }
 
     if (!personal) {
-      setFieldError("personal_email", "required_personal_email");
+      setFieldError("personal_email", "personal_email_required");
       valid = false;
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(personal)) {
-      setFieldError("personal_email", "invalid_email");
+      setFieldError("personal_email", "personal_email_invalid");
       valid = false;
     }
 
     if (!edu) {
-      setFieldError("edu_username", "required_username");
+      setFieldError("edu_username", "edu_username_required");
       valid = false;
     } else if (!/^[a-zA-Z0-9._-]{3,32}$/.test(edu)) {
-      setFieldError("edu_username", "invalid_username");
+      setFieldError("edu_username", "edu_username_invalid");
       valid = false;
     }
 
     if (!pass) {
-      setFieldError("password", "required_password");
+      setFieldError("password", "password_required");
       valid = false;
     } else {
       const passwordOk =
@@ -100,7 +96,7 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
         /\d/.test(pass) &&
         /[^A-Za-z0-9]/.test(pass);
       if (!passwordOk) {
-        setFieldError("password", "invalid_password_rules");
+        setFieldError("password", "password_invalid");
         valid = false;
       }
     }
@@ -126,7 +122,8 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
       const validated = validateValues(values);
       if (!validated.valid) {
         setStatus("error");
-        setMessageKey("submit_failed_generic");
+        setMessageKey(null);
+        setMessageDetail(null);
         return;
       }
 
@@ -206,6 +203,25 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
         }
 
         if (!res.ok) {
+          const errorField =
+            typeof parsed?.error === "object" && parsed?.error
+              ? (parsed.error as { field?: string }).field
+              : undefined;
+          const errorKey =
+            typeof parsed?.error === "object" && parsed?.error
+              ? (parsed.error as { key?: string }).key
+              : undefined;
+          if (errorField && errorKey) {
+            form.setError(errorField as keyof RedeemValues, {
+              type: "server",
+              message: resolveErrorMessage(errorKey),
+            });
+            setStatus("error");
+            setMessageKey(null);
+            setMessageDetail(null);
+            return;
+          }
+
           const errorMessage =
             typeof parsed?.error === "string"
               ? (parsed.error as string)
@@ -339,7 +355,7 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
         <p className="mt-1 text-xs text-slate-500">{copy.fields.activationCodeHelp}</p>
         {form.formState.errors.activation_code?.message && (
           <p className="mt-1 text-xs text-rose-500">
-            {copy.messages[form.formState.errors.activation_code.message as RedeemErrorKey]}
+            {form.formState.errors.activation_code.message}
           </p>
         )}
       </div>
@@ -350,7 +366,7 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
         <p className="mt-1 text-xs text-slate-500">{copy.fields.personalEmailHelp}</p>
         {form.formState.errors.personal_email?.message && (
           <p className="mt-1 text-xs text-rose-500">
-            {copy.messages[form.formState.errors.personal_email.message as RedeemErrorKey]}
+            {form.formState.errors.personal_email.message}
           </p>
         )}
       </div>
@@ -361,7 +377,7 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
         <p className="mt-1 text-xs text-slate-500">{copy.fields.eduUsernameHelp}</p>
         {form.formState.errors.edu_username?.message && (
           <p className="mt-1 text-xs text-rose-500">
-            {copy.messages[form.formState.errors.edu_username.message as RedeemErrorKey]}
+            {form.formState.errors.edu_username.message}
           </p>
         )}
       </div>
@@ -371,9 +387,7 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
         <Input type="password" {...form.register("password")} />
         <p className="mt-1 text-xs text-slate-500">{copy.fields.passwordHelp}</p>
         {form.formState.errors.password?.message && (
-          <p className="mt-1 text-xs text-rose-500">
-            {copy.messages[form.formState.errors.password.message as RedeemErrorKey]}
-          </p>
+          <p className="mt-1 text-xs text-rose-500">{form.formState.errors.password.message}</p>
         )}
       </div>
 

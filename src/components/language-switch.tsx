@@ -23,7 +23,9 @@ export function LanguageSwitch({ currentLang }: { currentLang: "en" | "zh" }) {
       size="sm"
       onClick={() => {
         document.cookie = `portal-lang=${next}; path=/; max-age=31536000; samesite=lax`;
-        router.push(buildNextUrl());
+        const nextUrl = buildNextUrl();
+        router.push(nextUrl);
+        router.refresh();
       }}
     >
       {nextLabel}
