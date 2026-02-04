@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { redeemSchema } from "@/lib/validation/schemas";
@@ -41,10 +40,6 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
   const [messageDetail, setMessageDetail] = useState<string | null>(null);
   const [status, setStatus] = useState<RedeemStatusKey>("idle");
   const [submitting, setSubmitting] = useState(false);
-
-  const params = useSearchParams();
-  const runtimeLang =
-    params.get("lang") === "zh" ? "zh" : params.get("lang") === "en" ? "en" : lang;
 
   const form = useForm<RedeemValues>({
     resolver: zodResolver(redeemSchema),
@@ -222,7 +217,7 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
           setMessageKey("serverErrorPrefix");
 
           const detail =
-            runtimeLang === "zh" ? copy.submitFailedGeneric : errorMessage || copy.submitFailedGeneric;
+            lang === "zh" ? copy.submitFailedGeneric : errorMessage || copy.submitFailedGeneric;
           setMessageDetail(detail);
 
           return;
@@ -315,7 +310,7 @@ export function RedeemForm({ copy, lang }: RedeemFormProps) {
           <Button
             variant="outline"
             onClick={() => {
-              window.location.href = `/dashboard?lang=${runtimeLang}`;
+              window.location.href = `/dashboard?lang=${lang}`;
             }}
           >
             {copy.dashboard}

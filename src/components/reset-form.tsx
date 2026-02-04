@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useId } from "react";
-import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { resetSchema } from "@/lib/validation/schemas";
@@ -13,12 +12,17 @@ import { readJsonResponse } from "@/lib/utils/safe-json";
 
 type ResetValues = z.infer<typeof resetSchema>;
 
-export function ResetForm({ labels }: { labels: Record<string, string> }) {
+export function ResetForm({
+  labels,
+  lang,
+  accessToken
+}: {
+  labels: Record<string, string>;
+  lang: "en" | "zh";
+  accessToken?: string;
+}) {
   const [message, setMessage] = useState<string | null>(null);
-  const params = useSearchParams();
-  const accessTokenFromQuery = params.get("access_token") ?? "";
   const [accessTokenFromHash, setAccessTokenFromHash] = useState("");
-  const lang = params.get("lang") ?? undefined;
   const passwordId = useId();
   const messageId = useId();
   const tokenMessageId = useId();
@@ -30,16 +34,16 @@ export function ResetForm({ labels }: { labels: Record<string, string> }) {
 
   const form = useForm<ResetValues>({
     resolver: zodResolver(resetSchema),
-    defaultValues: { access_token: accessTokenFromQuery || accessTokenFromHash, new_password: "" }
+    defaultValues: { access_token: accessToken ?? "", new_password: "" }
   });
 
   useEffect(() => {
-    if (accessTokenFromQuery || accessTokenFromHash) {
-      form.setValue("access_token", accessTokenFromQuery || accessTokenFromHash);
+    if (accessToken || accessTokenFromHash) {
+      form.setValue("access_token", accessToken || accessTokenFromHash);
     }
-  }, [accessTokenFromQuery, accessTokenFromHash, form]);
+  }, [accessToken, accessTokenFromHash, form]);
 
-  const hasToken = Boolean(accessTokenFromQuery || accessTokenFromHash);
+  const hasToken = Boolean(accessToken || accessTokenFromHash);
   const tokenMessage =
     lang === "zh"
       ? "重置链接无效或已过期，请重新发起找回流程。"

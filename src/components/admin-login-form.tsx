@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { adminLoginSchema } from "@/lib/validation/schemas";
@@ -20,10 +19,8 @@ type AdminLoginLabels = {
   failed: string;
 };
 
-export function AdminLoginForm({ labels }: { labels: AdminLoginLabels }) {
+export function AdminLoginForm({ labels, lang }: { labels: AdminLoginLabels; lang: "en" | "zh" }) {
   const [message, setMessage] = useState<string | null>(null);
-  const params = useSearchParams();
-  const lang = params.get("lang") ?? undefined;
 
   const form = useForm<AdminLoginValues>({
     resolver: zodResolver(adminLoginSchema),

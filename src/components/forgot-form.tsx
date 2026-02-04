@@ -12,7 +12,13 @@ import { readJsonResponse } from "@/lib/utils/safe-json";
 
 type ForgotValues = z.infer<typeof forgotSchema>;
 
-export function ForgotForm({ labels }: { labels: Record<string, string> }) {
+export function ForgotForm({
+  labels,
+  lang
+}: {
+  labels: Record<string, string>;
+  lang: "en" | "zh";
+}) {
   const [message, setMessage] = useState<string | null>(null);
   const emailId = useId();
   const messageId = useId();
