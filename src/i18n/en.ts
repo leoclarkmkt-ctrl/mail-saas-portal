@@ -82,6 +82,7 @@ export const en = {
     renew: "Renew with Activation Code",
     renewHint: "Enter a new activation code to extend by 1 year.",
     renewSubmit: "Renew",
+    expiredNotice: "Your mailbox has expired and is temporarily disabled. Renew to restore access.",
     logout: "Sign Out"
   },
   admin: {

@@ -12,6 +12,7 @@ export type DashboardData = {
   expiresAt: string;
   status: string;
   suspended: boolean;
+  expired: boolean;
 };
 
 export function DashboardPanel({ data, labels }: { data: DashboardData; labels: Record<string, string> }) {
@@ -102,6 +103,11 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
       {data.suspended && (
         <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-600">
           {labels.suspended}
+        </div>
+      )}
+      {!data.suspended && data.expired && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+          {labels.expiredNotice}
         </div>
       )}
 

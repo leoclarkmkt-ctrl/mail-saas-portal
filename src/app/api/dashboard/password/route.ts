@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { changePasswordSchema } from "@/lib/validation/schemas";
 import { createServerSupabaseAnonClient, createServerSupabaseClient } from "@/lib/supabase/server";
 import { getServerEnv } from "@/lib/env";
-import { getUserSession } from "@/lib/auth/user-session";
+import { clearUserSession, getUserSession } from "@/lib/auth/user-session";
 import { jsonSuccess } from "@/lib/utils/api";
 import { updateMailboxPassword } from "@/lib/mailcow";
 
@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
       invalidInput: "提交内容无效",
       userNotFound: "未找到用户",
       invalidPassword: "原密码不正确",
+      suspended: "账号已冻结",
       updateFailed: "更新失败",
       mailcowFailed: "邮箱密码更新失败",
       internalError: "服务器内部错误"
@@ -26,6 +27,7 @@ export async function POST(request: NextRequest) {
       invalidInput: "Invalid input",
       userNotFound: "User not found",
       invalidPassword: "Invalid password",
+      suspended: "Account suspended",
       updateFailed: "Update failed",
       mailcowFailed: "Failed to update mailbox password",
       internalError: "Internal error"
@@ -50,11 +52,15 @@ export async function POST(request: NextRequest) {
   const authClient = createServerSupabaseAnonClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("personal_email")
+    .select("personal_email, is_suspended")
     .eq("user_id", session.userId)
     .single();
   if (error || !data) {
     return errorResponse("user_not_found", message("userNotFound"), error?.message ?? null, 404);
+  }
+  if (data.is_suspended) {
+    clearUserSession();
+    return errorResponse("account_suspended", message("suspended"), null, 403);
   }
   const { data: eduAccount, error: eduError } = await supabase
     .from("edu_accounts")
