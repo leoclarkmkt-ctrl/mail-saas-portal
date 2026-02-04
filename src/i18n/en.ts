@@ -13,6 +13,37 @@ export const en = {
     cancel: "Cancel",
     back: "Back"
   },
+  errors: {
+    activation_code_not_found: "Identity code not found. Please enter a valid identity code.",
+    activation_code_used: "This identity code has already been used. Please enter a valid identity code.",
+    activation_code_required: "Identity code is required. Please enter a valid identity code.",
+    personal_email_required: "Personal email is required. Please enter your personal email.",
+    personal_email_invalid: "Invalid email format.",
+    personal_email_disallowed_domain:
+      "@nsuk.edu.kg emails cannot be used as personal email. Please use a personal email.",
+    personal_email_exists:
+      "This email is already registered. Please use a personal email. For recovery, log in to the student console.",
+    edu_username_required:
+      "Username is required. Please enter 3-32 characters using letters, numbers, dots, underscores, or hyphens.",
+    edu_username_invalid: "3-32 characters and only letters, numbers, dots, underscores, or hyphens.",
+    edu_username_exists: "This username is already taken. Please try another one.",
+    password_required: "Minimum length is 8.",
+    password_invalid:
+      "Password must be at least 8 characters and include uppercase, lowercase, numbers, and special characters.",
+    admin_email_invalid: "Admin account is incorrect. Please try again.",
+    admin_password_invalid: "Incorrect password. Please enter the correct password.",
+    login_personal_email_not_found: "This email does not exist. Please enter your registered email.",
+    login_personal_email_required: "Email is required. Please enter your registered email.",
+    login_personal_password_invalid: "Incorrect password. Please check your password.",
+    login_personal_password_required: "Password is required. Please check your password.",
+    login_edu_email_not_found: "This email does not exist. Please enter the correct email.",
+    login_edu_email_required: "Email is required. Please enter the correct email.",
+    login_edu_password_invalid: "Incorrect password. Please check your password.",
+    login_edu_password_required: "Password is required. Please check your password.",
+    forgot_email_not_found: "This email does not exist. Please enter your registered email.",
+    forgot_email_required: "Email is required. Please enter your registered email.",
+    unknown: "Operation failed. Please try again later."
+  },
   home: {
     title: "NSUK Official Mail Portal",
     subtitle: "Secure, international academic email services for students and researchers.",

@@ -1,10 +1,7 @@
 "use client";
 
-import { useState, useEffect, useId } from "react";
+import { useState, useId } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { loginSchema } from "@/lib/validation/schemas";
-import type { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,42 +9,92 @@ import { readJsonResponse } from "@/lib/utils/safe-json";
 
 const modes = ["personal", "edu"] as const;
 
-type LoginValues = z.infer<typeof loginSchema>;
+type LoginValues = {
+  email: string;
+  password: string;
+};
 
-export function LoginForm({ labels, lang }: { labels: Record<string, string>; lang: "en" | "zh" }) {
+type LoginFormProps = {
+  labels: Record<string, string>;
+  errors: Record<string, string>;
+  lang: "en" | "zh";
+};
+
+type LoginErrorResponse = {
+  ok?: boolean;
+  error?: { field?: string; key?: string; message?: string } | string;
+};
+
+export function LoginForm({ labels, errors, lang }: LoginFormProps) {
   const [mode, setMode] = useState<(typeof modes)[number]>("personal");
-  const [message, setMessage] = useState<string | null>(null);
   const emailId = useId();
   const passwordId = useId();
-  const messageId = useId();
 
-  const form = useForm<LoginValues>({
-    resolver: zodResolver(loginSchema),
+  const personalForm = useForm<LoginValues>({
     defaultValues: {
       email: "",
-      password: "",
-      mode: "personal",
+      password: ""
     },
   });
 
-  /** 当 tab 切换时，同步到表单里 */
-  useEffect(() => {
-    form.setValue("mode", mode);
-  }, [mode, form]);
+  const eduForm = useForm<LoginValues>({
+    defaultValues: {
+      email: "",
+      password: ""
+    }
+  });
 
-  const onSubmit = async (values: LoginValues) => {
-    setMessage(null);
+  const resolveErrorMessage = (key?: string) =>
+    errors[key ?? ""] ?? errors.unknown ?? "Request failed";
+
+  const handleSubmit = async (form: typeof personalForm, modeValue: (typeof modes)[number]) => {
+    form.clearErrors();
+
+    const values = form.getValues();
+    if (!values.email) {
+      form.setError("email", {
+        type: "manual",
+        message: resolveErrorMessage(
+          modeValue === "personal" ? "login_personal_email_required" : "login_edu_email_required"
+        )
+      });
+      return;
+    }
+    if (!values.password) {
+      form.setError("password", {
+        type: "manual",
+        message: resolveErrorMessage(
+          modeValue === "personal"
+            ? "login_personal_password_required"
+            : "login_edu_password_required"
+        )
+      });
+      return;
+    }
 
     const res = await fetch("/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(values),
+      body: JSON.stringify({ ...values, mode: modeValue }),
     });
 
-    const { data } = await readJsonResponse<{ error?: string }>(res);
+    const { data } = await readJsonResponse<LoginErrorResponse>(res);
 
     if (!res.ok) {
-      setMessage(data?.error ?? "Login failed. Please check /status for configuration hints.");
+      const errorObj = typeof data?.error === "object" ? data?.error : undefined;
+      if (errorObj?.field && errorObj?.key) {
+        const message = resolveErrorMessage(errorObj.key);
+        if (errorObj.field === "email" || errorObj.field === "password") {
+          form.setError(errorObj.field, { type: "server", message });
+        } else {
+          form.setError("email", { type: "server", message });
+        }
+        return;
+      }
+      form.setError("email", {
+        type: "server",
+        message: resolveErrorMessage("unknown")
+      });
       return;
     }
 
@@ -78,35 +125,63 @@ export function LoginForm({ labels, lang }: { labels: Record<string, string>; la
       </div>
 
       {/* 表单 */}
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <div>
-          <Label htmlFor={emailId}>{labels.email}</Label>
-          <Input
-            id={emailId}
-            type="email"
-            aria-describedby={message ? messageId : undefined}
-            {...form.register("email")}
-          />
-        </div>
+      {mode === "personal" && (
+        <form
+          onSubmit={personalForm.handleSubmit(() => handleSubmit(personalForm, "personal"))}
+          className="space-y-4"
+        >
+          <div>
+            <Label htmlFor={emailId}>{labels.email}</Label>
+            <Input id={emailId} type="email" {...personalForm.register("email")} />
+            {personalForm.formState.errors.email?.message && (
+              <p className="mt-1 text-xs text-rose-500">
+                {personalForm.formState.errors.email.message}
+              </p>
+            )}
+          </div>
 
-        <div>
-          <Label htmlFor={passwordId}>{labels.password}</Label>
-          <Input
-            id={passwordId}
-            type="password"
-            aria-describedby={message ? messageId : undefined}
-            {...form.register("password")}
-          />
-        </div>
+          <div>
+            <Label htmlFor={passwordId}>{labels.password}</Label>
+            <Input id={passwordId} type="password" {...personalForm.register("password")} />
+            {personalForm.formState.errors.password?.message && (
+              <p className="mt-1 text-xs text-rose-500">
+                {personalForm.formState.errors.password.message}
+              </p>
+            )}
+          </div>
 
-        <Button type="submit">{labels.submit}</Button>
+          <Button type="submit">{labels.submit}</Button>
+        </form>
+      )}
 
-        {message && (
-          <p className="text-sm text-rose-500" id={messageId}>
-            {message}
-          </p>
-        )}
-      </form>
+      {mode === "edu" && (
+        <form
+          onSubmit={eduForm.handleSubmit(() => handleSubmit(eduForm, "edu"))}
+          className="space-y-4"
+        >
+          <div>
+            <Label htmlFor={emailId}>{labels.email}</Label>
+            <Input id={emailId} type="email" {...eduForm.register("email")} />
+            {eduForm.formState.errors.email?.message && (
+              <p className="mt-1 text-xs text-rose-500">
+                {eduForm.formState.errors.email.message}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <Label htmlFor={passwordId}>{labels.password}</Label>
+            <Input id={passwordId} type="password" {...eduForm.register("password")} />
+            {eduForm.formState.errors.password?.message && (
+              <p className="mt-1 text-xs text-rose-500">
+                {eduForm.formState.errors.password.message}
+              </p>
+            )}
+          </div>
+
+          <Button type="submit">{labels.submit}</Button>
+        </form>
+      )}
     </div>
   );
 }

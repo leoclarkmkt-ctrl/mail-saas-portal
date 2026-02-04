@@ -12,7 +12,7 @@ export default function AdminLoginPage({ searchParams }: { searchParams?: Record
         <h2 className="text-2xl font-semibold text-primary">{dict.admin.loginTitle}</h2>
       </CardHeader>
       <CardContent>
-        <AdminLoginForm labels={dict.admin.loginLabels} lang={lang} />
+        <AdminLoginForm labels={dict.admin.loginLabels} errors={dict.errors} lang={lang} />
       </CardContent>
     </Card>
   );

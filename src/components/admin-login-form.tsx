@@ -1,16 +1,15 @@
 "use client";
 
-import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { adminLoginSchema } from "@/lib/validation/schemas";
-import type { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { readJsonResponse } from "@/lib/utils/safe-json";
 
-type AdminLoginValues = z.infer<typeof adminLoginSchema>;
+type AdminLoginValues = {
+  email: string;
+  password: string;
+};
 
 type AdminLoginLabels = {
   email: string;
@@ -19,16 +18,38 @@ type AdminLoginLabels = {
   failed: string;
 };
 
-export function AdminLoginForm({ labels, lang }: { labels: AdminLoginLabels; lang: "en" | "zh" }) {
-  const [message, setMessage] = useState<string | null>(null);
+type AdminLoginProps = {
+  labels: AdminLoginLabels;
+  errors: Record<string, string>;
+  lang: "en" | "zh";
+};
 
+type AdminLoginErrorResponse = {
+  ok?: boolean;
+  error?: { field?: string; key?: string; message?: string } | string;
+};
+
+export function AdminLoginForm({ labels, errors, lang }: AdminLoginProps) {
   const form = useForm<AdminLoginValues>({
-    resolver: zodResolver(adminLoginSchema),
     defaultValues: { email: "", password: "" },
   });
 
   const onSubmit = async (values: AdminLoginValues) => {
-    setMessage(null);
+    form.clearErrors();
+    if (!values.email) {
+      form.setError("email", {
+        type: "manual",
+        message: errors.admin_email_invalid ?? errors.unknown ?? labels.failed
+      });
+      return;
+    }
+    if (!values.password) {
+      form.setError("password", {
+        type: "manual",
+        message: errors.admin_password_invalid ?? errors.unknown ?? labels.failed
+      });
+      return;
+    }
 
     const res = await fetch("/api/admin/login", {
       method: "POST",
@@ -36,10 +57,23 @@ export function AdminLoginForm({ labels, lang }: { labels: AdminLoginLabels; lan
       body: JSON.stringify(values),
     });
 
-    const { data } = await readJsonResponse<{ error?: string }>(res);
+    const { data } = await readJsonResponse<AdminLoginErrorResponse>(res);
 
     if (!res.ok) {
-      setMessage(data?.error ?? labels.failed);
+      const errorObj = typeof data?.error === "object" ? data?.error : undefined;
+      if (errorObj?.field && errorObj?.key) {
+        const msg = errors[errorObj.key] ?? errors.unknown ?? labels.failed;
+        if (errorObj.field === "email" || errorObj.field === "password") {
+          form.setError(errorObj.field, { type: "server", message: msg });
+        } else {
+          form.setError("email", { type: "server", message: msg });
+        }
+        return;
+      }
+      form.setError("email", {
+        type: "server",
+        message: errors.unknown ?? labels.failed
+      });
       return;
     }
 
@@ -52,16 +86,20 @@ export function AdminLoginForm({ labels, lang }: { labels: AdminLoginLabels; lan
       <div>
         <Label>{labels.email}</Label>
         <Input type="email" {...form.register("email")} />
+        {form.formState.errors.email?.message && (
+          <p className="mt-1 text-xs text-rose-500">{form.formState.errors.email.message}</p>
+        )}
       </div>
 
       <div>
         <Label>{labels.password}</Label>
         <Input type="password" {...form.register("password")} />
+        {form.formState.errors.password?.message && (
+          <p className="mt-1 text-xs text-rose-500">{form.formState.errors.password.message}</p>
+        )}
       </div>
 
       <Button type="submit">{labels.submit}</Button>
-
-      {message && <p className="text-sm text-rose-500">{message}</p>}
     </form>
   );
 }
