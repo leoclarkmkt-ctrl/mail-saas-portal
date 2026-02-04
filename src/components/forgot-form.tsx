@@ -2,21 +2,27 @@
 
 import { useState, useId } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { forgotSchema } from "@/lib/validation/schemas";
-import type { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { readJsonResponse } from "@/lib/utils/safe-json";
 
-type ForgotValues = z.infer<typeof forgotSchema>;
+type ForgotValues = {
+  personal_email: string;
+};
+
+type ForgotErrorResponse = {
+  ok?: boolean;
+  error?: { field?: string; key?: string; message?: string } | string;
+};
 
 export function ForgotForm({
   labels,
+  errors,
   lang
 }: {
   labels: Record<string, string>;
+  errors: Record<string, string>;
   lang: "en" | "zh";
 }) {
   const [message, setMessage] = useState<string | null>(null);
@@ -24,12 +30,20 @@ export function ForgotForm({
   const messageId = useId();
 
   const form = useForm<ForgotValues>({
-    resolver: zodResolver(forgotSchema),
     defaultValues: { personal_email: "" },
   });
 
   const onSubmit = async (values: ForgotValues) => {
     setMessage(null);
+    form.clearErrors();
+
+    if (!values.personal_email) {
+      form.setError("personal_email", {
+        type: "manual",
+        message: errors.forgot_email_required ?? errors.unknown ?? "Request failed"
+      });
+      return;
+    }
 
     const res = await fetch("/api/forgot", {
       method: "POST",
@@ -37,10 +51,19 @@ export function ForgotForm({
       body: JSON.stringify(values),
     });
 
-    const { data } = await readJsonResponse<{ error?: string }>(res);
+    const { data } = await readJsonResponse<ForgotErrorResponse>(res);
 
     if (!res.ok) {
-      setMessage(data?.error ?? "Failed. Please check /status for configuration hints.");
+      const errorObj = typeof data?.error === "object" ? data?.error : undefined;
+      if (errorObj?.field && errorObj?.key) {
+        const msg = errors[errorObj.key] ?? errors.unknown ?? "Request failed";
+        form.setError("personal_email", { type: "server", message: msg });
+        return;
+      }
+      form.setError("personal_email", {
+        type: "server",
+        message: errors.unknown ?? "Request failed"
+      });
       return;
     }
 
@@ -57,6 +80,11 @@ export function ForgotForm({
           aria-describedby={message ? messageId : undefined}
           {...form.register("personal_email")}
         />
+        {form.formState.errors.personal_email?.message && (
+          <p className="mt-1 text-xs text-rose-500">
+            {form.formState.errors.personal_email.message}
+          </p>
+        )}
       </div>
 
       <Button type="submit">{labels.submit}</Button>
