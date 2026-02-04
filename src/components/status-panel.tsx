@@ -34,20 +34,16 @@ const statusLine = (ok: boolean, label: string, detail?: string) => (
 type HealthResponse = {
   ok?: boolean;
   missing_env?: string[];
-  env?: {
-    ok?: boolean;
-    missing?: string[];
+  env?: Record<string, "present" | "missing">;
+  checks?: {
+    supabase?: {
+      ok?: boolean;
+      dbOk?: boolean;
+    };
   };
   supabase?: {
     ok?: boolean;
-    authOk?: boolean;
     dbOk?: boolean;
-    schemaHints?: string[];
-  };
-  mailcow?: {
-    ok?: boolean;
-    missing?: string[];
-    error?: string;
   };
   auth_redirect_hint?: string;
   message?: string;
@@ -79,10 +75,15 @@ export function StatusPanel({ labels }: { labels: StatusLabels }) {
     return <p className="text-sm text-slate-500">{labels.loading}</p>;
   }
 
+  const envEntries = data?.env ? Object.entries(data.env) : [];
   // Back-compat: older /api/health returned `missing_env`; keep fallback for legacy deployments.
-  const missingEnv = data?.missing_env ?? data?.env?.missing ?? [];
-  const supabaseOk = Boolean(data?.supabase?.ok ?? data?.supabase?.dbOk);
-  const schemaOk = Boolean(data?.supabase?.dbOk);
+  const missingEnv =
+    data?.missing_env ??
+    envEntries.filter(([, status]) => status === "missing").map(([key]) => key) ??
+    [];
+  const supabaseChecks = data?.checks?.supabase ?? data?.supabase ?? {};
+  const supabaseOk = Boolean(supabaseChecks.ok ?? supabaseChecks.dbOk);
+  const schemaOk = Boolean(supabaseChecks.dbOk);
 
   return (
     <div className="space-y-4">

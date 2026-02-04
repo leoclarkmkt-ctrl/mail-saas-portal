@@ -47,6 +47,13 @@ CRON_SECRET=
   > Password recovery emails are sent by Supabase Auth; configure email provider/templates in Supabase if needed.
   > `APP_BASE_URL` must match your Vercel domain (e.g. https://portal.nsuk.edu.kg) for recovery redirects to work.
 
+## /api/health 环境变量状态
+`/api/health` 会返回关键环境变量的 `present`/`missing` 状态以及缺失列表，
+不会返回任何真实值或敏感内容。
+`ok` 的含义是：必需环境变量全部 present 且 Supabase 检查通过。
+如需排查配置问题，直接访问 `/api/health` 查看 `env`、
+`requiredMissing` 与 `optionalMissing` 字段即可。
+
 ## Database setup (Supabase)
 1. Create a Supabase project and open SQL editor.
 2. Run `supabase/schema.sql`.

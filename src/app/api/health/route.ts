@@ -1,135 +1,94 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getAdminSession } from "@/lib/auth/admin-session";
-import { getEnvStatus, getMailcowEnvStatus } from "@/lib/env";
-import { checkMailcowStatus } from "@/lib/mailcow";
+import { envStatus } from "@/lib/env";
 
 export const runtime = "nodejs";
 
-export async function GET() {
-  const session = await getAdminSession();
-  const isAdmin = Boolean(session);
-  const safeMessage = (value: unknown) => {
-    const message = value instanceof Error ? value.message : String(value);
-    return message.length > 200 ? message.slice(0, 200) : message;
-  };
+const REQUIRED_ENV_KEYS = [
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "SESSION_SECRET",
+  "APP_BASE_URL",
+  "ADMIN_EMAIL",
+  "ADMIN_PASSWORD_HASH",
+  "MAILCOW_API_BASE_URL",
+  "MAILCOW_API_KEY",
+  "CRON_SECRET"
+] as const;
 
-  const envStatus = getEnvStatus();
-  const missing = envStatus.missing;
-  const envOk = envStatus.ok;
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-  const mailcowEnv = getMailcowEnvStatus();
+const OPTIONAL_ENV_KEYS = [
+  "UPSTASH_REDIS_REST_URL",
+  "UPSTASH_REDIS_REST_TOKEN"
+] as const;
+
+const ALL_ENV_KEYS = [...REQUIRED_ENV_KEYS, ...OPTIONAL_ENV_KEYS] as const;
+
+type EnvKey = (typeof ALL_ENV_KEYS)[number];
+type EnvState = ReturnType<typeof envStatus>;
+
+export async function GET() {
+  const env = Object.fromEntries(
+    ALL_ENV_KEYS.map((name) => [name, envStatus(name)])
+  ) as Record<EnvKey, EnvState>;
+  const requiredMissing = REQUIRED_ENV_KEYS.filter((name) => env[name] === "missing");
+  const optionalMissing = OPTIONAL_ENV_KEYS.filter((name) => env[name] === "missing");
+  const supabaseConfigured =
+    env.NEXT_PUBLIC_SUPABASE_URL === "present" &&
+    env.NEXT_PUBLIC_SUPABASE_ANON_KEY === "present" &&
+    env.SUPABASE_SERVICE_ROLE_KEY === "present";
+  const mailcowConfigured =
+    env.MAILCOW_API_BASE_URL === "present" && env.MAILCOW_API_KEY === "present";
+  const upstashConfigured =
+    env.UPSTASH_REDIS_REST_URL === "present" &&
+    env.UPSTASH_REDIS_REST_TOKEN === "present";
 
   const responseHeaders = { "Cache-Control": "no-store" };
 
-  if (!envOk) {
-    if (!isAdmin) {
-      return NextResponse.json(
-        {
-          ok: false,
-          time: new Date().toISOString()
-        },
-        { headers: responseHeaders }
-      );
-    }
-    return NextResponse.json(
-      {
-        ok: false,
-        env: { ok: false, missing },
-        mailcow: { ok: mailcowEnv.ok, missing: mailcowEnv.missing },
-        supabase: {
-          ok: false,
-          url: supabaseUrl,
-          authOk: false,
-          dbOk: false,
-          schemaHints: ["Missing environment variables."]
-        },
-        time: new Date().toISOString()
-      },
-      { headers: responseHeaders }
-    );
-  }
-
-  const supabase = createServerSupabaseClient();
   let authOk = false;
   let dbOk = false;
-  const schemaHints: string[] = [];
-  try {
-    const randomId = crypto.randomUUID();
-    const authResult = await supabase.auth.admin.getUserById(randomId);
-    authOk = !authResult.error;
-    if (authResult.error) {
-      schemaHints.push(safeMessage(authResult.error.message));
+  if (supabaseConfigured) {
+    const supabase = createServerSupabaseClient();
+    try {
+      const randomId = crypto.randomUUID();
+      const authResult = await supabase.auth.admin.getUserById(randomId);
+      authOk = !authResult.error;
+    } catch {
+      authOk = false;
     }
-  } catch (error) {
-    authOk = false;
-    schemaHints.push(safeMessage(error));
-  }
 
-  const schemaMissingRegex = /relation .* does not exist|schema cache|permission denied/i;
-  try {
-    const profilesQuery = await supabase.from("profiles").select("id").limit(1);
-    const codesQuery = await supabase.from("activation_codes").select("code").limit(1);
-    if (profilesQuery.error || codesQuery.error) {
-      const errors = [profilesQuery.error, codesQuery.error].filter(Boolean);
-      errors.forEach((err) => {
-        if (err && schemaMissingRegex.test(err.message)) {
-          schemaHints.push("schema missing: run supabase/schema.sql + migrations");
-        } else if (err) {
-          schemaHints.push(safeMessage(err.message));
-        }
-      });
+    try {
+      const profilesQuery = await supabase.from("profiles").select("id").limit(1);
+      const codesQuery = await supabase.from("activation_codes").select("code").limit(1);
+      dbOk = !(profilesQuery.error || codesQuery.error);
+    } catch {
       dbOk = false;
-    } else {
-      dbOk = true;
     }
-  } catch (error) {
-    dbOk = false;
-    schemaHints.push(safeMessage(error));
   }
 
-  let mailcowOk = false;
-  let mailcowError: string | undefined;
-  if (mailcowEnv.ok) {
-    const mailcowStatus = await checkMailcowStatus();
-    mailcowOk = mailcowStatus.ok;
-    if (!mailcowStatus.ok) {
-      mailcowError = mailcowStatus.error ?? "Mailcow unavailable";
-    }
-  } else {
-    mailcowOk = false;
-    mailcowError = "Missing Mailcow environment variables";
-  }
-
-  const ok = envOk && dbOk && mailcowOk;
-  if (!isAdmin) {
-    return NextResponse.json(
-      {
-        ok,
-        supabase: {
-          ok: dbOk,
-          dbOk
-        },
-        time: new Date().toISOString()
-      },
-      { headers: responseHeaders }
-    );
-  }
+  const ok = requiredMissing.length === 0 && authOk && dbOk;
   return NextResponse.json(
     {
       ok,
-      env: { ok: envOk, missing },
-      mailcow: {
-        ok: mailcowOk,
-        error: mailcowError,
-        missing: mailcowEnv.ok ? undefined : mailcowEnv.missing
+      env,
+      requiredMissing,
+      optionalMissing,
+      missing_env: requiredMissing,
+      checks: {
+        supabase: {
+          ok: authOk,
+          dbOk
+        },
+        mailcow: {
+          configured: mailcowConfigured
+        },
+        upstash: {
+          configured: upstashConfigured
+        }
       },
       supabase: {
-        ok: dbOk,
-        url: supabaseUrl,
-        authOk,
-        dbOk,
-        schemaHints: schemaHints.length > 0 ? schemaHints : undefined
+        ok: authOk,
+        dbOk
       },
       time: new Date().toISOString()
     },

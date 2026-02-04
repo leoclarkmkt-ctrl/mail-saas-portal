@@ -52,6 +52,12 @@ function getMissing(keys: readonly string[]) {
   return keys.filter((key) => !process.env[key]);
 }
 
+export type EnvStatus = "present" | "missing";
+
+export function envStatus(name: string): EnvStatus {
+  return process.env[name] ? "present" : "missing";
+}
+
 export function getPublicEnv() {
   const missing = getMissing(REQUIRED_PUBLIC);
   if (missing.length > 0) {
