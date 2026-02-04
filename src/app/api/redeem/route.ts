@@ -28,7 +28,8 @@ export async function POST(request: NextRequest) {
       schemaMissing: "数据库结构缺失",
       redeemFailed: "兑换失败",
       mailcowFailed: "邮箱创建失败，请稍后重试。",
-      internalError: "服务器内部错误"
+      internalError: "服务器内部错误",
+      alreadyHasEducationAccount: "您已拥有教育邮箱，请登录学生中心控制台查看！"
     };
     const en = {
       missingEnv: "Missing environment configuration",
@@ -36,7 +37,8 @@ export async function POST(request: NextRequest) {
       schemaMissing: "Database schema missing",
       redeemFailed: "Redeem failed",
       mailcowFailed: "Mailbox creation failed. Please try again.",
-      internalError: "Internal error"
+      internalError: "Internal error",
+      alreadyHasEducationAccount: "You already have an education account. Please log in to your student console!"
     };
     const dict = lang === "zh" ? zh : en;
     return dict[key as keyof typeof dict] ?? dict.internalError;
@@ -116,6 +118,12 @@ export async function POST(request: NextRequest) {
 
     if (error || !data?.[0]) {
       const failureMessage = error?.message ?? message("redeemFailed");
+
+      // 🆕 新增：检查是否是"已拥有教育邮箱"的错误
+      if (failureMessage.includes("User already has education account")) {
+        return jsonError(message("alreadyHasEducationAccount"), 400);
+      }
+
       if (isSchemaMissing(failureMessage)) {
         return jsonError(message("schemaMissing"), 500, {
           detail: "schema missing: run supabase/schema.sql + migrations"
