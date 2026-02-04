@@ -15,7 +15,7 @@ export default function RedeemPage({ searchParams }: { searchParams?: Record<str
         <p className="text-sm text-slate-500">{dict.common.brandZh}</p>
       </CardHeader>
       <CardContent>
-        <RedeemForm copy={copy} lang={lang} />
+        <RedeemForm key={lang} copy={copy} errors={dict.errors} lang={lang} />
       </CardContent>
     </Card>
   );

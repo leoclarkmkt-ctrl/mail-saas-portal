@@ -14,7 +14,9 @@ export default function ForgotPage({ searchParams }: { searchParams?: Record<str
       </CardHeader>
       <CardContent>
         <ForgotForm
+          key={lang}
           lang={lang}
+          errors={dict.errors}
           labels={{
             email: dict.forgot.email,
             submit: dict.forgot.submit,

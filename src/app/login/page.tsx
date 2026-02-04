@@ -14,7 +14,9 @@ export default function LoginPage({ searchParams }: { searchParams?: Record<stri
       </CardHeader>
       <CardContent className="space-y-4">
         <LoginForm
+          key={lang}
           lang={lang}
+          errors={dict.errors}
           labels={{
             personalTab: dict.login.personalTab,
             eduTab: dict.login.eduTab,
