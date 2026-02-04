@@ -25,9 +25,9 @@ export default async function DashboardPage({ searchParams }: { searchParams?: R
     const supabase = createServerSupabaseClient();
     await supabase.from("edu_accounts").update({ status: "expired" }).eq("id", edu.id);
   }
-  if (session.mode === "edu" && expired) {
+  if (data.is_suspended) {
     clearUserSession();
-    redirect(withLang("/login?reason=expired", lang));
+    redirect(withLang("/login?reason=suspended", lang));
   }
   const statusLabel = data.is_suspended
     ? dict.dashboard.suspended
@@ -44,7 +44,8 @@ export default async function DashboardPage({ searchParams }: { searchParams?: R
           eduEmail: edu.edu_email,
           expiresAt: formatDate(edu.expires_at),
           status: statusLabel,
-          suspended: data.is_suspended
+          suspended: data.is_suspended,
+          expired
         }}
         labels={{
           personalEmail: dict.dashboard.personalEmail,
@@ -65,7 +66,9 @@ export default async function DashboardPage({ searchParams }: { searchParams?: R
           copyWebmail: dict.dashboard.copyWebmail,
           passwordHint: dict.dashboard.passwordHint,
           passwordUpdated: dict.dashboard.passwordUpdated,
-          renewHint: dict.dashboard.renewHint
+          renewHint: dict.dashboard.renewHint,
+          expiredNotice: dict.dashboard.expiredNotice,
+          renewEnableFailed: dict.dashboard.renewEnableFailed
         }}
       />
     </div>
