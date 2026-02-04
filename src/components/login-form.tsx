@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useId } from "react";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,6 +17,9 @@ type LoginValues = z.infer<typeof loginSchema>;
 export function LoginForm({ labels }: { labels: Record<string, string> }) {
   const [mode, setMode] = useState<(typeof modes)[number]>("personal");
   const [message, setMessage] = useState<string | null>(null);
+  const emailId = useId();
+  const passwordId = useId();
+  const messageId = useId();
 
   const params = useSearchParams();
   const lang = params.get("lang") ?? undefined;
@@ -85,18 +88,32 @@ export function LoginForm({ labels }: { labels: Record<string, string> }) {
       {/* 表单 */}
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <div>
-          <Label>{labels.email}</Label>
-          <Input type="email" {...form.register("email")} />
+          <Label htmlFor={emailId}>{labels.email}</Label>
+          <Input
+            id={emailId}
+            type="email"
+            aria-describedby={message ? messageId : undefined}
+            {...form.register("email")}
+          />
         </div>
 
         <div>
-          <Label>{labels.password}</Label>
-          <Input type="password" {...form.register("password")} />
+          <Label htmlFor={passwordId}>{labels.password}</Label>
+          <Input
+            id={passwordId}
+            type="password"
+            aria-describedby={message ? messageId : undefined}
+            {...form.register("password")}
+          />
         </div>
 
         <Button type="submit">{labels.submit}</Button>
 
-        {message && <p className="text-sm text-rose-500">{message}</p>}
+        {message && (
+          <p className="text-sm text-rose-500" id={messageId}>
+            {message}
+          </p>
+        )}
       </form>
     </div>
   );

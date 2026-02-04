@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -16,16 +16,25 @@ type AdminAuditLabels = {
 export function AdminAudit({ labels }: { labels: AdminAuditLabels }) {
   const [query, setQuery] = useState("");
   const [logs, setLogs] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  const load = () => {
-    fetch(`/api/admin/audit?query=${encodeURIComponent(query)}`)
-      .then((res) => res.json())
-      .then((data) => setLogs(data.logs ?? []));
-  };
+  const load = useCallback(async () => {
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/audit?query=${encodeURIComponent(query)}`);
+      if (!res.ok) {
+        throw new Error("Failed to load");
+      }
+      const data = await res.json();
+      setLogs(data.logs ?? []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load");
+    }
+  }, [query]);
 
   useEffect(() => {
-    load();
-  }, []);
+    void load();
+  }, [load]);
 
   return (
     <div className="space-y-4">
@@ -33,6 +42,14 @@ export function AdminAudit({ labels }: { labels: AdminAuditLabels }) {
         <Input placeholder={labels.searchPlaceholder} value={query} onChange={(e) => setQuery(e.target.value)} />
         <Button onClick={load}>{labels.search}</Button>
       </div>
+      {error && (
+        <div className="flex items-center gap-3 text-sm text-rose-500">
+          <span>{error}</span>
+          <Button size="sm" variant="outline" onClick={load}>
+            Retry
+          </Button>
+        </div>
+      )}
       <div className="overflow-auto rounded-lg border border-slate-200 bg-white">
         <table className="min-w-full text-sm">
           <thead className="bg-slate-50 text-left">

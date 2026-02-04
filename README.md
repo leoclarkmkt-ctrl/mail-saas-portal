@@ -23,6 +23,10 @@ APP_BASE_URL=http://localhost:3000
 ADMIN_EMAIL=admin@nsuk.edu.kg
 ADMIN_PASSWORD_HASH=
 
+# Rate limit (required)
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+
 # Mailcow (required for email operations & health check)
 MAILCOW_API_BASE_URL=
 MAILCOW_API_KEY=
@@ -92,6 +96,7 @@ pnpm dev
 - Webmail service is hosted on VPS `173.254.220.67` (Mailcow/SOGo), and is not implemented in this repo.
 - All sensitive operations happen in server routes using the Supabase Service Role key.
 - The project uses `?lang=zh` or `?lang=en` to switch language and stores it in a cookie.
+- Personal email (`personal_email`) must NOT use the `@nsuk.edu.kg` domain; use a personal mailbox for activation and recovery.
 - Password recovery emails are sent by Supabase Auth; configure email provider/templates in Supabase if needed.
 
 ## Supabase Auth 必配项（小白版）

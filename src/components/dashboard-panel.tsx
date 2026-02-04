@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useId } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +21,12 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
   const [renewCode, setRenewCode] = useState("");
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [isChanging, setIsChanging] = useState(false);
+  const [isRenewing, setIsRenewing] = useState(false);
+  const oldPasswordId = useId();
+  const newPasswordId = useId();
+  const renewCodeId = useId();
+  const messageId = useId();
 
   const copyInfo = async () => {
     const text = `${labels.eduEmail}: ${data.eduEmail}\n${labels.webmail}: https://mail.nsuk.edu.kg/`;
@@ -40,40 +46,50 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
 
   const renew = async () => {
     setMessage(null);
-    const res = await fetch("/api/dashboard/renew", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ activation_code: renewCode })
-    });
-    const payload = await res.json();
-    if (!res.ok) {
-      setMessage(payload.error ?? "Failed. Please check /status for configuration hints.");
-      return;
+    setIsRenewing(true);
+    try {
+      const res = await fetch("/api/dashboard/renew", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ activation_code: renewCode })
+      });
+      const payload = await res.json();
+      if (!res.ok) {
+        setMessage(payload.error ?? "Failed. Please check /status for configuration hints.");
+        return;
+      }
+      if (payload.enabled === false) {
+        setRenewEnabled(false);
+        setMessage(payload.message ?? labels.renewEnableFailed);
+        return;
+      }
+      setRenewEnabled(true);
+      window.location.reload();
+    } finally {
+      setIsRenewing(false);
     }
-    if (payload.enabled === false) {
-      setRenewEnabled(false);
-      setMessage(payload.message ?? labels.renewEnableFailed);
-      return;
-    }
-    setRenewEnabled(true);
-    window.location.reload();
   };
 
   const changePassword = async () => {
     setMessage(null);
-    const res = await fetch("/api/dashboard/password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ old_password: oldPassword, new_password: newPassword })
-    });
-    const payload = await res.json();
-    if (!res.ok) {
-      setMessage(payload.error ?? "Failed. Please check /status for configuration hints.");
-      return;
+    setIsChanging(true);
+    try {
+      const res = await fetch("/api/dashboard/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ old_password: oldPassword, new_password: newPassword })
+      });
+      const payload = await res.json();
+      if (!res.ok) {
+        setMessage(payload.error ?? "Failed. Please check /status for configuration hints.");
+        return;
+      }
+      setMessage(labels.passwordUpdated);
+      setOldPassword("");
+      setNewPassword("");
+    } finally {
+      setIsChanging(false);
     }
-    setMessage(labels.passwordUpdated);
-    setOldPassword("");
-    setNewPassword("");
   };
 
   return (
@@ -129,27 +145,52 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
           <p className="text-xs text-slate-500">{labels.passwordHint}</p>
           <div className="mt-4 space-y-3">
             <div>
-              <Label>{labels.oldPassword}</Label>
-              <Input type="password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} />
+              <Label htmlFor={oldPasswordId}>{labels.oldPassword}</Label>
+              <Input
+                id={oldPasswordId}
+                type="password"
+                aria-describedby={message ? messageId : undefined}
+                value={oldPassword}
+                onChange={(e) => setOldPassword(e.target.value)}
+              />
             </div>
             <div>
-              <Label>{labels.newPassword}</Label>
-              <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+              <Label htmlFor={newPasswordId}>{labels.newPassword}</Label>
+              <Input
+                id={newPasswordId}
+                type="password"
+                aria-describedby={message ? messageId : undefined}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
             </div>
-            <Button onClick={changePassword}>{labels.submit}</Button>
+            <Button onClick={changePassword} disabled={isChanging} aria-busy={isChanging}>
+              {labels.submit}
+            </Button>
           </div>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-6">
           <h3 className="text-lg font-semibold">{labels.renew}</h3>
           <p className="text-xs text-slate-500">{labels.renewHint}</p>
           <div className="mt-4 space-y-3">
-            <Label>{labels.activationCode}</Label>
-            <Input value={renewCode} onChange={(e) => setRenewCode(e.target.value)} />
-            <Button onClick={renew}>{labels.renewSubmit}</Button>
+            <Label htmlFor={renewCodeId}>{labels.activationCode}</Label>
+            <Input
+              id={renewCodeId}
+              aria-describedby={message ? messageId : undefined}
+              value={renewCode}
+              onChange={(e) => setRenewCode(e.target.value)}
+            />
+            <Button onClick={renew} disabled={isRenewing} aria-busy={isRenewing}>
+              {labels.renewSubmit}
+            </Button>
           </div>
         </div>
       </div>
-      {message && <p className="text-sm text-slate-500">{message}</p>}
+      {message && (
+        <p className="text-sm text-slate-500" id={messageId}>
+          {message}
+        </p>
+      )}
     </div>
   );
 }

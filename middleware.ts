@@ -17,7 +17,8 @@ export function middleware(request: NextRequest) {
   if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
     const adminSession = request.cookies.get("nsuk_admin_session");
     if (!adminSession) {
-      const url = new URL("/admin/login", request.url);
+      const url = request.nextUrl.clone();
+      url.pathname = "/admin/login";
       return NextResponse.redirect(url);
     }
   }
@@ -25,7 +26,8 @@ export function middleware(request: NextRequest) {
   if (pathname.startsWith("/dashboard")) {
     const userSession = request.cookies.get("nsuk_user_session");
     if (!userSession) {
-      const url = new URL("/login", request.url);
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
       return NextResponse.redirect(url);
     }
   }

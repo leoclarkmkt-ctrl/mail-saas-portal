@@ -3,10 +3,16 @@ import bcrypt from "bcryptjs";
 import { adminLoginSchema } from "@/lib/validation/schemas";
 import { jsonError, jsonSuccess } from "@/lib/utils/api";
 import { createAdminSession } from "@/lib/auth/admin-session";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = await enforceRateLimit(request, "admin-login", {
+    requests: 5,
+    windowSeconds: 60
+  });
+  if (rateLimitResponse) return rateLimitResponse;
   const body = await request.json();
   const parsed = adminLoginSchema.safeParse(body);
   if (!parsed.success) {
