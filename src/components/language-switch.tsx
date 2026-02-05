@@ -1,11 +1,10 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 export function LanguageSwitch({ currentLang }: { currentLang: "en" | "zh" }) {
   const pathname = usePathname();
-  const router = useRouter();
   const next = currentLang === "zh" ? "en" : "zh";
   const nextLabel = currentLang === "zh" ? "English" : "中文";
 
@@ -24,8 +23,7 @@ export function LanguageSwitch({ currentLang }: { currentLang: "en" | "zh" }) {
       onClick={() => {
         document.cookie = `portal-lang=${next}; path=/; max-age=31536000; samesite=lax`;
         const nextUrl = buildNextUrl();
-        router.push(nextUrl);
-        router.refresh();
+        window.location.href = nextUrl;
       }}
     >
       {nextLabel}

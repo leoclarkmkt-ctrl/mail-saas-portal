@@ -11,7 +11,10 @@ export const en = {
     copied: "Copied",
     submit: "Submit",
     cancel: "Cancel",
-    back: "Back"
+    back: "Back",
+    failedToLoad: "Failed to load",
+    retry: "Retry",
+    search: "Search"
   },
   errors: {
     activation_code_not_found: "Identity code not found. Please enter a valid identity code.",
@@ -133,6 +136,8 @@ export const en = {
     },
     summaryLabels: {
       loading: "Loading...",
+      failedToLoad: "Failed to load",
+      retry: "Retry",
       activationCodes: "Activation Codes",
       unused: "Unused",
       used: "Used",
@@ -181,6 +186,8 @@ export const en = {
     auditLabels: {
       searchPlaceholder: "Search",
       search: "Search",
+      failedToLoad: "Failed to load",
+      retry: "Retry",
       action: "Action",
       user: "User",
       ip: "IP",

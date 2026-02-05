@@ -7,7 +7,7 @@ export default function AdminAuditPage({ searchParams }: { searchParams?: Record
   const lang = getLangFromRequest(searchParams);
   const dict = getDictionary(lang);
   return (
-    <div>
+    <div className="space-y-3">
       <h2 className="text-2xl font-semibold text-primary">{dict.admin.audit}</h2>
       <AdminNav
         lang={lang}
@@ -19,7 +19,7 @@ export default function AdminAuditPage({ searchParams }: { searchParams?: Record
           status: dict.admin.status
         }}
       />
-      <AdminAudit labels={dict.admin.auditLabels} />
+      <AdminAudit key={lang} lang={lang} labels={dict.admin.auditLabels} />
     </div>
   );
 }
