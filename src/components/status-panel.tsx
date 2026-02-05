@@ -19,6 +19,10 @@ type StatusLabels = {
   redirectCopy: string;
   copied: string;
   loading: string;
+  redirectGuideIntro: string;
+  redirectGuidePath: string;
+  redirectGuideAdd: string;
+  redirectGuideListTitle: string;
 };
 
 const statusLine = (ok: boolean, label: string, detail?: string) => (
@@ -50,6 +54,7 @@ type HealthResponse = {
     error?: string;
   };
   auth_redirect_hint?: string;
+  app_base_url?: string;
   message?: string;
 };
 
@@ -64,13 +69,23 @@ export function StatusPanel({ labels }: { labels: StatusLabels }) {
       .catch(() => setData(null));
   }, []);
 
+  const redirectConfigured = Boolean(data?.auth_redirect_hint);
+  const redirectUrls = useMemo(() => {
+    const appBaseUrl = data?.app_base_url || "APP_BASE_URL";
+    return [`${appBaseUrl}/reset`];
+  }, [data?.app_base_url]);
+
   const redirectHint = useMemo(() => {
-    if (!data?.auth_redirect_hint) return "";
-    return data.auth_redirect_hint;
-  }, [data]);
+    if (data?.auth_redirect_hint) return data.auth_redirect_hint;
+    return [
+      labels.redirectGuideIntro,
+      labels.redirectGuidePath,
+      labels.redirectGuideAdd,
+      `${labels.redirectGuideListTitle}\n${redirectUrls.map((url) => `- ${url}`).join("\n")}`
+    ].join("\n\n");
+  }, [data?.auth_redirect_hint, labels.redirectGuideAdd, labels.redirectGuideIntro, labels.redirectGuideListTitle, labels.redirectGuidePath, redirectUrls]);
 
   const copyHint = async () => {
-    if (!redirectHint) return;
     await navigator.clipboard.writeText(redirectHint);
     setMessage(labels.copied);
   };
@@ -103,7 +118,7 @@ export function StatusPanel({ labels }: { labels: StatusLabels }) {
         labels.schema,
         schemaOk ? labels.schemaOk : labels.schemaFail
       )}
-      {statusLine(Boolean(redirectHint), labels.redirect, redirectHint || labels.redirectMissing)}
+      {statusLine(redirectConfigured, labels.redirect, redirectConfigured ? data?.auth_redirect_hint : labels.redirectMissing)}
 
       {data.message && (
         <div className="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-600">
@@ -111,16 +126,14 @@ export function StatusPanel({ labels }: { labels: StatusLabels }) {
         </div>
       )}
 
-      {redirectHint && (
-        <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-          <p className="font-medium text-slate-700">{labels.redirectTitle}</p>
-          <p className="mt-1 whitespace-pre-line">{redirectHint}</p>
-          <Button size="sm" className="mt-2" onClick={copyHint}>
-            {labels.redirectCopy}
-          </Button>
-          {message && <p className="mt-2 text-xs text-emerald-600">{message}</p>}
-        </div>
-      )}
+      <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+        <p className="font-medium text-slate-700">{labels.redirectTitle}</p>
+        <p className="mt-1 whitespace-pre-line">{redirectHint}</p>
+        <Button size="sm" className="mt-2" onClick={copyHint}>
+          {labels.redirectCopy}
+        </Button>
+        {message && <p className="mt-2 text-xs text-emerald-600">{message}</p>}
+      </div>
     </div>
   );
 }
