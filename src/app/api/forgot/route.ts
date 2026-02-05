@@ -3,6 +3,7 @@ import { createServerSupabaseAnonClient } from "@/lib/supabase/server";
 import { getAppBaseUrl } from "@/lib/env";
 import { jsonFieldError, jsonSuccess } from "@/lib/utils/api";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
+import { safeTrimLower } from "@/lib/safe-trim";
 
 export const runtime = "nodejs";
 
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
   } catch {
     return jsonFieldError("personal_email", "forgot_email_required", 400);
   }
-  const personal_email = String(body.personal_email ?? "").trim().toLowerCase();
+  const personal_email = safeTrimLower(body.personal_email);
   if (!personal_email) {
     return jsonFieldError("personal_email", "forgot_email_required", 400);
   }

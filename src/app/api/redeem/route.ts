@@ -6,6 +6,7 @@ import { createUserSession } from "@/lib/auth/user-session";
 import { createMailbox } from "@/lib/mailcow";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { isBlockedPersonalEmail } from "@/lib/validation/email-domain";
+import { safeTrim, safeTrimLower } from "@/lib/safe-trim";
 
 export const runtime = "nodejs";
 
@@ -81,10 +82,10 @@ export async function POST(request: NextRequest) {
       return jsonFieldError("activation_code", "activation_code_required", 400);
     }
 
-    const activation_code = String(body.activation_code ?? "").trim();
-    const personal_email = String(body.personal_email ?? "").trim();
-    const edu_username = String(body.edu_username ?? "").trim();
-    const password = String(body.password ?? "").trim();
+    const activation_code = safeTrim(body.activation_code);
+    const personal_email = safeTrim(body.personal_email);
+    const edu_username = safeTrim(body.edu_username);
+    const password = safeTrim(body.password);
 
     if (!activation_code) {
       return jsonFieldError("activation_code", "activation_code_required", 400);
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
     if (!personal_email) {
       return jsonFieldError("personal_email", "personal_email_required", 400);
     }
-    const normalizedPersonalEmail = personal_email.toLowerCase();
+    const normalizedPersonalEmail = safeTrimLower(personal_email);
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailPattern.test(normalizedPersonalEmail)) {
       return jsonFieldError("personal_email", "personal_email_invalid", 400);
@@ -100,7 +101,7 @@ export async function POST(request: NextRequest) {
     if (!edu_username) {
       return jsonFieldError("edu_username", "edu_username_required", 400);
     }
-    const normalizedEduUsername = edu_username.toLowerCase();
+    const normalizedEduUsername = safeTrimLower(edu_username);
     if (!/^[a-zA-Z0-9._-]{3,32}$/.test(normalizedEduUsername)) {
       return jsonFieldError("edu_username", "edu_username_invalid", 400);
     }
