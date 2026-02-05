@@ -68,6 +68,101 @@ export async function POST(request: NextRequest) {
     return dict[key as keyof typeof dict] ?? dict.internalError;
   };
 
+  const getErrorMeta = (err: unknown) => {
+    const record = typeof err === "object" && err !== null ? (err as Record<string, unknown>) : null;
+    const messageText = typeof err === "string"
+      ? err
+      : typeof record?.message === "string"
+      ? record.message
+      : "";
+    const detailsText = typeof record?.details === "string" ? record.details : "";
+    const hintText = typeof record?.hint === "string" ? record.hint : "";
+    const codeText = typeof record?.code === "string" ? record.code : "";
+    const constraintText = typeof record?.constraint === "string" ? record.constraint : "";
+    const statusCode = typeof record?.status === "number" ? record.status : undefined;
+
+    const combined = `${messageText} ${detailsText} ${hintText} ${constraintText}`.toLowerCase();
+
+    return {
+      messageText,
+      detailsText,
+      hintText,
+      codeText,
+      constraintText,
+      statusCode,
+      combined
+    };
+  };
+
+  const logNonFieldError = (branch: "createUser" | "upsert" | "rpc" | "finalUpsert", err: unknown) => {
+    const meta = getErrorMeta(err);
+    console.error(`[redeem][${branch}] unmapped_400`, {
+      code: meta.codeText || null,
+      status: meta.statusCode ?? null,
+      message: meta.messageText || null,
+      details: meta.detailsText || null,
+      hint: meta.hintText || null,
+      constraint: meta.constraintText || null
+    });
+  };
+
+  const mapUserCorrectableError = (err: unknown): { field: string; key: string; status?: number } | null => {
+    const meta = getErrorMeta(err);
+    const { codeText, statusCode, combined } = meta;
+
+    // A) Prefer structured unique-violation metadata.
+    if (codeText === "23505") {
+      if (
+        combined.includes("edu_username") ||
+        combined.includes("education_username") ||
+        combined.includes("edu_accounts_edu_username") ||
+        combined.includes("edu accounts") ||
+        combined.includes("edu_accounts")
+      ) {
+        return { field: "edu_username", key: "edu_username_exists", status: 409 };
+      }
+      if (
+        combined.includes("personal_email") ||
+        combined.includes("profiles_personal_email") ||
+        combined.includes("profiles")
+      ) {
+        return { field: "personal_email", key: "personal_email_exists", status: 409 };
+      }
+      return null;
+    }
+
+    // B) Username already exists/taken.
+    if ((combined.includes("edu username") || combined.includes("username")) && (combined.includes("exists") || combined.includes("taken"))) {
+      return { field: "edu_username", key: "edu_username_exists", status: 409 };
+    }
+
+    // C) Invalid email.
+    if (combined.includes("invalid email")) {
+      return { field: "personal_email", key: "personal_email_invalid", status: statusCode ?? 400 };
+    }
+
+    // D) Weak/invalid password.
+    if (combined.includes("password") && (combined.includes("weak") || combined.includes("invalid") || combined.includes("least"))) {
+      return { field: "password", key: "password_invalid", status: statusCode ?? 400 };
+    }
+
+    // E) Activation code hints.
+    if (combined.includes("activation") && combined.includes("not found")) {
+      return { field: "activation_code", key: "activation_code_not_found", status: 404 };
+    }
+    if (
+      combined.includes("activation") &&
+      (combined.includes("invalid") || combined.includes("used") || combined.includes("expired"))
+    ) {
+      return { field: "activation_code", key: "activation_code_used", status: 409 };
+    }
+    if ((codeText === "P0001" || codeText === "22023") && combined.includes("activation")) {
+      return { field: "activation_code", key: "activation_code_used", status: 409 };
+    }
+
+    return null;
+  };
+
   try {
     try {
       getSupabaseServiceEnv();
@@ -178,6 +273,11 @@ export async function POST(request: NextRequest) {
           detail: "schema missing: run supabase/schema.sql + migrations"
         });
       }
+      const mappedCreateError = mapUserCorrectableError(created.error ?? errorMessage);
+      if (mappedCreateError) {
+        return jsonFieldError(mappedCreateError.field, mappedCreateError.key, mappedCreateError.status ?? 400);
+      }
+      logNonFieldError("createUser", created.error ?? errorMessage);
       return jsonError(errorMessage, 400);
     }
     const authUserId = created.data.user.id;
@@ -196,6 +296,11 @@ export async function POST(request: NextRequest) {
           detail: "schema missing: run supabase/schema.sql + migrations"
         });
       }
+      const mappedUpsertError = mapUserCorrectableError(upsert.error ?? errorMessage);
+      if (mappedUpsertError) {
+        return jsonFieldError(mappedUpsertError.field, mappedUpsertError.key, mappedUpsertError.status ?? 400);
+      }
+      logNonFieldError("upsert", upsert.error ?? errorMessage);
       return jsonError(errorMessage, 400);
     }
 
@@ -225,6 +330,11 @@ export async function POST(request: NextRequest) {
           detail: "schema missing: run supabase/schema.sql + migrations"
         });
       }
+      const mappedRpcError = mapUserCorrectableError(error ?? failureMessage);
+      if (mappedRpcError) {
+        return jsonFieldError(mappedRpcError.field, mappedRpcError.key, mappedRpcError.status ?? 400);
+      }
+      logNonFieldError("rpc", error ?? failureMessage);
       return jsonError(failureMessage, 400);
     }
 
@@ -276,6 +386,11 @@ export async function POST(request: NextRequest) {
           detail: "schema missing: run supabase/schema.sql + migrations"
         });
       }
+      const mappedFinalUpsertError = mapUserCorrectableError(finalUpsert.error ?? errorMessage);
+      if (mappedFinalUpsertError) {
+        return jsonFieldError(mappedFinalUpsertError.field, mappedFinalUpsertError.key, mappedFinalUpsertError.status ?? 400);
+      }
+      logNonFieldError("finalUpsert", finalUpsert.error ?? errorMessage);
       return jsonError(errorMessage, 400);
     }
     await createUserSession({ userId: result.user_id, mode: "personal" });

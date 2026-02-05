@@ -11,7 +11,10 @@ export const en = {
     copied: "Copied",
     submit: "Submit",
     cancel: "Cancel",
-    back: "Back"
+    back: "Back",
+    failedToLoad: "Failed to load",
+    retry: "Retry",
+    search: "Search"
   },
   errors: {
     activation_code_not_found: "Identity code not found. Please enter a valid identity code.",
@@ -133,6 +136,8 @@ export const en = {
     },
     summaryLabels: {
       loading: "Loading...",
+      failedToLoad: "Failed to load",
+      retry: "Retry",
       activationCodes: "Activation Codes",
       unused: "Unused",
       used: "Used",
@@ -176,11 +181,16 @@ export const en = {
       unsuspend: "Unsuspend",
       resetPassword: "Reset Password",
       tempPassword: "Temp password",
-      suspended: "Suspended"
+      suspended: "Suspended",
+      renewYears: "Renew years",
+      failedToLoad: "Failed to load",
+      retry: "Retry"
     },
     auditLabels: {
       searchPlaceholder: "Search",
       search: "Search",
+      failedToLoad: "Failed to load",
+      retry: "Retry",
       action: "Action",
       user: "User",
       ip: "IP",
@@ -201,7 +211,11 @@ export const en = {
       schemaOk: "Initialized",
       schemaFail: "Run schema.sql + seed.sql in Supabase SQL Editor.",
       redirect: "Auth redirect URLs configured",
-      redirectMissing: "No hint provided",
+      redirectMissing: "Not configured yet. See guidance below.",
+      redirectGuideIntro: "To configure Auth Redirect URLs, open Supabase Dashboard.",
+      redirectGuidePath: "Path: Authentication -> URL Configuration",
+      redirectGuideAdd: "Add the following Redirect URLs:",
+      redirectGuideListTitle: "Redirect URL list",
       redirectTitle: "Suggested configuration",
       redirectCopy: "Copy suggested config",
       copied: "Copied",
