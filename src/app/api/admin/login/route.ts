@@ -34,7 +34,12 @@ export async function POST(request: NextRequest) {
     const env = getAdminEnv();
     email = safeTrimLower(env.ADMIN_EMAIL);
     hash = env.ADMIN_PASSWORD_HASH;
+    console.log("Env ADMIN_EMAIL (raw):", JSON.stringify(process.env.ADMIN_EMAIL));
+    console.log("Env ADMIN_EMAIL length:", process.env.ADMIN_EMAIL?.length);
+    console.log("Normalized env email:", JSON.stringify(email));
+    console.log("Normalized env email length:", email.length);
   } catch (error) {
+    console.log("getAdminEnv error:", error);
     return jsonError(error instanceof Error ? error.message : "Admin not configured", 500);
   }
 
