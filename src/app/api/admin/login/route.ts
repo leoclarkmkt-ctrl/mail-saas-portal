@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { adminLoginSchema } from "@/lib/validation/schemas";
 import { getAdminEnv } from "@/lib/env";
@@ -20,21 +20,14 @@ export async function POST(request: NextRequest) {
     windowSeconds: 60
   });
   if (rateLimitResponse) return rateLimitResponse;
+
   const body = await request.json();
   const parsed = adminLoginSchema.safeParse(body);
-  console.log("========== ADMIN LOGIN DEBUG ==========");
-  console.log("Raw body.email:", JSON.stringify(body.email));
-  console.log("Body email length:", body.email?.length);
-  console.log("Parsed success:", parsed.success);
-  if (parsed.success) {
-    console.log("Parsed email:", JSON.stringify(parsed.data.email));
-    console.log("Parsed email length:", parsed.data.email.length);
-  } else {
-    console.log("Parse errors:", JSON.stringify(parsed.error.issues));
-  }
+
   if (!parsed.success) {
     return jsonFieldError("email", "admin_email_invalid", 400);
   }
+
   let email: string;
   let hash: string;
   try {
@@ -49,20 +42,57 @@ export async function POST(request: NextRequest) {
     console.log("getAdminEnv error:", error);
     return jsonError(error instanceof Error ? error.message : "Admin not configured", 500);
   }
+
   const inputEmail = safeTrimLower(parsed.data.email);
-  console.log("Input email (normalized):", JSON.stringify(inputEmail));
-  console.log("Input email length:", inputEmail.length);
-  console.log("Emails match:", inputEmail === email);
-  console.log("Char-by-char comparison:");
-  for (let i = 0; i < Math.max(inputEmail.length, email.length); i += 1) {
-    console.log(
-      `  [${i}] input: "${inputEmail[i]}" (${inputEmail.charCodeAt(i)}) vs env: "${email[i]}" (${email.charCodeAt(i)})`
+
+  if (inputEmail !== email) {
+    const debugInfo = {
+      raw_input: body.email,
+      raw_input_length: body.email?.length,
+      parsed_input: parsed.data.email,
+      parsed_input_length: parsed.data.email.length,
+      normalized_input: inputEmail,
+      normalized_input_length: inputEmail.length,
+      raw_env: process.env.ADMIN_EMAIL,
+      raw_env_length: process.env.ADMIN_EMAIL?.length,
+      normalized_env: email,
+      normalized_env_length: email.length,
+      match: inputEmail === email,
+      char_comparison: [] as Array<{
+        index: number;
+        input_char: string;
+        input_code: number | "N/A";
+        env_char: string;
+        env_code: number | "N/A";
+        match: boolean;
+      }>
+    };
+
+    for (let i = 0; i < Math.max(inputEmail.length, email.length); i += 1) {
+      debugInfo.char_comparison.push({
+        index: i,
+        input_char: inputEmail[i] ?? "undefined",
+        input_code: Number.isNaN(inputEmail.charCodeAt(i)) ? "N/A" : inputEmail.charCodeAt(i),
+        env_char: email[i] ?? "undefined",
+        env_code: Number.isNaN(email.charCodeAt(i)) ? "N/A" : email.charCodeAt(i),
+        match: inputEmail[i] === email[i]
+      });
+    }
+
+    return NextResponse.json(
+      {
+        ok: false,
+        error: {
+          field: "email",
+          key: "admin_email_invalid",
+          message: "Admin email mismatch"
+        },
+        debug: debugInfo
+      },
+      { status: 401 }
     );
   }
-  console.log("=======================================");
-  if (inputEmail !== email) {
-    return jsonFieldError("email", "admin_email_invalid", 401);
-  }
+
   const ok = await bcrypt.compare(parsed.data.password, hash);
   if (!ok) {
     return jsonFieldError("password", "admin_password_invalid", 401);
