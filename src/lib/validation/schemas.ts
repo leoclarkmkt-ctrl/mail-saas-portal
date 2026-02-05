@@ -10,19 +10,19 @@ export const passwordSchema = z
 
 export const redeemSchema = z.object({
   activation_code: z.string().min(6),
-  personal_email: z.string().email().transform((v) => v.toLowerCase()),
-  edu_username: z.string().min(2).max(32).regex(/^[a-zA-Z0-9._-]+$/).transform((v) => v.toLowerCase()),
+  personal_email: z.string().trim().email().transform((v) => v.toLowerCase()),
+  edu_username: z.string().trim().min(2).max(32).regex(/^[a-zA-Z0-9._-]+$/).transform((v) => v.toLowerCase()),
   password: passwordSchema
 });
 
 export const loginSchema = z.object({
-  email: z.string().email().transform((v) => v.toLowerCase()),
+  email: z.string().trim().email().transform((v) => v.toLowerCase()),
   password: z.string().min(1),
   mode: z.enum(["personal", "edu"]) 
 });
 
 export const forgotSchema = z.object({
-  personal_email: z.string().email().transform((v) => v.toLowerCase())
+  personal_email: z.string().trim().email().transform((v) => v.toLowerCase())
 });
 
 export const resetSchema = z.object({
@@ -40,8 +40,12 @@ export const changePasswordSchema = z.object({
 });
 
 export const adminLoginSchema = z.object({
-  email: z.string().email().transform((v) => v.toLowerCase()),
-  password: z.string().min(1)
+  email: z.string()
+    .trim()
+    .min(1)
+    .email()
+    .transform((v) => v.toLowerCase()),
+  password: z.string().trim().min(1)
 });
 
 export const adminGenerateCodesSchema = z.object({
