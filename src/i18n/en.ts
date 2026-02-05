@@ -181,7 +181,10 @@ export const en = {
       unsuspend: "Unsuspend",
       resetPassword: "Reset Password",
       tempPassword: "Temp password",
-      suspended: "Suspended"
+      suspended: "Suspended",
+      renewYears: "Renew years",
+      failedToLoad: "Failed to load",
+      retry: "Retry"
     },
     auditLabels: {
       searchPlaceholder: "Search",
@@ -208,7 +211,11 @@ export const en = {
       schemaOk: "Initialized",
       schemaFail: "Run schema.sql + seed.sql in Supabase SQL Editor.",
       redirect: "Auth redirect URLs configured",
-      redirectMissing: "No hint provided",
+      redirectMissing: "Not configured yet. See guidance below.",
+      redirectGuideIntro: "To configure Auth Redirect URLs, open Supabase Dashboard.",
+      redirectGuidePath: "Path: Authentication -> URL Configuration",
+      redirectGuideAdd: "Add the following Redirect URLs:",
+      redirectGuideListTitle: "Redirect URL list",
       redirectTitle: "Suggested configuration",
       redirectCopy: "Copy suggested config",
       copied: "Copied",

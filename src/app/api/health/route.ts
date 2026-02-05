@@ -18,6 +18,7 @@ export async function GET() {
   const missing = envStatus.missing;
   const envOk = envStatus.ok;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  const appBaseUrl = process.env.APP_BASE_URL ?? "";
   const mailcowEnv = getMailcowEnvStatus();
 
   const responseHeaders = { "Cache-Control": "no-store" };
@@ -44,6 +45,7 @@ export async function GET() {
           dbOk: false,
           schemaHints: ["Missing environment variables."]
         },
+        app_base_url: appBaseUrl,
         time: new Date().toISOString()
       },
       { headers: responseHeaders }
@@ -110,6 +112,7 @@ export async function GET() {
           ok: dbOk,
           dbOk
         },
+        app_base_url: appBaseUrl,
         time: new Date().toISOString()
       },
       { headers: responseHeaders }
@@ -131,6 +134,7 @@ export async function GET() {
         dbOk,
         schemaHints: schemaHints.length > 0 ? schemaHints : undefined
       },
+      app_base_url: appBaseUrl,
       time: new Date().toISOString()
     },
     { headers: responseHeaders }

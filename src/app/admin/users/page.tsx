@@ -19,7 +19,7 @@ export default function AdminUsersPage({ searchParams }: { searchParams?: Record
           status: dict.admin.status
         }}
       />
-      <AdminUsers labels={dict.admin.usersLabels} />
+      <AdminUsers key={lang} lang={lang} labels={dict.admin.usersLabels} />
     </div>
   );
 }

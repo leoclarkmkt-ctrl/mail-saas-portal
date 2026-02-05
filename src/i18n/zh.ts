@@ -177,7 +177,10 @@ export const zh = {
       unsuspend: "解除停用",
       resetPassword: "重置密码",
       tempPassword: "临时密码",
-      suspended: "已停用"
+      suspended: "已停用",
+      renewYears: "续费年限",
+      failedToLoad: "加载失败",
+      retry: "重试"
     },
     auditLabels: {
       searchPlaceholder: "搜索",
@@ -204,7 +207,11 @@ export const zh = {
       schemaOk: "已初始化",
       schemaFail: "请在 Supabase SQL Editor 执行 schema.sql + seed.sql",
       redirect: "Auth Redirect URLs 是否已配置",
-      redirectMissing: "未提供提示",
+      redirectMissing: "尚未配置，请查看下方指引。",
+      redirectGuideIntro: "请先打开 Supabase 控制台配置 Auth Redirect URLs。",
+      redirectGuidePath: "路径：Authentication -> URL Configuration",
+      redirectGuideAdd: "请添加以下 Redirect URL：",
+      redirectGuideListTitle: "Redirect URL 列表",
       redirectTitle: "建议配置",
       redirectCopy: "一键复制建议配置",
       copied: "已复制",
