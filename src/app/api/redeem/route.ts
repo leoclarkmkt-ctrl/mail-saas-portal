@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
     windowSeconds: 60
   });
   if (rateLimitResponse) return rateLimitResponse;
+
   const safeString = (value: unknown) => {
     if (value instanceof Error) return value.message;
     if (typeof value === "string") return value;
@@ -40,8 +41,10 @@ export async function POST(request: NextRequest) {
       return "Unknown error";
     }
   };
-  const isSchemaMissing = (message: string) =>
-    /relation .* does not exist|schema cache|permission denied/i.test(message);
+
+  const isSchemaMissing = (messageText: string) =>
+    /relation .* does not exist|schema cache|permission denied/i.test(messageText);
+
   const lang = request.nextUrl.searchParams.get("lang") === "zh" ? "zh" : "en";
   const message = (key: string) => {
     const zh = {
@@ -61,20 +64,26 @@ export async function POST(request: NextRequest) {
       redeemFailed: "Redeem failed",
       mailcowFailed: "Mailbox creation failed. Please try again.",
       internalError: "Internal error",
-      alreadyHasEducationAccount: "You already have an education account. Please log in to your student console!",
-      personalEmailDomainBlocked: "Personal email cannot be an @nsuk.edu.kg address. Please use a personal mailbox (e.g., Gmail/Outlook)."
+      alreadyHasEducationAccount:
+        "You already have an education account. Please log in to your student console!",
+      personalEmailDomainBlocked:
+        "Personal email cannot be an @nsuk.edu.kg address. Please use a personal mailbox (e.g., Gmail/Outlook)."
     };
     const dict = lang === "zh" ? zh : en;
     return dict[key as keyof typeof dict] ?? dict.internalError;
   };
 
   const getErrorMeta = (err: unknown) => {
-    const record = typeof err === "object" && err !== null ? (err as Record<string, unknown>) : null;
-    const messageText = typeof err === "string"
-      ? err
-      : typeof record?.message === "string"
-      ? record.message
-      : "";
+    const record =
+      typeof err === "object" && err !== null ? (err as Record<string, unknown>) : null;
+
+    const messageText =
+      typeof err === "string"
+        ? err
+        : typeof record?.message === "string"
+        ? record.message
+        : "";
+
     const detailsText = typeof record?.details === "string" ? record.details : "";
     const hintText = typeof record?.hint === "string" ? record.hint : "";
     const codeText = typeof record?.code === "string" ? record.code : "";
@@ -94,7 +103,10 @@ export async function POST(request: NextRequest) {
     };
   };
 
-  const logNonFieldError = (branch: "createUser" | "upsert" | "rpc" | "finalUpsert", err: unknown) => {
+  const logNonFieldError = (
+    branch: "createUser" | "upsert" | "rpc" | "finalUpsert",
+    err: unknown
+  ) => {
     const meta = getErrorMeta(err);
     console.error(`[redeem][${branch}] unmapped_400`, {
       code: meta.codeText || null,
@@ -106,7 +118,9 @@ export async function POST(request: NextRequest) {
     });
   };
 
-  const mapUserCorrectableError = (err: unknown): { field: string; key: string; status?: number } | null => {
+  const mapUserCorrectableError = (
+    err: unknown
+  ): { field: string; key: string; status?: number } | null => {
     const meta = getErrorMeta(err);
     const { codeText, statusCode, combined } = meta;
 
@@ -132,7 +146,10 @@ export async function POST(request: NextRequest) {
     }
 
     // B) Username already exists/taken.
-    if ((combined.includes("edu username") || combined.includes("username")) && (combined.includes("exists") || combined.includes("taken"))) {
+    if (
+      (combined.includes("edu username") || combined.includes("username")) &&
+      (combined.includes("exists") || combined.includes("taken"))
+    ) {
       return { field: "edu_username", key: "edu_username_exists", status: 409 };
     }
 
@@ -142,7 +159,10 @@ export async function POST(request: NextRequest) {
     }
 
     // D) Weak/invalid password.
-    if (combined.includes("password") && (combined.includes("weak") || combined.includes("invalid") || combined.includes("least"))) {
+    if (
+      combined.includes("password") &&
+      (combined.includes("weak") || combined.includes("invalid") || combined.includes("least"))
+    ) {
       return { field: "password", key: "password_invalid", status: statusCode ?? 400 };
     }
 
@@ -170,6 +190,7 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       return jsonError(message("missingEnv"), 500, { detail: safeString(error) });
     }
+
     let body: Record<string, unknown> = {};
     try {
       body = (await request.json()) as Record<string, unknown>;
@@ -188,11 +209,13 @@ export async function POST(request: NextRequest) {
     if (!personal_email) {
       return jsonFieldError("personal_email", "personal_email_required", 400);
     }
+
     const normalizedPersonalEmail = safeTrimLower(personal_email);
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailPattern.test(normalizedPersonalEmail)) {
       return jsonFieldError("personal_email", "personal_email_invalid", 400);
     }
+
     if (!edu_username) {
       return jsonFieldError("edu_username", "edu_username_required", 400);
     }
@@ -200,6 +223,7 @@ export async function POST(request: NextRequest) {
     if (!/^[a-zA-Z0-9._-]{3,32}$/.test(normalizedEduUsername)) {
       return jsonFieldError("edu_username", "edu_username_invalid", 400);
     }
+
     if (!password) {
       return jsonFieldError("password", "password_required", 400);
     }
@@ -216,14 +240,17 @@ export async function POST(request: NextRequest) {
     if (isBlockedPersonalEmail(normalizedPersonalEmail)) {
       return jsonFieldError("personal_email", "personal_email_disallowed_domain", 400);
     }
+
     const supabase = createServerSupabaseClient();
     const authAdmin = supabase.auth.admin;
 
+    // 1) Activation code must exist and be unused.
     const { data: codeRecord, error: codeError } = await supabase
       .from("activation_codes")
       .select("status")
       .eq("code", activation_code)
       .maybeSingle();
+
     if (codeError) {
       const errorMessage = codeError.message;
       if (isSchemaMissing(errorMessage)) {
@@ -240,6 +267,7 @@ export async function POST(request: NextRequest) {
       return jsonFieldError("activation_code", "activation_code_used", 409);
     }
 
+    // 2) Personal email and edu username must be unique in our "official" tables.
     const { data: existingProfile } = await supabase
       .from("profiles")
       .select("user_id")
@@ -258,6 +286,7 @@ export async function POST(request: NextRequest) {
       return jsonFieldError("edu_username", "edu_username_exists", 409);
     }
 
+    // Roll back only the data created in THIS request (by createdUserId).
     const rollbackCreatedUserData = async (createdUserId: string) => {
       let rollbackError: string | null = null;
 
@@ -268,45 +297,46 @@ export async function POST(request: NextRequest) {
 
       const deleteByUserId = async (table: string) => {
         const { error } = await supabase.from(table).delete().eq("user_id", createdUserId);
-        if (error) {
-          appendRollbackError(`delete ${table}`, error.message);
-        }
+        if (error) appendRollbackError(`delete ${table}`, error.message);
       };
 
       await deleteByUserId("user_mailboxes");
       await deleteByUserId("edu_accounts");
       await deleteByUserId("profiles");
 
+      // Guard: only reset the activation code if it was used by THIS created user.
       const { error: codeRollbackError } = await supabase
         .from("activation_codes")
         .update({ status: "unused", used_at: null, used_by_user_id: null })
         .eq("code", activation_code)
         .eq("used_by_user_id", createdUserId);
-      if (codeRollbackError) {
-        appendRollbackError("reset activation_code", codeRollbackError.message);
-      }
+
+      if (codeRollbackError) appendRollbackError("reset activation_code", codeRollbackError.message);
 
       const { error: authDeleteError } = await authAdmin.deleteUser(createdUserId);
-      if (authDeleteError) {
-        appendRollbackError("delete auth user", authDeleteError.message);
-      }
+      if (authDeleteError) appendRollbackError("delete auth user", authDeleteError.message);
 
-      await supabase.from("audit_logs").insert({
+      // Best-effort audit log; if this fails we still return rollbackError.
+      const { error: auditErr } = await supabase.from("audit_logs").insert({
         user_id: createdUserId,
         action: "redeem_rollback",
         meta: rollbackError ? { error: rollbackError } : { ok: true }
       });
+      if (auditErr) appendRollbackError("insert audit_logs", auditErr.message);
 
       return rollbackError;
     };
 
+    // 3) Create auth user (may create "half product" if later steps fail -> must rollback).
     const created = await authAdmin.createUser({
       email: normalizedPersonalEmail,
       password,
       email_confirm: true
     });
+
     if (created.error || !created.data.user) {
       const errorMessage = created.error?.message ?? "Failed to create user";
+
       if (/already registered/i.test(errorMessage)) {
         return jsonFieldError("personal_email", "personal_email_exists", 409);
       }
@@ -315,40 +345,53 @@ export async function POST(request: NextRequest) {
           detail: "schema missing: run supabase/schema.sql + migrations"
         });
       }
+
       const mappedCreateError = mapUserCorrectableError(created.error ?? errorMessage);
       if (mappedCreateError) {
-        return jsonFieldError(mappedCreateError.field, mappedCreateError.key, mappedCreateError.status ?? 400);
+        return jsonFieldError(
+          mappedCreateError.field,
+          mappedCreateError.key,
+          mappedCreateError.status ?? 400
+        );
       }
+
       logNonFieldError("createUser", created.error ?? errorMessage);
       return jsonError(errorMessage, 400);
     }
 
     const authUserId = created.data.user.id;
+
+    // 4) Upsert initial profile
     const upsert = await supabase.from("profiles").upsert(
       { id: authUserId, user_id: authUserId, personal_email: normalizedPersonalEmail, is_suspended: false },
       { onConflict: "user_id" }
     );
+
     if (upsert.error) {
       const errorMessage = upsert.error.message;
-      const mappedUpsertError = mapUserCorrectableError(upsert.error ?? errorMessage);
       const rollbackError = await rollbackCreatedUserData(authUserId);
 
-      if (/duplicate key|unique/i.test(errorMessage)) {
-        return jsonFieldError("personal_email", "personal_email_exists", 409);
-      }
       if (isSchemaMissing(errorMessage)) {
         return jsonError(message("schemaMissing"), 500, {
           detail: "schema missing: run supabase/schema.sql + migrations",
           rollback_error: rollbackError ?? undefined
         });
       }
+
+      const mappedUpsertError = mapUserCorrectableError(upsert.error ?? errorMessage);
       if (mappedUpsertError) {
-        return jsonFieldError(mappedUpsertError.field, mappedUpsertError.key, mappedUpsertError.status ?? 400);
+        return jsonFieldError(
+          mappedUpsertError.field,
+          mappedUpsertError.key,
+          mappedUpsertError.status ?? 400
+        );
       }
+
       logNonFieldError("upsert", upsert.error ?? errorMessage);
       return jsonError(errorMessage, 400, { rollback_error: rollbackError ?? undefined });
     }
 
+    // 5) Redeem activation code via RPC (writes official DB rows)
     const { data, error } = await supabase.rpc("redeem_activation_code", {
       p_code: activation_code,
       p_user_id: authUserId,
@@ -358,18 +401,7 @@ export async function POST(request: NextRequest) {
 
     if (error || !data?.[0]) {
       const failureMessage = error?.message ?? message("redeemFailed");
-      const mappedRpcError = mapUserCorrectableError(error ?? failureMessage);
       const rollbackError = await rollbackCreatedUserData(authUserId);
-
-      if (failureMessage.includes("User already has education account")) {
-        return jsonFieldError("personal_email", "personal_email_exists", 409);
-      }
-      if (failureMessage.includes("Activation code invalid")) {
-        return jsonFieldError("activation_code", "activation_code_used", 409);
-      }
-      if (failureMessage.includes("Edu username exists")) {
-        return jsonFieldError("edu_username", "edu_username_exists", 409);
-      }
 
       if (isSchemaMissing(failureMessage)) {
         return jsonError(message("schemaMissing"), 500, {
@@ -377,14 +409,23 @@ export async function POST(request: NextRequest) {
           rollback_error: rollbackError ?? undefined
         });
       }
+
+      const mappedRpcError = mapUserCorrectableError(error ?? failureMessage);
       if (mappedRpcError) {
-        return jsonFieldError(mappedRpcError.field, mappedRpcError.key, mappedRpcError.status ?? 400);
+        return jsonFieldError(
+          mappedRpcError.field,
+          mappedRpcError.key,
+          mappedRpcError.status ?? 400
+        );
       }
+
       logNonFieldError("rpc", error ?? failureMessage);
       return jsonError(failureMessage, 400, { rollback_error: rollbackError ?? undefined });
     }
 
     const result = data[0];
+
+    // 6) Create mailbox on Mailcow; on failure rollback everything.
     const mailcowResult = await createMailbox(result.edu_email, password);
     if (!mailcowResult.ok) {
       const rollbackError = await rollbackCreatedUserData(authUserId);
@@ -393,13 +434,15 @@ export async function POST(request: NextRequest) {
         rollback_error: rollbackError ?? undefined
       });
     }
+
+    // 7) Final profile upsert (redundant but keeps original behavior)
     const finalUpsert = await supabase.from("profiles").upsert(
       { id: authUserId, user_id: authUserId, personal_email: normalizedPersonalEmail },
       { onConflict: "user_id" }
     );
+
     if (finalUpsert.error) {
       const errorMessage = finalUpsert.error.message;
-      const mappedFinalUpsertError = mapUserCorrectableError(finalUpsert.error ?? errorMessage);
       const rollbackError = await rollbackCreatedUserData(authUserId);
 
       if (isSchemaMissing(errorMessage)) {
@@ -408,12 +451,21 @@ export async function POST(request: NextRequest) {
           rollback_error: rollbackError ?? undefined
         });
       }
+
+      const mappedFinalUpsertError = mapUserCorrectableError(finalUpsert.error ?? errorMessage);
       if (mappedFinalUpsertError) {
-        return jsonFieldError(mappedFinalUpsertError.field, mappedFinalUpsertError.key, mappedFinalUpsertError.status ?? 400);
+        return jsonFieldError(
+          mappedFinalUpsertError.field,
+          mappedFinalUpsertError.key,
+          mappedFinalUpsertError.status ?? 400
+        );
       }
+
       logNonFieldError("finalUpsert", finalUpsert.error ?? errorMessage);
       return jsonError(errorMessage, 400, { rollback_error: rollbackError ?? undefined });
     }
+
+    // 8) Session + success
     await createUserSession({ userId: result.user_id, mode: "personal" });
 
     return jsonSuccess({
