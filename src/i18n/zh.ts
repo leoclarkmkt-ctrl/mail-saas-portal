@@ -11,7 +11,10 @@ export const zh = {
     copied: "已复制",
     submit: "提交",
     cancel: "取消",
-    back: "返回"
+    back: "返回",
+    failedToLoad: "加载失败",
+    retry: "重试",
+    search: "搜索"
   },
   errors: {
     activation_code_not_found: "身份编码不存在，请输入正确身份编码！",
@@ -129,6 +132,8 @@ export const zh = {
     },
     summaryLabels: {
       loading: "加载中...",
+      failedToLoad: "加载失败",
+      retry: "重试",
       activationCodes: "激活码",
       unused: "未使用",
       used: "已使用",
@@ -177,6 +182,8 @@ export const zh = {
     auditLabels: {
       searchPlaceholder: "搜索",
       search: "搜索",
+      failedToLoad: "加载失败",
+      retry: "重试",
       action: "动作",
       user: "用户",
       ip: "IP",
