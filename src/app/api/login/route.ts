@@ -4,6 +4,7 @@ import { getSessionEnv } from "@/lib/env";
 import { jsonFieldError, jsonSuccess } from "@/lib/utils/api";
 import { createUserSession } from "@/lib/auth/user-session";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
+import { safeTrim, safeTrimLower } from "@/lib/safe-trim";
 
 export const runtime = "nodejs";
 
@@ -31,8 +32,8 @@ export async function POST(request: NextRequest) {
   } catch {
     return jsonFieldError("email", "login_personal_email_required", 400);
   }
-  const email = String(body.email ?? "").trim().toLowerCase();
-  const password = String(body.password ?? "").trim();
+  const email = safeTrimLower(body.email);
+  const password = safeTrim(body.password);
   const mode = body.mode === "edu" ? "edu" : "personal";
 
   if (!email) {

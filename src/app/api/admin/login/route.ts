@@ -5,6 +5,7 @@ import { getAdminEnv } from "@/lib/env";
 import { jsonError, jsonFieldError, jsonSuccess } from "@/lib/utils/api";
 import { createAdminSession } from "@/lib/auth/admin-session";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
+import { safeTrimLower } from "@/lib/safe-trim";
 
 export const runtime = "nodejs";
 
@@ -28,12 +29,13 @@ export async function POST(request: NextRequest) {
   let hash: string;
   try {
     const env = getAdminEnv();
-    email = env.ADMIN_EMAIL.toLowerCase();
+    email = safeTrimLower(env.ADMIN_EMAIL);
     hash = env.ADMIN_PASSWORD_HASH;
   } catch (error) {
     return jsonError(error instanceof Error ? error.message : "Admin not configured", 500);
   }
-  if (parsed.data.email !== email) {
+  const inputEmail = safeTrimLower(parsed.data.email);
+  if (inputEmail !== email) {
     return jsonFieldError("email", "admin_email_invalid", 401);
   }
   const ok = await bcrypt.compare(parsed.data.password, hash);
