@@ -11,7 +11,10 @@ export const zh = {
     copied: "已复制",
     submit: "提交",
     cancel: "取消",
-    back: "返回"
+    back: "返回",
+    failedToLoad: "加载失败",
+    retry: "重试",
+    search: "搜索"
   },
   errors: {
     activation_code_not_found: "身份编码不存在，请输入正确身份编码！",
@@ -129,6 +132,8 @@ export const zh = {
     },
     summaryLabels: {
       loading: "加载中...",
+      failedToLoad: "加载失败",
+      retry: "重试",
       activationCodes: "激活码",
       unused: "未使用",
       used: "已使用",
@@ -172,11 +177,16 @@ export const zh = {
       unsuspend: "解除停用",
       resetPassword: "重置密码",
       tempPassword: "临时密码",
-      suspended: "已停用"
+      suspended: "已停用",
+      renewYears: "续费年限",
+      failedToLoad: "加载失败",
+      retry: "重试"
     },
     auditLabels: {
       searchPlaceholder: "搜索",
       search: "搜索",
+      failedToLoad: "加载失败",
+      retry: "重试",
       action: "动作",
       user: "用户",
       ip: "IP",
@@ -197,7 +207,11 @@ export const zh = {
       schemaOk: "已初始化",
       schemaFail: "请在 Supabase SQL Editor 执行 schema.sql + seed.sql",
       redirect: "Auth Redirect URLs 是否已配置",
-      redirectMissing: "未提供提示",
+      redirectMissing: "尚未配置，请查看下方指引。",
+      redirectGuideIntro: "请先打开 Supabase 控制台配置 Auth Redirect URLs。",
+      redirectGuidePath: "路径：Authentication -> URL Configuration",
+      redirectGuideAdd: "请添加以下 Redirect URL：",
+      redirectGuideListTitle: "Redirect URL 列表",
       redirectTitle: "建议配置",
       redirectCopy: "一键复制建议配置",
       copied: "已复制",

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import type { Locale } from "@/i18n";
 
 type AdminAuditLabels = {
   searchPlaceholder: string;
@@ -11,9 +12,11 @@ type AdminAuditLabels = {
   user: string;
   ip: string;
   time: string;
+  failedToLoad: string;
+  retry: string;
 };
 
-export function AdminAudit({ labels }: { labels: AdminAuditLabels }) {
+export function AdminAudit({ labels, lang }: { labels: AdminAuditLabels; lang: Locale }) {
   const [query, setQuery] = useState("");
   const [logs, setLogs] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -23,18 +26,18 @@ export function AdminAudit({ labels }: { labels: AdminAuditLabels }) {
     try {
       const res = await fetch(`/api/admin/audit?query=${encodeURIComponent(query)}`);
       if (!res.ok) {
-        throw new Error("Failed to load");
+        throw new Error(labels.failedToLoad);
       }
       const data = await res.json();
       setLogs(data.logs ?? []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load");
+      setError(err instanceof Error ? err.message : labels.failedToLoad);
     }
-  }, [query]);
+  }, [query, labels.failedToLoad]);
 
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [load, lang]);
 
   return (
     <div className="space-y-4">
@@ -46,7 +49,7 @@ export function AdminAudit({ labels }: { labels: AdminAuditLabels }) {
         <div className="flex items-center gap-3 text-sm text-rose-500">
           <span>{error}</span>
           <Button size="sm" variant="outline" onClick={load}>
-            Retry
+            {labels.retry}
           </Button>
         </div>
       )}

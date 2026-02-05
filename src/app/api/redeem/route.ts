@@ -68,6 +68,101 @@ export async function POST(request: NextRequest) {
     return dict[key as keyof typeof dict] ?? dict.internalError;
   };
 
+  const getErrorMeta = (err: unknown) => {
+    const record = typeof err === "object" && err !== null ? (err as Record<string, unknown>) : null;
+    const messageText = typeof err === "string"
+      ? err
+      : typeof record?.message === "string"
+      ? record.message
+      : "";
+    const detailsText = typeof record?.details === "string" ? record.details : "";
+    const hintText = typeof record?.hint === "string" ? record.hint : "";
+    const codeText = typeof record?.code === "string" ? record.code : "";
+    const constraintText = typeof record?.constraint === "string" ? record.constraint : "";
+    const statusCode = typeof record?.status === "number" ? record.status : undefined;
+
+    const combined = `${messageText} ${detailsText} ${hintText} ${constraintText}`.toLowerCase();
+
+    return {
+      messageText,
+      detailsText,
+      hintText,
+      codeText,
+      constraintText,
+      statusCode,
+      combined
+    };
+  };
+
+  const logNonFieldError = (branch: "createUser" | "upsert" | "rpc" | "finalUpsert", err: unknown) => {
+    const meta = getErrorMeta(err);
+    console.error(`[redeem][${branch}] unmapped_400`, {
+      code: meta.codeText || null,
+      status: meta.statusCode ?? null,
+      message: meta.messageText || null,
+      details: meta.detailsText || null,
+      hint: meta.hintText || null,
+      constraint: meta.constraintText || null
+    });
+  };
+
+  const mapUserCorrectableError = (err: unknown): { field: string; key: string; status?: number } | null => {
+    const meta = getErrorMeta(err);
+    const { codeText, statusCode, combined } = meta;
+
+    // A) Prefer structured unique-violation metadata.
+    if (codeText === "23505") {
+      if (
+        combined.includes("edu_username") ||
+        combined.includes("education_username") ||
+        combined.includes("edu_accounts_edu_username") ||
+        combined.includes("edu accounts") ||
+        combined.includes("edu_accounts")
+      ) {
+        return { field: "edu_username", key: "edu_username_exists", status: 409 };
+      }
+      if (
+        combined.includes("personal_email") ||
+        combined.includes("profiles_personal_email") ||
+        combined.includes("profiles")
+      ) {
+        return { field: "personal_email", key: "personal_email_exists", status: 409 };
+      }
+      return null;
+    }
+
+    // B) Username already exists/taken.
+    if ((combined.includes("edu username") || combined.includes("username")) && (combined.includes("exists") || combined.includes("taken"))) {
+      return { field: "edu_username", key: "edu_username_exists", status: 409 };
+    }
+
+    // C) Invalid email.
+    if (combined.includes("invalid email")) {
+      return { field: "personal_email", key: "personal_email_invalid", status: statusCode ?? 400 };
+    }
+
+    // D) Weak/invalid password.
+    if (combined.includes("password") && (combined.includes("weak") || combined.includes("invalid") || combined.includes("least"))) {
+      return { field: "password", key: "password_invalid", status: statusCode ?? 400 };
+    }
+
+    // E) Activation code hints.
+    if (combined.includes("activation") && combined.includes("not found")) {
+      return { field: "activation_code", key: "activation_code_not_found", status: 404 };
+    }
+    if (
+      combined.includes("activation") &&
+      (combined.includes("invalid") || combined.includes("used") || combined.includes("expired"))
+    ) {
+      return { field: "activation_code", key: "activation_code_used", status: 409 };
+    }
+    if ((codeText === "P0001" || codeText === "22023") && combined.includes("activation")) {
+      return { field: "activation_code", key: "activation_code_used", status: 409 };
+    }
+
+    return null;
+  };
+
   try {
     try {
       getSupabaseServiceEnv();
@@ -163,6 +258,48 @@ export async function POST(request: NextRequest) {
       return jsonFieldError("edu_username", "edu_username_exists", 409);
     }
 
+    const rollbackCreatedUserData = async (createdUserId: string) => {
+      let rollbackError: string | null = null;
+
+      const appendRollbackError = (scope: string, err: unknown) => {
+        const detail = safeString(err);
+        rollbackError = rollbackError ? `${rollbackError}; ${scope}: ${detail}` : `${scope}: ${detail}`;
+      };
+
+      const deleteByUserId = async (table: string) => {
+        const { error } = await supabase.from(table).delete().eq("user_id", createdUserId);
+        if (error) {
+          appendRollbackError(`delete ${table}`, error.message);
+        }
+      };
+
+      await deleteByUserId("user_mailboxes");
+      await deleteByUserId("edu_accounts");
+      await deleteByUserId("profiles");
+
+      const { error: codeRollbackError } = await supabase
+        .from("activation_codes")
+        .update({ status: "unused", used_at: null, used_by_user_id: null })
+        .eq("code", activation_code)
+        .eq("used_by_user_id", createdUserId);
+      if (codeRollbackError) {
+        appendRollbackError("reset activation_code", codeRollbackError.message);
+      }
+
+      const { error: authDeleteError } = await authAdmin.deleteUser(createdUserId);
+      if (authDeleteError) {
+        appendRollbackError("delete auth user", authDeleteError.message);
+      }
+
+      await supabase.from("audit_logs").insert({
+        user_id: createdUserId,
+        action: "redeem_rollback",
+        meta: rollbackError ? { error: rollbackError } : { ok: true }
+      });
+
+      return rollbackError;
+    };
+
     const created = await authAdmin.createUser({
       email: normalizedPersonalEmail,
       password,
@@ -178,25 +315,38 @@ export async function POST(request: NextRequest) {
           detail: "schema missing: run supabase/schema.sql + migrations"
         });
       }
+      const mappedCreateError = mapUserCorrectableError(created.error ?? errorMessage);
+      if (mappedCreateError) {
+        return jsonFieldError(mappedCreateError.field, mappedCreateError.key, mappedCreateError.status ?? 400);
+      }
+      logNonFieldError("createUser", created.error ?? errorMessage);
       return jsonError(errorMessage, 400);
     }
+
     const authUserId = created.data.user.id;
-    const createdNewUser = true;
     const upsert = await supabase.from("profiles").upsert(
       { id: authUserId, user_id: authUserId, personal_email: normalizedPersonalEmail, is_suspended: false },
       { onConflict: "user_id" }
     );
     if (upsert.error) {
       const errorMessage = upsert.error.message;
+      const mappedUpsertError = mapUserCorrectableError(upsert.error ?? errorMessage);
+      const rollbackError = await rollbackCreatedUserData(authUserId);
+
       if (/duplicate key|unique/i.test(errorMessage)) {
         return jsonFieldError("personal_email", "personal_email_exists", 409);
       }
       if (isSchemaMissing(errorMessage)) {
         return jsonError(message("schemaMissing"), 500, {
-          detail: "schema missing: run supabase/schema.sql + migrations"
+          detail: "schema missing: run supabase/schema.sql + migrations",
+          rollback_error: rollbackError ?? undefined
         });
       }
-      return jsonError(errorMessage, 400);
+      if (mappedUpsertError) {
+        return jsonFieldError(mappedUpsertError.field, mappedUpsertError.key, mappedUpsertError.status ?? 400);
+      }
+      logNonFieldError("upsert", upsert.error ?? errorMessage);
+      return jsonError(errorMessage, 400, { rollback_error: rollbackError ?? undefined });
     }
 
     const { data, error } = await supabase.rpc("redeem_activation_code", {
@@ -208,8 +358,9 @@ export async function POST(request: NextRequest) {
 
     if (error || !data?.[0]) {
       const failureMessage = error?.message ?? message("redeemFailed");
+      const mappedRpcError = mapUserCorrectableError(error ?? failureMessage);
+      const rollbackError = await rollbackCreatedUserData(authUserId);
 
-      // 🆕 新增：检查是否是"已拥有教育邮箱"的错误
       if (failureMessage.includes("User already has education account")) {
         return jsonFieldError("personal_email", "personal_email_exists", 409);
       }
@@ -222,47 +373,24 @@ export async function POST(request: NextRequest) {
 
       if (isSchemaMissing(failureMessage)) {
         return jsonError(message("schemaMissing"), 500, {
-          detail: "schema missing: run supabase/schema.sql + migrations"
+          detail: "schema missing: run supabase/schema.sql + migrations",
+          rollback_error: rollbackError ?? undefined
         });
       }
-      return jsonError(failureMessage, 400);
+      if (mappedRpcError) {
+        return jsonFieldError(mappedRpcError.field, mappedRpcError.key, mappedRpcError.status ?? 400);
+      }
+      logNonFieldError("rpc", error ?? failureMessage);
+      return jsonError(failureMessage, 400, { rollback_error: rollbackError ?? undefined });
     }
 
     const result = data[0];
     const mailcowResult = await createMailbox(result.edu_email, password);
     if (!mailcowResult.ok) {
-      let cleanupError: string | null = null;
-      if (createdNewUser) {
-        try {
-          const { error: profileDeleteError } = await supabase
-            .from("profiles")
-            .delete()
-            .eq("user_id", authUserId);
-          if (profileDeleteError) {
-            cleanupError = profileDeleteError.message;
-          }
-          const { error: authDeleteError } = await authAdmin.deleteUser(authUserId);
-          if (authDeleteError) {
-            cleanupError = cleanupError
-              ? `${cleanupError}; auth delete: ${authDeleteError.message}`
-              : `auth delete: ${authDeleteError.message}`;
-          }
-        } catch (error) {
-          cleanupError = error instanceof Error ? error.message : String(error);
-        }
-        await supabase.from("audit_logs").insert({
-          user_id: authUserId,
-          action: "redeem_mailcow_failed_cleanup",
-          meta: cleanupError ? { error: cleanupError } : { ok: true }
-        });
-      }
-      await supabase
-        .from("activation_codes")
-        .update({ status: "unused", used_at: null, used_by_user_id: null })
-        .eq("code", activation_code);
+      const rollbackError = await rollbackCreatedUserData(authUserId);
       return jsonError(message("mailcowFailed"), 502, {
         detail: mailcowResult.detail ?? mailcowResult.error,
-        cleanup_error: cleanupError ?? undefined
+        rollback_error: rollbackError ?? undefined
       });
     }
     const finalUpsert = await supabase.from("profiles").upsert(
@@ -271,12 +399,20 @@ export async function POST(request: NextRequest) {
     );
     if (finalUpsert.error) {
       const errorMessage = finalUpsert.error.message;
+      const mappedFinalUpsertError = mapUserCorrectableError(finalUpsert.error ?? errorMessage);
+      const rollbackError = await rollbackCreatedUserData(authUserId);
+
       if (isSchemaMissing(errorMessage)) {
         return jsonError(message("schemaMissing"), 500, {
-          detail: "schema missing: run supabase/schema.sql + migrations"
+          detail: "schema missing: run supabase/schema.sql + migrations",
+          rollback_error: rollbackError ?? undefined
         });
       }
-      return jsonError(errorMessage, 400);
+      if (mappedFinalUpsertError) {
+        return jsonFieldError(mappedFinalUpsertError.field, mappedFinalUpsertError.key, mappedFinalUpsertError.status ?? 400);
+      }
+      logNonFieldError("finalUpsert", finalUpsert.error ?? errorMessage);
+      return jsonError(errorMessage, 400, { rollback_error: rollbackError ?? undefined });
     }
     await createUserSession({ userId: result.user_id, mode: "personal" });
 

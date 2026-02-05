@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import type { Locale } from "@/i18n";
 
 type AdminUsersLabels = {
   searchPlaceholder: string;
@@ -18,9 +19,12 @@ type AdminUsersLabels = {
   resetPassword: string;
   tempPassword: string;
   suspended: string;
+  renewYears: string;
+  failedToLoad: string;
+  retry: string;
 };
 
-export function AdminUsers({ labels }: { labels: AdminUsersLabels }) {
+export function AdminUsers({ labels, lang }: { labels: AdminUsersLabels; lang: Locale }) {
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<any[]>([]);
   const [years, setYears] = useState(1);
@@ -32,18 +36,18 @@ export function AdminUsers({ labels }: { labels: AdminUsersLabels }) {
     try {
       const res = await fetch(`/api/admin/users?query=${encodeURIComponent(query)}`);
       if (!res.ok) {
-        throw new Error("Failed to load");
+        throw new Error(labels.failedToLoad);
       }
       const data = await res.json();
       setUsers(data.users ?? []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load");
+      setError(err instanceof Error ? err.message : labels.failedToLoad);
     }
-  }, [query]);
+  }, [query, labels.failedToLoad]);
 
   useEffect(() => {
     void search();
-  }, [search]);
+  }, [search, lang]);
 
   const renew = async (userId: string) => {
     await fetch("/api/admin/users", {
@@ -77,16 +81,19 @@ export function AdminUsers({ labels }: { labels: AdminUsersLabels }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap items-end gap-3">
         <Input placeholder={labels.searchPlaceholder} value={query} onChange={(e) => setQuery(e.target.value)} />
         <Button onClick={search}>{labels.search}</Button>
-        <Input type="number" value={years} onChange={(e) => setYears(Number(e.target.value))} />
+        <label className="flex items-center gap-2 text-sm text-slate-600">
+          <span>{labels.renewYears}</span>
+          <Input className="w-20" type="number" min={1} value={years} onChange={(e) => setYears(Number(e.target.value) || 1)} />
+        </label>
       </div>
       {error && (
         <div className="flex items-center gap-3 text-sm text-rose-500">
           <span>{error}</span>
           <Button size="sm" variant="outline" onClick={search}>
-            Retry
+            {labels.retry}
           </Button>
         </div>
       )}
@@ -109,7 +116,7 @@ export function AdminUsers({ labels }: { labels: AdminUsersLabels }) {
                 <td className="p-3">{user.edu_email}</td>
                 <td className="p-3">{user.expires_at}</td>
                 <td className="p-3">{user.is_suspended ? labels.suspended : user.status}</td>
-                <td className="p-3 flex gap-2">
+                <td className="flex gap-2 p-3">
                   <Button size="sm" onClick={() => renew(user.id)}>{labels.renew}</Button>
                   <Button size="sm" variant="outline" onClick={() => toggleSuspend(user.id, user.is_suspended)}>
                     {user.is_suspended ? labels.unsuspend : labels.suspend}
