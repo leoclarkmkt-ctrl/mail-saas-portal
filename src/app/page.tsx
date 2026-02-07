@@ -20,11 +20,11 @@ export default function HomePage({ searchParams }: { searchParams?: Record<strin
             {dict.home.redeem}
           </Button>
         </Link>
-        <a href="https://mail.nsuk.edu.kg" target="_blank" rel="noreferrer">
+        <Link href={withLang("/edu-mail/login", lang)}>
           <Button className="w-full" size="lg" variant="outline">
             {dict.home.webmail}
           </Button>
-        </a>
+        </Link>
         <Link href={withLang("/dashboard", lang)}>
           <Button className="w-full" size="lg" variant="outline">
             {dict.home.dashboard}

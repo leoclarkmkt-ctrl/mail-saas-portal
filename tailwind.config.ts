@@ -7,7 +7,10 @@ const config: Config = {
       colors: {
         primary: "#0A2540",
         accent: "#00D4FF",
-        neon: "#00FF9F"
+        neon: "#00FF9F",
+        cta: "#FF6B35",
+        navy: "#001F3F",
+        surface: "#F6F8FB"
       }
     }
   },
