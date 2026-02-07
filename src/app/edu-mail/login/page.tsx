@@ -2,7 +2,6 @@ import Link from "next/link";
 
 import { getEduMailDict } from "@/i18n/edu-mail";
 import { getLangFromRequest, withLang } from "@/lib/i18n";
-import { LanguageSwitch } from "@/components/language-switch";
 import { EduMailLoginForm } from "@/components/edu-mail-login-form";
 
 export default function EduMailLoginPage({
@@ -15,11 +14,6 @@ export default function EduMailLoginPage({
 
   return (
     <section className="relative overflow-hidden">
-      {/* top-right language switch */}
-      <div className="mb-6 flex items-center justify-end">
-        <LanguageSwitch currentLang={lang} />
-      </div>
-
       <div className="grid gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
         {/* login card */}
         <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
