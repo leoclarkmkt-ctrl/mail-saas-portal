@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getEduMailDict } from "@/i18n/edu-mail";
-import { EduMailLangSwitch } from "@/components/edu-mail-lang-switch";
-import { getEduMailLang, withEduLang } from "@/lib/edu-mail/i18n";
+import { LanguageSwitch } from "@/components/language-switch";
+import { getLangFromRequest, withLang } from "@/lib/i18n";
 import { EduMailLoginForm } from "@/components/edu-mail-login-form";
 
 export default function EduMailLoginPage({
@@ -9,13 +9,13 @@ export default function EduMailLoginPage({
 }: {
   searchParams?: Record<string, string | string[] | undefined>;
 }) {
-  const lang = getEduMailLang(searchParams);
+  const lang = getLangFromRequest(searchParams);
   const dict = getEduMailDict(lang);
 
   return (
     <section className="relative overflow-hidden">
       <div className="mb-6 flex items-center justify-end">
-        <EduMailLangSwitch currentLang={lang} labels={dict.langLabel} />
+        <LanguageSwitch currentLang={lang} />
       </div>
       <div className="grid gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
         <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
@@ -50,7 +50,7 @@ export default function EduMailLoginPage({
               <p className="mt-2 text-sm text-white/70">{dict.hero.cardBody}</p>
               <Link
                 className="mt-4 inline-flex text-sm font-semibold text-accent hover:text-neon"
-                href={withEduLang("/redeem", lang)}
+                href={withLang("/redeem", lang)}
               >
                 {dict.hero.cardCta}
               </Link>

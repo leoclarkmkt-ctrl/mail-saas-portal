@@ -1,10 +1,6 @@
 export type EduMailLang = "en" | "zh";
 
 type EduMailDict = {
-  langLabel: {
-    zh: string;
-    en: string;
-  };
   login: {
     eyebrow: string;
     title: string;
@@ -53,10 +49,6 @@ type EduMailDict = {
 };
 
 const en: EduMailDict = {
-  langLabel: {
-    zh: "中文",
-    en: "English"
-  },
   login: {
     eyebrow: "Education Mail",
     title: "Welcome Back",
@@ -112,10 +104,6 @@ const en: EduMailDict = {
 };
 
 const zh: EduMailDict = {
-  langLabel: {
-    zh: "中文",
-    en: "English"
-  },
   login: {
     eyebrow: "教育邮箱",
     title: "欢迎回来",

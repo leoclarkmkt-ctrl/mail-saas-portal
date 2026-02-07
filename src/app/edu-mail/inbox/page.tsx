@@ -1,16 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getEduMailDict } from "@/i18n/edu-mail";
-import { EduMailLangSwitch } from "@/components/edu-mail-lang-switch";
-import { getEduMailLang, withEduLang } from "@/lib/edu-mail/i18n";
+import { LanguageSwitch } from "@/components/language-switch";
+import { getLangFromRequest, withLang } from "@/lib/i18n";
 import { getUserSession } from "@/lib/auth/user-session";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/utils/format";
 import { LogoutButton, RefreshButton } from "@/components/edu-mail-actions";
 
 const buildInboxLink = (id: string | null, lang: "en" | "zh") => {
-  if (!id) return withEduLang("/edu-mail/inbox", lang);
-  const url = new URL(withEduLang("/edu-mail/inbox", lang), "http://localhost");
+  if (!id) return withLang("/edu-mail/inbox", lang);
+  const url = new URL(withLang("/edu-mail/inbox", lang), "http://localhost");
   url.searchParams.set("id", id);
   return url.pathname + url.search;
 };
@@ -20,11 +20,11 @@ export default async function EduMailInboxPage({
 }: {
   searchParams?: Record<string, string | string[] | undefined>;
 }) {
-  const lang = getEduMailLang(searchParams);
+  const lang = getLangFromRequest(searchParams);
   const dict = getEduMailDict(lang);
   const session = await getUserSession();
   if (!session || session.mode !== "edu") {
-    redirect(withEduLang("/edu-mail/login", lang));
+    redirect(withLang("/edu-mail/login", lang));
   }
 
   const supabase = createServerSupabaseClient();
@@ -62,7 +62,7 @@ export default async function EduMailInboxPage({
             <p className="text-lg font-semibold text-primary">{eduEmail}</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <EduMailLangSwitch currentLang={lang} labels={dict.langLabel} />
+            <LanguageSwitch currentLang={lang} />
             <LogoutButton lang={lang} labels={{ logout: dict.inbox.logout, loggingOut: dict.inbox.loggingOut }} />
           </div>
         </div>
