@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getDictionary } from "@/i18n";
-import { getLangFromRequest, withLang } from "@/lib/i18n";
+import { getLangFromRequest } from "@/lib/i18n/server";
+import { withLang } from "@/lib/i18n/shared";
 import { getUserSession, clearUserSession } from "@/lib/auth/user-session";
 import { getUserWithEdu } from "@/lib/data/user";
 import { createServerSupabaseClient } from "@/lib/supabase/server";

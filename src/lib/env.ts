@@ -127,7 +127,7 @@ export function getRateLimitEnv() {
 export function getMailcowEnv() {
   const missing = getMissing(REQUIRED_MAILCOW);
   if (missing.length > 0) {
-    throw new Error(`Missing env: ${missing.join(", ")}`);
+    return null;
   }
   return {
     MAILCOW_API_BASE_URL: process.env.MAILCOW_API_BASE_URL as string,
