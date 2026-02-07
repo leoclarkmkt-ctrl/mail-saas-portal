@@ -66,7 +66,8 @@ export default async function EduMailInboxPage({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
-              {dict.inbox.kicker ?? "Edu Inbox"}
+              {/* ✅ 修复：kicker 不存在，改用 title（一定存在，且可随语言变化） */}
+              {dict.inbox.title}
             </p>
             <p className="text-lg font-semibold text-primary">{eduEmail}</p>
           </div>
