@@ -2,13 +2,23 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export async function getUserWithEdu(userId: string) {
   const supabase = createServerSupabaseClient();
-  const { data, error } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select(
-      "id, personal_email, is_suspended, suspended_reason, created_at, edu_accounts(id, edu_email, edu_username, expires_at, status, quota_mb)"
+      "id, personal_email, is_suspended, suspended_reason, created_at"
     )
     .eq("id", userId)
     .single();
-  if (error) throw error;
-  return data;
+  if (profileError) throw profileError;
+
+  const { data: eduAccounts, error: eduError } = await supabase
+    .from("edu_accounts")
+    .select("id, edu_email, edu_username, expires_at, status, quota_mb")
+    .eq("user_id", profile.id);
+  if (eduError) throw eduError;
+
+  return {
+    ...profile,
+    edu_accounts: eduAccounts ?? []
+  };
 }
