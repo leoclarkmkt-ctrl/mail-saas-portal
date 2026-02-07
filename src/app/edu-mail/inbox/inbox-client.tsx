@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { LanguageSwitch } from "@/components/language-switch";
 import { LogoutButton } from "@/components/edu-mail-actions";
 import { formatDate } from "@/lib/utils/format";
-import { withLang } from "@/lib/i18n";
+import { withLang } from "@/lib/i18n/shared";
 
 type InboxClientProps = {
   lang: "en" | "zh";

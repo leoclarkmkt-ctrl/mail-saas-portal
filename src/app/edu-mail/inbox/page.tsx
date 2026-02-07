@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
-import { getLangFromRequest, withLang } from "@/lib/i18n";
-import { getEduMailDict } from "@/i18n/edu-mail";
+import { getLocaleFromCookies, getDictionary } from "@/lib/i18n/server";
+import { getLangFromSearchParams, withLang } from "@/lib/i18n/shared";
 import { getUserSession } from "@/lib/auth/user-session";
 import { InboxClient } from "./inbox-client";
 
@@ -10,8 +10,8 @@ export default async function EduMailInboxPage({
 }: {
   searchParams?: Record<string, string | string[] | undefined>;
 }) {
-  const lang = getLangFromRequest(searchParams);
-  const dict = getEduMailDict(lang);
+  const lang = getLangFromSearchParams(searchParams) ?? getLocaleFromCookies();
+  const dict = getDictionary(lang);
 
   const session = await getUserSession();
   if (!session || session.mode !== "edu") {

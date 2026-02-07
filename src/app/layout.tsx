@@ -5,7 +5,7 @@ import Link from "next/link";
 import { LanguageSwitch } from "@/components/language-switch";
 import { SiteFooter } from "@/components/site-footer";
 import { getDictionary, getLocale } from "@/i18n";
-import { withLang } from "@/lib/i18n";
+import { withLang } from "@/lib/i18n/shared";
 
 export const metadata = {
   title: "NSUK Mail Portal",
