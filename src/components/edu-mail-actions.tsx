@@ -4,7 +4,11 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
-export function RefreshButton() {
+export function RefreshButton({
+  labels,
+}: {
+  labels: { refresh: string; refreshing: string };
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -16,20 +20,27 @@ export function RefreshButton() {
       onClick={() => startTransition(() => router.refresh())}
       disabled={isPending}
     >
-      {isPending ? "Refreshing..." : "刷新邮件"}
+      {isPending ? labels.refreshing : labels.refresh}
     </Button>
   );
 }
 
-export function LogoutButton({ lang }: { lang: "en" | "zh" }) {
+export function LogoutButton({
+  lang,
+  labels,
+}: {
+  lang: "en" | "zh";
+  labels: { logout: string; loggingOut: string };
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const handleLogout = () => {
     startTransition(async () => {
       await fetch("/api/logout", { method: "POST" });
-      const separator = "/edu-mail/login".includes("?") ? "&" : "?";
-      const destination = `${"/edu-mail/login"}${separator}lang=${lang}`;
+
+      // 保持语言回跳
+      const destination = `/edu-mail/login?lang=${lang}`;
       router.push(destination);
       router.refresh();
     });
@@ -43,7 +54,7 @@ export function LogoutButton({ lang }: { lang: "en" | "zh" }) {
       onClick={handleLogout}
       disabled={isPending}
     >
-      {isPending ? "Signing Out..." : "登出"}
+      {isPending ? labels.loggingOut : labels.logout}
     </Button>
   );
 }

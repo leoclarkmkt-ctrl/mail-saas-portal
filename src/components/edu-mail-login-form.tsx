@@ -1,15 +1,31 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { readJsonResponse } from "@/lib/utils/safe-json";
+import type { EduMailLang } from "@/i18n/edu-mail";
+
+const STORAGE_KEY = "edu_mail_login_form";
 
 type EduMailLoginFormProps = {
+  dict: {
+    emailLabel: string;
+    emailPlaceholder: string;
+    passwordLabel: string;
+    passwordPlaceholder: string;
+    signIn: string;
+    signingIn: string;
+    forgot: string;
+    backHome: string;
+    show: string;
+    hide: string;
+    loginFailed: string;
+  };
   errors: Record<string, string>;
-  lang: "en" | "zh";
+  lang: EduMailLang;
 };
 
 type LoginErrorResponse = {
@@ -17,17 +33,45 @@ type LoginErrorResponse = {
   error?: { field?: string; key?: string; message?: string } | string;
 };
 
-export function EduMailLoginForm({ errors, lang }: EduMailLoginFormProps) {
+export function EduMailLoginForm({
+  dict,
+  errors,
+  lang,
+}: EduMailLoginFormProps) {
   const emailId = useId();
   const passwordId = useId();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Restore cached input (avoid losing data on language switch)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const cached = window.sessionStorage.getItem(STORAGE_KEY);
+    if (!cached) return;
+    try {
+      const parsed = JSON.parse(cached) as { email?: string; password?: string };
+      if (parsed.email) setEmail(parsed.email);
+      if (parsed.password) setPassword(parsed.password);
+    } catch {
+      window.sessionStorage.removeItem(STORAGE_KEY);
+    }
+  }, []);
+
+  // Persist input
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.sessionStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ email, password })
+    );
+  }, [email, password]);
+
   const resolveErrorMessage = (key?: string) =>
-    errors[key ?? ""] ?? errors.unknown ?? "Request failed";
+    errors[key ?? ""] ?? errors.unknown ?? dict.loginFailed;
 
   const withLangQuery = (path: string) => {
     if (!lang) return path;
@@ -49,16 +93,18 @@ export function EduMailLoginForm({ errors, lang }: EduMailLoginFormProps) {
     }
 
     setIsSubmitting(true);
+
     const res = await fetch("/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, mode: "edu" })
+      body: JSON.stringify({ email, password, mode: "edu" }),
     });
 
     const { data } = await readJsonResponse<LoginErrorResponse>(res);
 
     if (!res.ok) {
-      const errorObj = typeof data?.error === "object" ? data?.error : undefined;
+      const errorObj =
+        typeof data?.error === "object" ? data?.error : undefined;
       if (errorObj?.key) {
         setErrorMessage(resolveErrorMessage(errorObj.key));
       } else {
@@ -66,6 +112,11 @@ export function EduMailLoginForm({ errors, lang }: EduMailLoginFormProps) {
       }
       setIsSubmitting(false);
       return;
+    }
+
+    // Clear cached input on success
+    if (typeof window !== "undefined") {
+      window.sessionStorage.removeItem(STORAGE_KEY);
     }
 
     const destination = withLangQuery("/edu-mail/inbox");
@@ -81,27 +132,33 @@ export function EduMailLoginForm({ errors, lang }: EduMailLoginFormProps) {
       )}
 
       <div className="space-y-2">
-        <Label htmlFor={emailId} className="text-sm font-semibold text-slate-700">
-          User ID / Email
+        <Label
+          htmlFor={emailId}
+          className="text-sm font-semibold text-slate-700"
+        >
+          {dict.emailLabel}
         </Label>
         <Input
           id={emailId}
           type="email"
-          placeholder="yourname@nsuk.edu.kg"
+          placeholder={dict.emailPlaceholder}
           value={email}
           onChange={(event) => setEmail(event.target.value)}
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor={passwordId} className="text-sm font-semibold text-slate-700">
-          Password
+        <Label
+          htmlFor={passwordId}
+          className="text-sm font-semibold text-slate-700"
+        >
+          {dict.passwordLabel}
         </Label>
         <div className="relative">
           <Input
             id={passwordId}
             type={showPassword ? "text" : "password"}
-            placeholder="••••••••"
+            placeholder={dict.passwordPlaceholder}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
           />
@@ -110,7 +167,7 @@ export function EduMailLoginForm({ errors, lang }: EduMailLoginFormProps) {
             className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-accent"
             onClick={() => setShowPassword((prev) => !prev)}
           >
-            {showPassword ? "Hide" : "Show"}
+            {showPassword ? dict.hide : dict.show}
           </button>
         </div>
       </div>
@@ -121,15 +178,21 @@ export function EduMailLoginForm({ errors, lang }: EduMailLoginFormProps) {
         className="w-full bg-cta text-white hover:bg-[#ff7c4f]"
         disabled={isSubmitting}
       >
-        {isSubmitting ? "Signing In..." : "Sign In"}
+        {isSubmitting ? dict.signingIn : dict.signIn}
       </Button>
 
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-        <Link className="text-accent hover:text-neon" href={withLangQuery("/forgot")}>
-          Forgot Password?
+        <Link
+          className="text-accent hover:text-neon"
+          href={withLangQuery("/forgot")}
+        >
+          {dict.forgot}
         </Link>
-        <Link className="text-accent hover:text-neon" href={withLangQuery("/")}>
-          Back to Home
+        <Link
+          className="text-accent hover:text-neon"
+          href={withLangQuery("/")}
+        >
+          {dict.backHome}
         </Link>
       </div>
     </form>
