@@ -4,7 +4,11 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
-export function RefreshButton({ labels }: { labels: { refresh: string; refreshing: string } }) {
+export function RefreshButton({
+  labels,
+}: {
+  labels: { refresh: string; refreshing: string };
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -23,7 +27,7 @@ export function RefreshButton({ labels }: { labels: { refresh: string; refreshin
 
 export function LogoutButton({
   lang,
-  labels
+  labels,
 }: {
   lang: "en" | "zh";
   labels: { logout: string; loggingOut: string };
@@ -34,8 +38,9 @@ export function LogoutButton({
   const handleLogout = () => {
     startTransition(async () => {
       await fetch("/api/logout", { method: "POST" });
-      const separator = "/edu-mail/login".includes("?") ? "&" : "?";
-      const destination = `${"/edu-mail/login"}${separator}lang=${lang}`;
+
+      // 保持语言回跳
+      const destination = `/edu-mail/login?lang=${lang}`;
       router.push(destination);
       router.refresh();
     });

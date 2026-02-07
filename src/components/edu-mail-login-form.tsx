@@ -33,15 +33,21 @@ type LoginErrorResponse = {
   error?: { field?: string; key?: string; message?: string } | string;
 };
 
-export function EduMailLoginForm({ dict, errors, lang }: EduMailLoginFormProps) {
+export function EduMailLoginForm({
+  dict,
+  errors,
+  lang,
+}: EduMailLoginFormProps) {
   const emailId = useId();
   const passwordId = useId();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Restore cached input (avoid losing data on language switch)
   useEffect(() => {
     if (typeof window === "undefined") return;
     const cached = window.sessionStorage.getItem(STORAGE_KEY);
@@ -55,9 +61,13 @@ export function EduMailLoginForm({ dict, errors, lang }: EduMailLoginFormProps) 
     }
   }, []);
 
+  // Persist input
   useEffect(() => {
     if (typeof window === "undefined") return;
-    window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ email, password }));
+    window.sessionStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ email, password })
+    );
   }, [email, password]);
 
   const resolveErrorMessage = (key?: string) =>
@@ -83,16 +93,18 @@ export function EduMailLoginForm({ dict, errors, lang }: EduMailLoginFormProps) 
     }
 
     setIsSubmitting(true);
+
     const res = await fetch("/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, mode: "edu" })
+      body: JSON.stringify({ email, password, mode: "edu" }),
     });
 
     const { data } = await readJsonResponse<LoginErrorResponse>(res);
 
     if (!res.ok) {
-      const errorObj = typeof data?.error === "object" ? data?.error : undefined;
+      const errorObj =
+        typeof data?.error === "object" ? data?.error : undefined;
       if (errorObj?.key) {
         setErrorMessage(resolveErrorMessage(errorObj.key));
       } else {
@@ -102,6 +114,7 @@ export function EduMailLoginForm({ dict, errors, lang }: EduMailLoginFormProps) 
       return;
     }
 
+    // Clear cached input on success
     if (typeof window !== "undefined") {
       window.sessionStorage.removeItem(STORAGE_KEY);
     }
@@ -119,7 +132,10 @@ export function EduMailLoginForm({ dict, errors, lang }: EduMailLoginFormProps) 
       )}
 
       <div className="space-y-2">
-        <Label htmlFor={emailId} className="text-sm font-semibold text-slate-700">
+        <Label
+          htmlFor={emailId}
+          className="text-sm font-semibold text-slate-700"
+        >
           {dict.emailLabel}
         </Label>
         <Input
@@ -132,7 +148,10 @@ export function EduMailLoginForm({ dict, errors, lang }: EduMailLoginFormProps) 
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor={passwordId} className="text-sm font-semibold text-slate-700">
+        <Label
+          htmlFor={passwordId}
+          className="text-sm font-semibold text-slate-700"
+        >
           {dict.passwordLabel}
         </Label>
         <div className="relative">
@@ -163,10 +182,16 @@ export function EduMailLoginForm({ dict, errors, lang }: EduMailLoginFormProps) 
       </Button>
 
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-        <Link className="text-accent hover:text-neon" href={withLangQuery("/forgot")}>
+        <Link
+          className="text-accent hover:text-neon"
+          href={withLangQuery("/forgot")}
+        >
           {dict.forgot}
         </Link>
-        <Link className="text-accent hover:text-neon" href={withLangQuery("/")}>
+        <Link
+          className="text-accent hover:text-neon"
+          href={withLangQuery("/")}
+        >
           {dict.backHome}
         </Link>
       </div>
