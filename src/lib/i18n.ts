@@ -5,6 +5,5 @@ import type { Locale } from "@/i18n";
 const dictionaries = { en, zh };
 
 export function getDictionary(locale: Locale) {
-  const dict = dictionaries[locale];
-  return typeof dict === "function" ? dict() : dict;
+  return dictionaries[locale];
 }

@@ -13,8 +13,7 @@ export function getLocaleFromCookies(defaultLocale: Locale = "en"): Locale {
 }
 
 export function getDictionary(locale: Locale) {
-  const dict = eduMailDictionaries[locale];
-  return typeof dict === "function" ? dict() : dict;
+  return eduMailDictionaries[locale];
 }
 
 export function getLangFromRequest(

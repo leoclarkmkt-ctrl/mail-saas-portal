@@ -21,17 +21,20 @@ export async function GET(request: NextRequest) {
   }
 
   const includeRaw = request.nextUrl.searchParams.get("includeRaw") === "1";
-  const selectFields = includeRaw
-    ? "id, subject, mail_from, received_at, text_plain, html_body, raw_rfc822"
-    : "id, subject, mail_from, received_at, text_plain, html_body";
-
   const supabase = createServerSupabaseClient();
-  const { data: message, error } = await supabase
-    .from("email_messages")
-    .select(selectFields)
-    .eq("owner_user_id", session.userId)
-    .eq("id", id)
-    .maybeSingle();
+  const { data: message, error } = includeRaw
+    ? await supabase
+        .from("email_messages")
+        .select("id, subject, mail_from, received_at, text_plain, html_body, raw_rfc822")
+        .eq("owner_user_id", session.userId)
+        .eq("id", id)
+        .maybeSingle()
+    : await supabase
+        .from("email_messages")
+        .select("id, subject, mail_from, received_at, text_plain, html_body")
+        .eq("owner_user_id", session.userId)
+        .eq("id", id)
+        .maybeSingle();
 
   if (error) {
     return jsonError("message_lookup_failed", error.message, 500);
