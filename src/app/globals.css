@@ -4,12 +4,45 @@
 
 :root {
   color-scheme: light;
+  --brand-blue: #0a2540;
+  --brand-navy: #001f3f;
+  --accent-cyan: #00d4ff;
+  --accent-neon: #00ff9f;
+  --cta-orange: #ff6b35;
+  --surface: #f6f8fb;
 }
 
 body {
   @apply bg-white text-slate-900;
+  font-family: var(--font-body);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
 }
 
 a {
   @apply text-primary;
+}
+
+.particle-field {
+  background-image:
+    radial-gradient(rgba(0, 212, 255, 0.35) 1px, transparent 1px),
+    radial-gradient(rgba(0, 255, 159, 0.25) 1px, transparent 1px);
+  background-size: 120px 120px, 200px 200px;
+  animation: particle-drift 28s linear infinite;
+}
+
+@keyframes particle-drift {
+  0% {
+    background-position: 0 0, 40px 40px;
+  }
+  100% {
+    background-position: 180px 240px, -160px 120px;
+  }
 }

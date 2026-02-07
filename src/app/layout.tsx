@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Inter, Open_Sans } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
 import { LanguageSwitch } from "@/components/language-switch";
@@ -14,13 +15,25 @@ export const metadata = {
   }
 };
 
+const headingFont = Inter({
+  subsets: ["latin"],
+  variable: "--font-heading",
+  display: "swap"
+});
+
+const bodyFont = Open_Sans({
+  subsets: ["latin"],
+  variable: "--font-body",
+  display: "swap"
+});
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   const locale = getLocale();
   const dict = getDictionary(locale);
   return (
-    <html lang={locale}>
+    <html lang={locale} className={`${headingFont.variable} ${bodyFont.variable}`}>
       <body>
-        <div className="min-h-screen bg-slate-50 text-slate-900">
+        <div className="min-h-screen bg-surface text-slate-900">
           <header className="border-b border-slate-200 bg-white">
             <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
               <div>
