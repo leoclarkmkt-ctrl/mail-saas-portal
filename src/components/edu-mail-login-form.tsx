@@ -23,6 +23,7 @@ type EduMailLoginFormProps = {
     show: string;
     hide: string;
     loginFailed: string;
+    academicYearNotRegistered: string;
   };
   errors: Record<string, string>;
   lang: EduMailLang;
@@ -70,8 +71,12 @@ export function EduMailLoginForm({
     );
   }, [email, password]);
 
-  const resolveErrorMessage = (key?: string) =>
-    errors[key ?? ""] ?? errors.unknown ?? dict.loginFailed;
+  const resolveErrorMessage = (key?: string) => {
+    if (key === "login_edu_academic_year_not_registered") {
+      return dict.academicYearNotRegistered;
+    }
+    return errors[key ?? ""] ?? errors.unknown ?? dict.loginFailed;
+  };
 
   const withLangQuery = (path: string) => {
     if (!lang) return path;

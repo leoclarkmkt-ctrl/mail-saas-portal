@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { LanguageSwitch } from "@/components/language-switch";
 import { LogoutButton } from "@/components/edu-mail-actions";
 import { formatDate } from "@/lib/utils/format";
 import { withLang } from "@/lib/i18n/shared";
@@ -11,14 +11,12 @@ import { withLang } from "@/lib/i18n/shared";
 type InboxClientProps = {
   lang: "en" | "zh";
   dict: {
-    common: {
-      switchToEn: string;
-      switchToZh: string;
-    };
     inbox: {
       title: string;
       logout: string;
       loggingOut: string;
+      expiresAtLabel: string;
+      goDashboard: string;
       refresh: string;
       refreshing: string;
       from: string;
@@ -56,7 +54,9 @@ const buildInboxLink = (id: string | null, lang: "en" | "zh") => {
 };
 
 export function InboxClient({ lang, dict, selectedId }: InboxClientProps) {
+  const router = useRouter();
   const [eduEmail, setEduEmail] = useState<string>("edu@nsuk.edu.kg");
+  const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [messages, setMessages] = useState<InboxMessage[]>([]);
   const [messageDetail, setMessageDetail] = useState<MessageDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -69,10 +69,12 @@ export function InboxClient({ lang, dict, selectedId }: InboxClientProps) {
       const data = (await res.json()) as {
         ok: boolean;
         edu_email?: string | null;
+        expires_at?: string | null;
         messages?: InboxMessage[];
       };
       if (data.ok) {
         setEduEmail(data.edu_email ?? "edu@nsuk.edu.kg");
+        setExpiresAt(data.expires_at ?? null);
         setMessages(data.messages ?? []);
       }
     } finally {
@@ -167,16 +169,24 @@ export function InboxClient({ lang, dict, selectedId }: InboxClientProps) {
               {dict.inbox.title}
             </p>
             <p className="text-lg font-semibold text-primary">{eduEmail}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-slate-500">
+              <span className="font-medium text-slate-600">
+                {dict.inbox.expiresAtLabel}:
+              </span>
+              <span>{expiresAt ? formatDate(expiresAt) : "--"}</span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="border-accent text-accent hover:bg-accent/10"
+                onClick={() => router.push(withLang("/dashboard", lang))}
+              >
+                {dict.inbox.goDashboard}
+              </Button>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <LanguageSwitch
-              currentLang={lang}
-              labels={{
-                switchToEn: dict.common.switchToEn,
-                switchToZh: dict.common.switchToZh
-              }}
-            />
             <LogoutButton
               lang={lang}
               labels={{ logout: dict.inbox.logout, loggingOut: dict.inbox.loggingOut }}

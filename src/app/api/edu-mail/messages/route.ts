@@ -28,6 +28,16 @@ export async function GET(request: NextRequest) {
     return jsonError("mailbox_lookup_failed", mailboxError.message, 500);
   }
 
+  const { data: eduAccount, error: eduError } = await supabase
+    .from("edu_accounts")
+    .select("expires_at")
+    .eq("user_id", session.userId)
+    .maybeSingle();
+
+  if (eduError) {
+    return jsonError("edu_account_lookup_failed", eduError.message, 500);
+  }
+
   const { data: messages, error } = await supabase
     .from("email_messages")
     .select("id, subject, mail_from, received_at")
@@ -42,6 +52,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     ok: true,
     edu_email: mailbox?.edu_email ?? null,
+    expires_at: eduAccount?.expires_at ?? null,
     messages: messages ?? []
   });
 }

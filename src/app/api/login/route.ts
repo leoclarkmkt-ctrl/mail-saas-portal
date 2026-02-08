@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
    * - login_edu_email_not_found
    * - login_edu_password_required
    * - login_edu_password_invalid
+   * - login_edu_academic_year_not_registered
    */
   const rateLimitResponse = await enforceRateLimit(request, "login", {
     requests: 5,
@@ -109,9 +110,12 @@ export async function POST(request: NextRequest) {
     return jsonFieldError("password", "login_edu_password_invalid", 401);
   }
   const expired = new Date(data.expires_at) <= new Date();
-  if (expired) {
-    await supabase.from("edu_accounts").update({ status: "expired" }).eq("id", data.id);
-    return jsonFieldError("email", "unknown", 401);
+  const inactive = data.status !== "active";
+  if (expired || inactive) {
+    if (expired && data.status !== "expired") {
+      await supabase.from("edu_accounts").update({ status: "expired" }).eq("id", data.id);
+    }
+    return jsonFieldError("email", "login_edu_academic_year_not_registered", 401);
   }
   await createUserSession({ userId: data.user_id, mode: "edu" });
   await supabase.from("audit_logs").insert({

@@ -21,6 +21,7 @@ type EduMailDict = {
     hide: string;
     agreement: string;
     loginFailed: string;
+    academicYearNotRegistered: string;
   };
   errors: Record<string, string>;
   hero: {
@@ -37,6 +38,8 @@ type EduMailDict = {
     refreshing: string;
     logout: string;
     loggingOut: string;
+    expiresAtLabel: string;
+    goDashboard: string;
     emptyTitle: string;
     emptyBody: string;
     from: string;
@@ -73,14 +76,18 @@ const en: EduMailDict = {
     show: "Show",
     hide: "Hide",
     agreement: "By signing in you agree to the campus email usage policy.",
-    loginFailed: "Login failed. Please check your credentials."
+    loginFailed: "Login failed. Please check your credentials.",
+    academicYearNotRegistered:
+      "Academic year not registered. Please register in the Student Dashboard."
   },
   errors: {
     unknown: "Login failed. Please try again.",
     login_edu_email_required: "Email is required.",
     login_edu_password_required: "Password is required.",
     login_edu_email_not_found: "This email does not exist. Please enter the correct email.",
-    login_edu_password_invalid: "Incorrect password. Please check your password."
+    login_edu_password_invalid: "Incorrect password. Please check your password.",
+    login_edu_academic_year_not_registered:
+      "Academic year not registered. Please register in the Student Dashboard."
   },
   hero: {
     eyebrow: "NSUK Edu Mail",
@@ -95,8 +102,10 @@ const en: EduMailDict = {
     title: "My Inbox",
     refresh: "Refresh Mail",
     refreshing: "Refreshing...",
-    logout: "Logout",
+    logout: "Sign out",
     loggingOut: "Signing Out...",
+    expiresAtLabel: "Expires",
+    goDashboard: "Go to Student Dashboard",
     emptyTitle: "No messages yet",
     emptyBody: "Please click refresh to load your latest email messages.",
     from: "From",
@@ -133,14 +142,16 @@ const zh: EduMailDict = {
     show: "显示",
     hide: "隐藏",
     agreement: "登录即表示你同意校园邮箱使用政策。",
-    loginFailed: "登录失败，请检查账号或密码。"
+    loginFailed: "登录失败，请检查账号或密码。",
+    academicYearNotRegistered: "学年未注册，请进入学生中心控制台注册！"
   },
   errors: {
     unknown: "登录失败，请稍后再试。",
     login_edu_email_required: "邮箱不能为空，请输入正确邮箱！",
     login_edu_password_required: "密码不能为空，请核对密码！",
     login_edu_email_not_found: "该邮箱不存在，请输入正确邮箱！",
-    login_edu_password_invalid: "密码错误，请核对密码！"
+    login_edu_password_invalid: "密码错误，请核对密码！",
+    login_edu_academic_year_not_registered: "学年未注册，请进入学生中心控制台注册！"
   },
   hero: {
     eyebrow: "NSUK Edu Mail",
@@ -154,8 +165,10 @@ const zh: EduMailDict = {
     title: "我的收件箱",
     refresh: "刷新邮件",
     refreshing: "刷新中...",
-    logout: "登出",
+    logout: "退出登录",
     loggingOut: "退出中...",
+    expiresAtLabel: "到期时间",
+    goDashboard: "前往学生中心控制台",
     emptyTitle: "暂无邮件",
     emptyBody: "请点击刷新按钮加载您的最新邮件。",
     from: "发件人",
