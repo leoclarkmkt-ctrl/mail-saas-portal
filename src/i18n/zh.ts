@@ -39,6 +39,7 @@ export const zh = {
     login_personal_password_required: "密码不能为空，请核对密码！",
     login_edu_email_not_found: "该邮箱不存在，请输入正确邮箱！",
     login_edu_email_required: "邮箱不能为空，请输入正确邮箱！",
+    login_edu_academic_year_not_registered: "学年未注册，请使用个人邮箱登录！",
     login_edu_password_invalid: "密码错误，请核对密码！",
     login_edu_password_required: "密码不能为空，请核对密码！",
     forgot_email_not_found: "该邮箱不存在，请输入注册邮箱！",
@@ -81,7 +82,8 @@ export const zh = {
     email: "邮箱",
     password: "密码",
     forgot: "忘记密码？",
-    submit: "登录"
+    submit: "登录",
+    eduAcademicYearNotRegistered: "学年未注册，请使用个人邮箱登录！"
   },
   forgot: {
     title: "找回密码",
@@ -136,7 +138,7 @@ export const zh = {
     logout: "退出登录"
   },
   inbox: {
-    expiresLabel: "到期时间",
+    expiresAtLabel: "到期时间",
     goDashboard: "前往学生中心控制台",
     signOut: "退出登录"
   },

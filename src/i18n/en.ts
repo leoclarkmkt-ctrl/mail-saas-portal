@@ -42,6 +42,8 @@ export const en = {
     login_personal_password_required: "Password is required. Please check your password.",
     login_edu_email_not_found: "This email does not exist. Please enter the correct email.",
     login_edu_email_required: "Email is required. Please enter the correct email.",
+    login_edu_academic_year_not_registered:
+      "Academic year not registered. Please sign in with your personal email.",
     login_edu_password_invalid: "Incorrect password. Please check your password.",
     login_edu_password_required: "Password is required. Please check your password.",
     forgot_email_not_found: "This email does not exist. Please enter your registered email.",
@@ -85,7 +87,9 @@ export const en = {
     email: "Email",
     password: "Password",
     forgot: "Forgot password?",
-    submit: "Sign In"
+    submit: "Sign In",
+    eduAcademicYearNotRegistered:
+      "Academic year not registered. Please sign in with your personal email."
   },
   forgot: {
     title: "Password Recovery",
@@ -140,8 +144,8 @@ export const en = {
     logout: "Sign Out"
   },
   inbox: {
-    expiresLabel: "Expires",
-    goDashboard: "Go to Student Console",
+    expiresAtLabel: "Expires",
+    goDashboard: "Go to Student Dashboard",
     signOut: "Sign out"
   },
   admin: {

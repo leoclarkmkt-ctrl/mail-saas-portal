@@ -15,7 +15,7 @@ type InboxClientProps = {
       title: string;
       logout: string;
       loggingOut: string;
-      expiresLabel: string;
+      expiresAtLabel: string;
       goDashboard: string;
       refresh: string;
       refreshing: string;
@@ -55,7 +55,7 @@ const buildInboxLink = (id: string | null, lang: "en" | "zh") => {
 
 export function InboxClient({ lang, dict, selectedId }: InboxClientProps) {
   const router = useRouter();
-  const [eduEmail, setEduEmail] = useState<string>("edu@nsuk.edu.kg");
+  const [eduEmail, setEduEmail] = useState("edu@nsuk.edu.kg");
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [messages, setMessages] = useState<InboxMessage[]>([]);
   const [messageDetail, setMessageDetail] = useState<MessageDetail | null>(null);
@@ -65,7 +65,9 @@ export function InboxClient({ lang, dict, selectedId }: InboxClientProps) {
   const fetchMessages = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/edu-mail/messages?limit=5", { credentials: "include" });
+      const res = await fetch("/api/edu-mail/messages?limit=5", {
+        credentials: "include"
+      });
       const data = (await res.json()) as {
         ok: boolean;
         edu_email?: string | null;
@@ -82,27 +84,29 @@ export function InboxClient({ lang, dict, selectedId }: InboxClientProps) {
     }
   }, []);
 
-  const fetchMessageDetail = useCallback(
-    async (id: string | null) => {
-      if (!id) {
+  const fetchMessageDetail = useCallback(async (id: string | null) => {
+    if (!id) {
+      setMessageDetail(null);
+      return;
+    }
+    setDetailLoading(true);
+    try {
+      const res = await fetch(`/api/edu-mail/message?id=${id}`, {
+        credentials: "include"
+      });
+      const data = (await res.json()) as {
+        ok: boolean;
+        message?: MessageDetail;
+      };
+      if (data.ok && data.message) {
+        setMessageDetail(data.message);
+      } else {
         setMessageDetail(null);
-        return;
       }
-      setDetailLoading(true);
-      try {
-        const res = await fetch(`/api/edu-mail/message?id=${id}`, { credentials: "include" });
-        const data = (await res.json()) as { ok: boolean; message?: MessageDetail };
-        if (data.ok && data.message) {
-          setMessageDetail(data.message);
-        } else {
-          setMessageDetail(null);
-        }
-      } finally {
-        setDetailLoading(false);
-      }
-    },
-    []
-  );
+    } finally {
+      setDetailLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchMessages();
@@ -122,16 +126,20 @@ export function InboxClient({ lang, dict, selectedId }: InboxClientProps) {
         </div>
       );
     }
+
     if (messages.length === 0) {
       return (
         <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center">
           <p className="text-base font-semibold text-slate-700">
             {dict.inbox.emptyTitle}
           </p>
-          <p className="mt-2 text-sm text-slate-500">{dict.inbox.emptyBody}</p>
+          <p className="mt-2 text-sm text-slate-500">
+            {dict.inbox.emptyBody}
+          </p>
         </div>
       );
     }
+
     return messages.map((message) => (
       <Link
         key={message.id}
@@ -145,7 +153,8 @@ export function InboxClient({ lang, dict, selectedId }: InboxClientProps) {
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-sm text-slate-500">
-              {dict.inbox.from}: {message.mail_from ?? dict.inbox.unknownSender}
+              {dict.inbox.from}:{" "}
+              {message.mail_from ?? dict.inbox.unknownSender}
             </p>
             <p className="mt-1 text-base font-semibold text-slate-900">
               {message.subject ?? dict.inbox.noSubject}
@@ -162,6 +171,7 @@ export function InboxClient({ lang, dict, selectedId }: InboxClientProps) {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="rounded-2xl border border-slate-200 bg-white px-6 py-4 shadow-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -169,9 +179,10 @@ export function InboxClient({ lang, dict, selectedId }: InboxClientProps) {
               {dict.inbox.title}
             </p>
             <p className="text-lg font-semibold text-primary">{eduEmail}</p>
+
             <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-slate-500">
               <span className="font-medium text-slate-600">
-                {dict.inbox.expiresLabel}:
+                {dict.inbox.expiresAtLabel}:
               </span>
               <span>{expiresAt ? formatDate(expiresAt) : "--"}</span>
               <Button
@@ -186,17 +197,23 @@ export function InboxClient({ lang, dict, selectedId }: InboxClientProps) {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-3">
             <LogoutButton
               lang={lang}
-              labels={{ logout: dict.inbox.logout, loggingOut: dict.inbox.loggingOut }}
+              labels={{
+                logout: dict.inbox.logout,
+                loggingOut: dict.inbox.loggingOut
+              }}
             />
           </div>
         </div>
       </div>
 
+      {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h2 className="text-2xl font-semibold text-primary">{dict.inbox.title}</h2>
+        <h2 className="text-2xl font-semibold text-primary">
+          {dict.inbox.title}
+        </h2>
         <Button
           type="button"
           variant="outline"
@@ -207,37 +224,43 @@ export function InboxClient({ lang, dict, selectedId }: InboxClientProps) {
           }}
           disabled={loading || detailLoading}
         >
-          {loading || detailLoading ? dict.inbox.refreshing : dict.inbox.refresh}
+          {loading || detailLoading
+            ? dict.inbox.refreshing
+            : dict.inbox.refresh}
         </Button>
       </div>
 
+      {/* Content */}
       <div className="grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
         <div className="space-y-4">{listContent}</div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           {detailLoading ? (
-            <div className="flex h-full min-h-[360px] flex-col items-center justify-center text-center text-slate-500">
+            <div className="flex h-full min-h-[360px] items-center justify-center text-center text-slate-500">
               <p className="text-base font-semibold text-slate-700">
                 {dict.inbox.refreshing}
               </p>
             </div>
           ) : messageDetail ? (
             <div className="space-y-4">
-              <div className="space-y-1">
+              <div>
                 <p className="text-sm text-slate-500">
-                  {dict.inbox.from}: {messageDetail.mail_from ?? dict.inbox.unknownSender}
+                  {dict.inbox.from}:{" "}
+                  {messageDetail.mail_from ?? dict.inbox.unknownSender}
                 </p>
                 <h3 className="text-xl font-semibold text-primary">
                   {messageDetail.subject ?? dict.inbox.noSubject}
                 </h3>
                 <p className="text-xs text-slate-400">
                   {dict.inbox.received}:{" "}
-                  {messageDetail.received_at ? formatDate(messageDetail.received_at) : "--"}
+                  {messageDetail.received_at
+                    ? formatDate(messageDetail.received_at)
+                    : "--"}
                 </p>
               </div>
 
               {messageDetail.text_plain ? (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
                   <pre className="whitespace-pre-wrap font-sans">
                     {messageDetail.text_plain}
                   </pre>
@@ -260,7 +283,9 @@ export function InboxClient({ lang, dict, selectedId }: InboxClientProps) {
               <p className="text-base font-semibold text-slate-700">
                 {dict.inbox.detailPlaceholderTitle}
               </p>
-              <p className="mt-2 text-sm">{dict.inbox.detailPlaceholderBody}</p>
+              <p className="mt-2 text-sm">
+                {dict.inbox.detailPlaceholderBody}
+              </p>
             </div>
           )}
         </div>

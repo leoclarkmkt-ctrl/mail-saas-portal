@@ -44,8 +44,12 @@ export function LoginForm({ labels, errors, lang }: LoginFormProps) {
     }
   });
 
-  const resolveErrorMessage = (key?: string) =>
-    errors[key ?? ""] ?? errors.request_failed ?? errors.unknown;
+  const resolveErrorMessage = (key?: string) => {
+    if (key === "login_edu_academic_year_not_registered") {
+      return labels.eduAcademicYearNotRegistered ?? errors[key] ?? errors.unknown;
+    }
+    return errors[key ?? ""] ?? errors.request_failed ?? errors.unknown;
+  };
 
   const handleSubmit = async (form: typeof personalForm, modeValue: (typeof modes)[number]) => {
     form.clearErrors();

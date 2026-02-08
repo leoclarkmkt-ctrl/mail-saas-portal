@@ -23,7 +23,8 @@ export default function LoginPage({ searchParams }: { searchParams?: Record<stri
             eduTab: dict.login.eduTab,
             email: dict.login.email,
             password: dict.login.password,
-            submit: dict.login.submit
+            submit: dict.login.submit,
+            eduAcademicYearNotRegistered: dict.login.eduAcademicYearNotRegistered
           }}
         />
         <Link className="text-sm text-slate-500" href={withLang("/forgot", lang)}>
