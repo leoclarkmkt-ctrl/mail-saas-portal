@@ -73,7 +73,7 @@ export function ForgotForm({
     if (!values.personal_email) {
       form.setError("personal_email", {
         type: "manual",
-        message: errors.forgot_email_required ?? errors.unknown ?? "Request failed"
+        message: errors.forgot_email_required ?? errors.request_failed ?? errors.unknown
       });
       return;
     }
@@ -91,7 +91,7 @@ export function ForgotForm({
       if (!res.ok || !data?.ok) {
         form.setError("personal_email", {
           type: "server",
-          message: errors.unknown ?? "Request failed"
+          message: errors.request_failed ?? errors.unknown
         });
         return;
       }
@@ -109,10 +109,14 @@ export function ForgotForm({
       console.error("[forgot] request_failed", error);
       form.setError("personal_email", {
         type: "server",
-        message: errors.unknown ?? "Request failed"
+        message: errors.request_failed ?? errors.unknown
       });
     }
   };
+
+  const cooldownLabel =
+    labels.cooldownSent?.replace("{{seconds}}", String(cooldown)) ??
+    `${labels.submit} (${cooldown}s)`;
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -132,9 +136,7 @@ export function ForgotForm({
       </div>
 
       <Button type="submit" disabled={cooldown > 0}>
-        {cooldown > 0
-          ? labels.cooldownSent.replace("{{seconds}}", String(cooldown))
-          : labels.submit}
+        {cooldown > 0 ? cooldownLabel : labels.submit}
       </Button>
 
       {message && (

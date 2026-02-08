@@ -23,7 +23,8 @@ export const zh = {
     personal_email_required: "个人邮箱不能为空，请输入个人邮箱！",
     personal_email_invalid: "邮箱格式不正确",
     personal_email_disallowed_domain: "@nsuk.edu.kg邮箱不允许作为个人邮箱使用，请使用个人邮箱！",
-    personal_email_exists: "该邮箱已被注册，请使用个人邮箱！如需找回，请登录学生中心控制台进行找回！",
+    personal_email_exists:
+      "该邮箱已被注册，请使用个人邮箱！如需找回，请登录学生中心控制台进行找回！",
     edu_username_required: "用户名不能为空，请输入3-32字符支持字母/数字/点/下划线/连字符！",
     edu_username_invalid: "3-32字符且仅允许字母/数字/点/下划线/连字符",
     edu_username_exists: "该用户名已被占用，请重新输入！",
@@ -41,7 +42,8 @@ export const zh = {
     login_edu_password_required: "密码不能为空，请核对密码！",
     forgot_email_not_found: "该邮箱不存在，请输入注册邮箱！",
     forgot_email_required: "邮箱不能为空，请输入注册邮箱！",
-    unknown: "操作失败，请稍后重试！"
+    unknown: "操作失败，请稍后重试！",
+    request_failed: "请求失败，请稍后重试。"
   },
   home: {
     title: "NSUK 官方邮箱门户",
@@ -91,7 +93,10 @@ export const zh = {
   reset: {
     title: "重置密码",
     newPassword: "新密码",
-    submit: "重置密码"
+    submit: "重置密码",
+    invalidLink: "重置链接无效或已过期，请重新发起找回流程。",
+    submitFailed: "重置失败，请稍后重试。",
+    submitSuccess: "重置成功"
   },
   dashboard: {
     title: "学生控制台",
@@ -165,6 +170,7 @@ export const zh = {
       note: "备注",
       generate: "生成",
       exportCsv: "导出 CSV",
+      codesFailed: "生成失败",
       statuses: {
         all: "全部",
         unused: "未使用",
@@ -238,3 +244,4 @@ export const zh = {
     platforms: ["LinkedIn", "X", "YouTube", "ResearchGate"]
   }
 };
+

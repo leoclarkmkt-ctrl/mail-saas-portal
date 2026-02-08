@@ -45,7 +45,7 @@ export function LoginForm({ labels, errors, lang }: LoginFormProps) {
   });
 
   const resolveErrorMessage = (key?: string) =>
-    errors[key ?? ""] ?? errors.unknown ?? "Request failed";
+    errors[key ?? ""] ?? errors.request_failed ?? errors.unknown;
 
   const handleSubmit = async (form: typeof personalForm, modeValue: (typeof modes)[number]) => {
     form.clearErrors();

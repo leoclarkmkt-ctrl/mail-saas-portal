@@ -11,6 +11,10 @@ import { withLang } from "@/lib/i18n/shared";
 type InboxClientProps = {
   lang: "en" | "zh";
   dict: {
+    common: {
+      switchToEn: string;
+      switchToZh: string;
+    };
     inbox: {
       title: string;
       logout: string;
@@ -26,6 +30,7 @@ type InboxClientProps = {
       noContent: string;
       detailPlaceholderTitle: string;
       detailPlaceholderBody: string;
+      emailContentTitle: string;
     };
   };
   selectedId: string | null;
@@ -165,7 +170,13 @@ export function InboxClient({ lang, dict, selectedId }: InboxClientProps) {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <LanguageSwitch currentLang={lang} />
+            <LanguageSwitch
+              currentLang={lang}
+              labels={{
+                switchToEn: dict.common.switchToEn,
+                switchToZh: dict.common.switchToZh
+              }}
+            />
             <LogoutButton
               lang={lang}
               labels={{ logout: dict.inbox.logout, loggingOut: dict.inbox.loggingOut }}
@@ -223,7 +234,7 @@ export function InboxClient({ lang, dict, selectedId }: InboxClientProps) {
                 </div>
               ) : messageDetail.html_body ? (
                 <iframe
-                  title="Email content"
+                  title={dict.inbox.emailContentTitle}
                   className="min-h-[360px] w-full rounded-xl border border-slate-200"
                   sandbox="allow-same-origin"
                   srcDoc={messageDetail.html_body}

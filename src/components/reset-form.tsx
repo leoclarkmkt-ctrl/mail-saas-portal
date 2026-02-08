@@ -17,7 +17,13 @@ export function ResetForm({
   lang,
   accessToken
 }: {
-  labels: Record<string, string>;
+  labels: {
+    newPassword: string;
+    submit: string;
+    invalidLink: string;
+    submitFailed: string;
+    submitSuccess: string;
+  };
   lang: "en" | "zh";
   accessToken?: string;
 }) {
@@ -44,10 +50,7 @@ export function ResetForm({
   }, [accessToken, accessTokenFromHash, form]);
 
   const hasToken = Boolean(accessToken || accessTokenFromHash);
-  const tokenMessage =
-    lang === "zh"
-      ? "重置链接无效或已过期，请重新发起找回流程。"
-      : "Reset link is invalid or expired. Please request a new one.";
+  const tokenMessage = labels.invalidLink;
 
   const onSubmit = async (values: ResetValues) => {
     setMessage(null);
@@ -58,10 +61,10 @@ export function ResetForm({
     });
     const { data, text } = await readJsonResponse<{ error?: string }>(res);
     if (!res.ok) {
-      setMessage(data?.error ?? text ?? "Failed. Please check /status for configuration hints.");
+      setMessage(data?.error ?? text ?? labels.submitFailed);
       return;
     }
-    setMessage("Success");
+    setMessage(labels.submitSuccess);
     const resolvedLang = lang === "en" || lang === "zh" ? lang : undefined;
     window.location.href = resolvedLang ? `/login?lang=${resolvedLang}` : "/login";
   };

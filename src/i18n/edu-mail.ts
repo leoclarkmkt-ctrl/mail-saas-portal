@@ -1,6 +1,10 @@
 export type EduMailLang = "en" | "zh";
 
 type EduMailDict = {
+  common: {
+    switchToEn: string;
+    switchToZh: string;
+  };
   login: {
     eyebrow: string;
     title: string;
@@ -41,6 +45,7 @@ type EduMailDict = {
     detailPlaceholderTitle: string;
     detailPlaceholderBody: string;
     noContent: string;
+    emailContentTitle: string;
     unknownSender: string;
     noSubject: string;
     loading: string;
@@ -49,6 +54,10 @@ type EduMailDict = {
 };
 
 const en: EduMailDict = {
+  common: {
+    switchToEn: "English",
+    switchToZh: "中文"
+  },
   login: {
     eyebrow: "Education Mail",
     title: "Welcome Back",
@@ -96,6 +105,7 @@ const en: EduMailDict = {
     detailPlaceholderTitle: "Select an email to view details",
     detailPlaceholderBody: "Choose a message from the list to preview it here.",
     noContent: "No previewable content for this email.",
+    emailContentTitle: "Email content",
     unknownSender: "Unknown",
     noSubject: "(No subject)",
     loading: "Loading...",
@@ -104,6 +114,10 @@ const en: EduMailDict = {
 };
 
 const zh: EduMailDict = {
+  common: {
+    switchToEn: "English",
+    switchToZh: "中文"
+  },
   login: {
     eyebrow: "教育邮箱",
     title: "欢迎回来",
@@ -150,6 +164,7 @@ const zh: EduMailDict = {
     detailPlaceholderTitle: "请选择一封邮件查看详情",
     detailPlaceholderBody: "从左侧列表中选择邮件进行预览。",
     noContent: "该邮件暂无可显示的正文内容。",
+    emailContentTitle: "邮件内容",
     unknownSender: "未知",
     noSubject: "(无主题)",
     loading: "加载中...",

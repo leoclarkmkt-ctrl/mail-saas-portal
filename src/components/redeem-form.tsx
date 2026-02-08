@@ -48,7 +48,7 @@ export function RedeemForm({ copy, errors, lang }: RedeemFormProps) {
     typeof value === "object" && value !== null;
 
   const resolveErrorMessage = (key?: string) =>
-    errors[key ?? ""] ?? errors.unknown ?? "Request failed";
+    errors[key ?? ""] ?? errors.request_failed ?? errors.unknown;
 
   const setFieldError = (field: keyof RedeemValues, key: string) => {
     form.setError(field, { type: "manual", message: resolveErrorMessage(key) });
