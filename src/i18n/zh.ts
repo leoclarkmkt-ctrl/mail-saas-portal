@@ -14,7 +14,8 @@ export const zh = {
     back: "返回",
     failedToLoad: "加载失败",
     retry: "重试",
-    search: "搜索"
+    search: "搜索",
+    signOut: "退出登录"
   },
   errors: {
     activation_code_not_found: "身份编码不存在，请输入正确身份编码！",
@@ -134,6 +135,11 @@ export const zh = {
     },
     logout: "退出登录"
   },
+  inbox: {
+    expiresLabel: "到期时间",
+    goDashboard: "前往学生中心控制台",
+    signOut: "退出登录"
+  },
   admin: {
     loginTitle: "管理员登录",
     summary: "总览",
@@ -244,4 +250,3 @@ export const zh = {
     platforms: ["LinkedIn", "X", "YouTube", "ResearchGate"]
   }
 };
-

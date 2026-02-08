@@ -14,7 +14,8 @@ export const en = {
     back: "Back",
     failedToLoad: "Failed to load",
     retry: "Retry",
-    search: "Search"
+    search: "Search",
+    signOut: "Sign out"
   },
   errors: {
     activation_code_not_found: "Identity code not found. Please enter a valid identity code.",
@@ -137,6 +138,11 @@ export const en = {
       unknown: "Operation failed. Please try again later."
     },
     logout: "Sign Out"
+  },
+  inbox: {
+    expiresLabel: "Expires",
+    goDashboard: "Go to Student Console",
+    signOut: "Sign out"
   },
   admin: {
     loginTitle: "Administrator Sign In",
