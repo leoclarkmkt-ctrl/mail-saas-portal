@@ -48,11 +48,6 @@ type HealthResponse = {
     dbOk?: boolean;
     schemaHints?: string[];
   };
-  mailcow?: {
-    ok?: boolean;
-    missing?: string[];
-    error?: string;
-  };
   auth_redirect_hint?: string;
   app_base_url?: string;
   message?: string;

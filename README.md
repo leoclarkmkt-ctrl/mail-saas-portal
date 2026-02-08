@@ -31,10 +31,6 @@ ADMIN_PASSWORD_HASH=
 UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
 
-# Mailcow (required for mailbox operations & health check)
-MAILCOW_API_BASE_URL=
-MAILCOW_API_KEY=
-
 # Cron (required for expiry job)
 CRON_SECRET=
 
@@ -97,7 +93,7 @@ pnpm dev
 
 ## Notes
 - Portal is the management layer (activation, renewal, console). Webmail is external: `https://mail.nsuk.edu.kg/`.
-- Webmail service is hosted on VPS `173.254.220.67` (Mailcow/SOGo), and is not implemented in this repo.
+- Webmail service is hosted on VPS `173.254.220.67`, and is not implemented in this repo.
 - All sensitive operations happen in server routes using the Supabase Service Role key.
 - The project uses `?lang=zh` or `?lang=en` to switch language and stores it in a cookie.
 - Personal email (`personal_email`) must NOT use the `@nsuk.edu.kg` domain; use a personal mailbox for activation and recovery.
