@@ -14,49 +14,20 @@ export async function POST(request: NextRequest) {
   // Ensure required envs (SESSION_SECRET, etc.)
   getSessionEnv();
 
-  const lang = request.nextUrl.searchParams.get("lang") === "zh" ? "zh" : "en";
-  const message = (key: string) => {
-    const zh = {
-      unauthorized: "未授权",
-      invalidInput: "提交内容无效",
-      userNotFound: "未找到用户",
-      invalidPassword: "原密码不正确",
-      suspended: "账号已冻结",
-      updateFailed: "更新失败",
-      internalError: "服务器内部错误"
-    };
-    const en = {
-      unauthorized: "Unauthorized",
-      invalidInput: "Invalid input",
-      userNotFound: "User not found",
-      invalidPassword: "Invalid password",
-      suspended: "Account suspended",
-      updateFailed: "Update failed",
-      internalError: "Internal error"
-    };
-    const dict = lang === "zh" ? zh : en;
-    return dict[key as keyof typeof dict] ?? dict.internalError;
-  };
-
-  const errorResponse = (
-    code: string,
-    msg: string,
-    detail: unknown,
-    status: number
-  ) =>
-    NextResponse.json({ code, message: msg, detail }, { status });
+  const errorResponse = (key: string, status: number) =>
+    NextResponse.json({ ok: false, error: { key } }, { status });
 
   // Must be logged in
   const session = await getUserSession();
   if (!session) {
-    return errorResponse("unauthorized", message("unauthorized"), null, 401);
+    return errorResponse("unauthorized", 401);
   }
 
   // Validate input
   const body = await request.json();
   const parsed = changePasswordSchema.safeParse(body);
   if (!parsed.success) {
-    return errorResponse("invalid_input", message("invalidInput"), null, 400);
+    return errorResponse("invalid_input", 400);
   }
 
   const supabase = createServerSupabaseClient();
@@ -67,20 +38,19 @@ export async function POST(request: NextRequest) {
     .from("profiles")
     .select("personal_email, is_suspended, user_id")
     .eq("user_id", session.userId)
-    .single();
+    .maybeSingle();
 
-  if (profileError || !profile) {
-    return errorResponse(
-      "user_not_found",
-      message("userNotFound"),
-      profileError?.message ?? null,
-      404
-    );
+  if (profileError) {
+    console.error("[dashboard][password] profile_lookup_failed", profileError);
+    return errorResponse("internal_error", 500);
+  }
+  if (!profile) {
+    return errorResponse("user_not_found", 404);
   }
 
   if (profile.is_suspended) {
     clearUserSession();
-    return errorResponse("account_suspended", message("suspended"), null, 403);
+    return errorResponse("account_suspended", 403);
   }
 
   // Verify old password via personal email
@@ -90,12 +60,8 @@ export async function POST(request: NextRequest) {
   });
 
   if (signIn.error) {
-    return errorResponse(
-      "invalid_password",
-      message("invalidPassword"),
-      signIn.error.message,
-      403
-    );
+    console.error("[dashboard][password] invalid_password", signIn.error);
+    return errorResponse("invalid_password", 403);
   }
 
   // Update password (admin API)
@@ -104,12 +70,8 @@ export async function POST(request: NextRequest) {
   });
 
   if (update.error) {
-    return errorResponse(
-      "auth_update_failed",
-      message("updateFailed"),
-      update.error.message,
-      400
-    );
+    console.error("[dashboard][password] update_failed", update.error);
+    return errorResponse("update_failed", 400);
   }
 
   // Audit log
