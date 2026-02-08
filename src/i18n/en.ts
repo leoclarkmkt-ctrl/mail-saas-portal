@@ -45,7 +45,8 @@ export const en = {
     login_edu_password_required: "Password is required. Please check your password.",
     forgot_email_not_found: "This email does not exist. Please enter your registered email.",
     forgot_email_required: "Email is required. Please enter your registered email.",
-    unknown: "Operation failed. Please try again later."
+    unknown: "Operation failed. Please try again later.",
+    request_failed: "Request failed. Please try again."
   },
   home: {
     title: "NSUK Official Mail Portal",
@@ -90,12 +91,16 @@ export const en = {
     description: "Only personal email can be used to recover password.",
     email: "Personal Email",
     submit: "Send Reset Link",
+    cooldownSent: "Sent ({{seconds}}s)",
     notice: "If the email exists, a reset link will be sent."
   },
   reset: {
     title: "Reset Password",
     newPassword: "New Password",
-    submit: "Reset Password"
+    submit: "Reset Password",
+    invalidLink: "Reset link is invalid or expired. Please request a new one.",
+    submitFailed: "Reset failed. Please try again.",
+    submitSuccess: "Success"
   },
   dashboard: {
     title: "Student Console",
@@ -169,6 +174,7 @@ export const en = {
       note: "Note",
       generate: "Generate",
       exportCsv: "Export CSV",
+      codesFailed: "Failed",
       statuses: {
         all: "All",
         unused: "Unused",

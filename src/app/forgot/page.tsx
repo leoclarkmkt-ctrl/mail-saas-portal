@@ -20,6 +20,7 @@ export default function ForgotPage({ searchParams }: { searchParams?: Record<str
           labels={{
             email: dict.forgot.email,
             submit: dict.forgot.submit,
+            cooldownSent: dict.forgot.cooldownSent,
             notice: dict.forgot.notice
           }}
         />

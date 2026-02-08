@@ -15,7 +15,13 @@ export default function ResetPage({ searchParams }: { searchParams?: Record<stri
       </CardHeader>
       <CardContent>
         <ResetForm
-          labels={{ newPassword: dict.reset.newPassword, submit: dict.reset.submit }}
+          labels={{
+            newPassword: dict.reset.newPassword,
+            submit: dict.reset.submit,
+            invalidLink: dict.reset.invalidLink,
+            submitFailed: dict.reset.submitFailed,
+            submitSuccess: dict.reset.submitSuccess
+          }}
           lang={lang}
           accessToken={accessToken}
         />

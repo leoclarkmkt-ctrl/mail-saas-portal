@@ -13,6 +13,7 @@ type AdminCodesLabels = {
   note: string;
   generate: string;
   exportCsv: string;
+  codesFailed: string;
   statuses: Record<Status, string>;
   code: string;
   status: string;
@@ -49,7 +50,7 @@ export function AdminCodes({ labels }: { labels: AdminCodesLabels }) {
     });
     const data = await res.json();
     if (!res.ok) {
-      setMessage(data.error ?? "Failed");
+      setMessage(data.error ?? labels.codesFailed);
       return;
     }
     setCodes(data.codes);

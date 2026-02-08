@@ -3,10 +3,19 @@
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
-export function LanguageSwitch({ currentLang }: { currentLang: "en" | "zh" }) {
+export function LanguageSwitch({
+  currentLang,
+  labels
+}: {
+  currentLang: "en" | "zh";
+  labels: {
+    switchToEn: string;
+    switchToZh: string;
+  };
+}) {
   const pathname = usePathname();
   const next = currentLang === "zh" ? "en" : "zh";
-  const nextLabel = currentLang === "zh" ? "English" : "中文";
+  const nextLabel = currentLang === "zh" ? labels.switchToEn : labels.switchToZh;
 
   const buildNextUrl = () => {
     if (typeof window === "undefined") return pathname;

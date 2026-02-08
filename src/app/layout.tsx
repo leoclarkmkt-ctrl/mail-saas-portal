@@ -38,7 +38,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 <Link className="hover:text-slate-900" href={withLang("/admin/login", locale)}>
                   {dict.common.admin}
                 </Link>
-                <LanguageSwitch currentLang={locale} />
+                <LanguageSwitch
+                  currentLang={locale}
+                  labels={{
+                    switchToEn: dict.common.switchToEn,
+                    switchToZh: dict.common.switchToZh
+                  }}
+                />
               </div>
             </div>
           </header>
