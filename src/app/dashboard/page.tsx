@@ -61,6 +61,7 @@ export default async function DashboardPage({ searchParams }: { searchParams?: R
           submit: dict.common.submit,
           renew: dict.dashboard.renew,
           renewSubmit: dict.dashboard.renewSubmit,
+          renewSuccess: dict.dashboard.renewSuccess,
           activationCode: dict.redeem.activationCode,
           suspended: dict.dashboard.suspended,
           passwordHint: dict.dashboard.passwordHint,

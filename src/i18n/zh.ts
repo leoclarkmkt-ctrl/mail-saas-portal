@@ -111,6 +111,7 @@ export const zh = {
     renew: "输入激活码续费",
     renewHint: "输入新的激活码可续费 1 年。",
     renewSubmit: "续费",
+    renewSuccess: "续费成功！到期时间已更新。",
     expiredNotice: "邮箱已到期并被临时停用，请续费后恢复使用。",
     renewEnableFailed: "续费成功，但邮箱启用失败，请稍后重试。",
     errorFallback: "操作未成功，请稍后重试。",

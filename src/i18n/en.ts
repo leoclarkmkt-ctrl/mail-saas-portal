@@ -115,6 +115,7 @@ export const en = {
     renew: "Renew with Activation Code",
     renewHint: "Enter a new activation code to extend by 1 year.",
     renewSubmit: "Renew",
+    renewSuccess: "Renewal successful! Your expiration date has been updated.",
     expiredNotice: "Your mailbox has expired and is temporarily disabled. Renew to restore access.",
     renewEnableFailed: "Renewed successfully, but mailbox re-enable failed. Please retry later.",
     errorFallback: "Operation failed. Please try again later.",
