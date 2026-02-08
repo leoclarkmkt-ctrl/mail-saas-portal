@@ -11,7 +11,7 @@ import { jsonSuccess } from "@/lib/utils/api";
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
-  // Ensure required envs (SESSION_SECRET etc.)
+  // Ensure required envs (SESSION_SECRET, etc.)
   getSessionEnv();
 
   const lang = request.nextUrl.searchParams.get("lang") === "zh" ? "zh" : "en";
@@ -62,10 +62,10 @@ export async function POST(request: NextRequest) {
   const supabase = createServerSupabaseClient();
   const authClient = createServerSupabaseAnonClient();
 
-  // 🔒 Correct schema alignment: profiles.user_id = auth.users.id
+  // 🔒 Schema-aligned lookup: profiles.user_id === auth.users.id
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("personal_email, is_suspended")
+    .select("personal_email, is_suspended, user_id")
     .eq("user_id", session.userId)
     .single();
 

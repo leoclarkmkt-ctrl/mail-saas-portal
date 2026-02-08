@@ -9,8 +9,10 @@
   "packageManager": "pnpm@10.13.1",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "check:profiles": "rg -n \"from\\(\\\"profiles\\\"\\).*select\\(\\\"id\" src && exit 1 || rg -n \"from\\(\\\"profiles\\\"\\).*eq\\(\\\"id\\\"\" src && exit 1 || exit 0",
+
+    "guard:profiles": "node scripts/guard-profiles-id.mjs",
+    "build": "npm run guard:profiles && next build",
+
     "start": "next start",
     "lint": "next lint",
     "lint:assets": "node scripts/check-no-binary-assets.mjs",
@@ -21,6 +23,7 @@
     "@supabase/supabase-js": "^2.45.4",
     "@upstash/ratelimit": "^2.0.6",
     "@upstash/redis": "^1.34.2",
+    "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
@@ -31,8 +34,7 @@
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.52.2",
     "tailwind-merge": "^2.5.2",
-    "zod": "^3.23.8",
-    "bcryptjs": "^2.4.3"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

@@ -111,17 +111,17 @@ export function AdminUsers({ labels, lang }: { labels: AdminUsersLabels; lang: L
           </thead>
           <tbody>
             {users.map((user) => (
-              <tr key={user.id} className="border-t border-slate-100">
+              <tr key={user.user_id} className="border-t border-slate-100">
                 <td className="p-3">{user.personal_email}</td>
                 <td className="p-3">{user.edu_email}</td>
                 <td className="p-3">{user.expires_at}</td>
                 <td className="p-3">{user.is_suspended ? labels.suspended : user.status}</td>
                 <td className="flex gap-2 p-3">
-                  <Button size="sm" onClick={() => renew(user.id)}>{labels.renew}</Button>
-                  <Button size="sm" variant="outline" onClick={() => toggleSuspend(user.id, user.is_suspended)}>
+                  <Button size="sm" onClick={() => renew(user.user_id)}>{labels.renew}</Button>
+                  <Button size="sm" variant="outline" onClick={() => toggleSuspend(user.user_id, user.is_suspended)}>
                     {user.is_suspended ? labels.unsuspend : labels.suspend}
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => resetPassword(user.id)}>
+                  <Button size="sm" variant="ghost" onClick={() => resetPassword(user.user_id)}>
                     {labels.resetPassword}
                   </Button>
                 </td>

@@ -18,9 +18,7 @@ import {
  * 2) portal-lang
  * 3) defaultLocale
  */
-export function getLocaleFromCookies(
-  defaultLocale: Locale = "en"
-): Locale {
+export function getLocaleFromCookies(defaultLocale: Locale = "en"): Locale {
   const value =
     cookies().get("lang")?.value ??
     cookies().get("portal-lang")?.value;
