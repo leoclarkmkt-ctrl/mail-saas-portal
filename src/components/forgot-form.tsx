@@ -56,6 +56,10 @@ export function ForgotForm({
     if (!res.ok) {
       const errorObj = typeof data?.error === "object" ? data?.error : undefined;
       if (errorObj?.field && errorObj?.key) {
+        if (errorObj.key === "forgot_email_not_found") {
+          setMessage(labels.notice);
+          return;
+        }
         const msg = errors[errorObj.key] ?? errors.unknown ?? "Request failed";
         form.setError("personal_email", { type: "server", message: msg });
         return;
