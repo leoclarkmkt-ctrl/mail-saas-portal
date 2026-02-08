@@ -53,7 +53,8 @@ export async function POST(request: NextRequest) {
       redeemFailed: "兑换失败",
       internalError: "服务器内部错误",
       alreadyHasEducationAccount: "您已拥有教育邮箱，请登录学生中心控制台查看！",
-      personalEmailDomainBlocked: "个人邮箱不能使用 @nsuk.edu.kg，请填写你的常用个人邮箱（如 Gmail/Outlook 等）。"
+      personalEmailDomainBlocked:
+        "个人邮箱不能使用 @nsuk.edu.kg，请填写你的常用个人邮箱（如 Gmail/Outlook 等）。"
     };
     const en = {
       missingEnv: "Missing environment configuration",
@@ -264,7 +265,7 @@ export async function POST(request: NextRequest) {
       return jsonFieldError("activation_code", "activation_code_used", 409);
     }
 
-    // 2) Personal email and edu username must be unique in our "official" tables.
+    // 2) Personal email and edu username must be unique.
     const { data: existingProfile } = await supabase
       .from("profiles")
       .select("user_id")
@@ -289,16 +290,19 @@ export async function POST(request: NextRequest) {
 
       const appendRollbackError = (scope: string, err: unknown) => {
         const detail = safeString(err);
-        rollbackError = rollbackError ? `${rollbackError}; ${scope}: ${detail}` : `${scope}: ${detail}`;
+        rollbackError = rollbackError
+          ? `${rollbackError}; ${scope}: ${detail}`
+          : `${scope}: ${detail}`;
       };
 
-      const deleteByUserId = async (table: string, column = "id") => {
+      // Default column aligns to this schema: user_id everywhere except user_mailboxes.owner_user_id.
+      const deleteByUserId = async (table: string, column = "user_id") => {
         const { error } = await supabase.from(table).delete().eq(column, createdUserId);
         if (error) appendRollbackError(`delete ${table}`, error.message);
       };
 
       await deleteByUserId("user_mailboxes", "owner_user_id");
-      await deleteByUserId("edu_accounts");
+      await deleteByUserId("edu_accounts", "user_id");
       await deleteByUserId("profiles", "user_id");
 
       // Guard: only reset the activation code if it was used by THIS created user.
@@ -324,7 +328,7 @@ export async function POST(request: NextRequest) {
       return rollbackError;
     };
 
-    // 3) Create auth user (may create "half product" if later steps fail -> must rollback).
+    // 3) Create auth user
     const created = await authAdmin.createUser({
       email: normalizedPersonalEmail,
       password,
@@ -358,7 +362,7 @@ export async function POST(request: NextRequest) {
 
     const authUserId = created.data.user.id;
 
-    // 4) Upsert initial profile
+    // 4) Upsert initial profile (schema: profiles PK is user_id)
     const upsert = await supabase.from("profiles").upsert(
       { user_id: authUserId, personal_email: normalizedPersonalEmail, is_suspended: false },
       { onConflict: "user_id" }
@@ -388,7 +392,7 @@ export async function POST(request: NextRequest) {
       return jsonError(errorMessage, 400, { rollback_error: rollbackError ?? undefined });
     }
 
-    // 5) Redeem activation code via RPC (writes official DB rows)
+    // 5) Redeem activation code via RPC
     const { data, error } = await supabase.rpc("redeem_activation_code", {
       p_code: activation_code,
       p_user_id: authUserId,
@@ -422,7 +426,7 @@ export async function POST(request: NextRequest) {
 
     const result = data[0];
 
-    // 6) Final profile upsert (redundant but keeps original behavior)
+    // 6) Final profile upsert (keeps original behavior)
     const finalUpsert = await supabase.from("profiles").upsert(
       { user_id: authUserId, personal_email: normalizedPersonalEmail },
       { onConflict: "user_id" }
