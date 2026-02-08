@@ -1,7 +1,8 @@
 import Link from "next/link";
 
 import { getEduMailDict } from "@/i18n/edu-mail";
-import { getLangFromRequest, withLang } from "@/lib/i18n";
+import { getLangFromRequest } from "@/lib/i18n/server";
+import { withLang } from "@/lib/i18n/shared";
 import { EduMailLoginForm } from "@/components/edu-mail-login-form";
 
 export default function EduMailLoginPage({

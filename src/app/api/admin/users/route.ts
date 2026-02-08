@@ -3,7 +3,6 @@ import { getAdminSession } from "@/lib/auth/admin-session";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { adminUserActionSchema } from "@/lib/validation/schemas";
 import { jsonError, jsonSuccess } from "@/lib/utils/api";
-import { setMailboxActive } from "@/lib/mailcow";
 import { randomString } from "@/lib/security/random";
 
 export const runtime = "nodejs";
@@ -47,6 +46,7 @@ export async function GET(request: NextRequest) {
     const profile = profileMap.get(row.user_id);
     return {
       id: row.user_id ?? null,
+      user_id: row.user_id ?? null,
       personal_email: profile?.personal_email ?? null,
       is_suspended: profile?.is_suspended ?? false,
       edu_email: row.edu_email,
@@ -64,12 +64,10 @@ export async function PATCH(request: NextRequest) {
   const message = (key: string) => {
     const zh = {
       invalidInput: "提交内容无效",
-      mailcowFailed: "邮箱状态更新失败",
       userNotFound: "未找到用户"
     };
     const en = {
       invalidInput: "Invalid input",
-      mailcowFailed: "Failed to update mailbox status",
       userNotFound: "User not found"
     };
     const dict = lang === "zh" ? zh : en;
@@ -94,28 +92,6 @@ export async function PATCH(request: NextRequest) {
   }
 
   if (typeof parsed.data.suspend === "boolean") {
-    const { data: eduAccount, error: eduError } = await supabase
-      .from("edu_accounts")
-      .select("edu_email")
-      .eq("user_id", parsed.data.user_id)
-      .maybeSingle();
-    if (eduError || !eduAccount?.edu_email) {
-      return errorResponse(
-        "edu_not_found",
-        message("userNotFound"),
-        eduError?.message ?? null,
-        404
-      );
-    }
-    const mailcowResult = await setMailboxActive(eduAccount.edu_email, !parsed.data.suspend);
-    if (!mailcowResult.ok) {
-      return errorResponse(
-        "mailcow_failed",
-        message("mailcowFailed"),
-        mailcowResult.detail ?? mailcowResult.error,
-        502
-      );
-    }
     const { error } = await supabase
       .from("profiles")
       .update({ is_suspended: parsed.data.suspend, suspended_reason: parsed.data.reason ?? null })

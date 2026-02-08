@@ -1,5 +1,5 @@
 import { getDictionary } from "@/i18n";
-import { getLangFromRequest } from "@/lib/i18n";
+import { getLangFromRequest } from "@/lib/i18n/server";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ForgotForm } from "@/components/forgot-form";
 
