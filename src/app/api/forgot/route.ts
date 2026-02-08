@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
   const { APP_BASE_URL } = getAppBaseUrl();
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id")
+    .select("user_id")
     .eq("personal_email", personal_email)
     .maybeSingle();
   if (!profile) {

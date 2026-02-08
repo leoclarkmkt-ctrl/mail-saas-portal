@@ -1,5 +1,5 @@
 import { getDictionary } from "@/i18n";
-import { getLangFromRequest } from "@/lib/i18n";
+import { getLangFromRequest } from "@/lib/i18n/server";
 import { AdminNav } from "@/components/admin-nav";
 import { AdminSummary } from "@/components/admin-summary";
 

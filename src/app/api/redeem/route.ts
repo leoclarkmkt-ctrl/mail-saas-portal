@@ -3,7 +3,6 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSessionEnv, getSupabaseServiceEnv } from "@/lib/env";
 import { jsonError, jsonFieldError, jsonSuccess } from "@/lib/utils/api";
 import { createUserSession } from "@/lib/auth/user-session";
-import { createMailbox } from "@/lib/mailcow";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { isBlockedPersonalEmail } from "@/lib/validation/email-domain";
 import { safeTrim, safeTrimLower } from "@/lib/safe-trim";
@@ -52,7 +51,6 @@ export async function POST(request: NextRequest) {
       invalidInput: "提交内容无效",
       schemaMissing: "数据库结构缺失",
       redeemFailed: "兑换失败",
-      mailcowFailed: "邮箱创建失败，请稍后重试。",
       internalError: "服务器内部错误",
       alreadyHasEducationAccount: "您已拥有教育邮箱，请登录学生中心控制台查看！",
       personalEmailDomainBlocked: "个人邮箱不能使用 @nsuk.edu.kg，请填写你的常用个人邮箱（如 Gmail/Outlook 等）。"
@@ -62,7 +60,6 @@ export async function POST(request: NextRequest) {
       invalidInput: "Invalid input",
       schemaMissing: "Database schema missing",
       redeemFailed: "Redeem failed",
-      mailcowFailed: "Mailbox creation failed. Please try again.",
       internalError: "Internal error",
       alreadyHasEducationAccount:
         "You already have an education account. Please log in to your student console!",
@@ -295,14 +292,14 @@ export async function POST(request: NextRequest) {
         rollbackError = rollbackError ? `${rollbackError}; ${scope}: ${detail}` : `${scope}: ${detail}`;
       };
 
-      const deleteByUserId = async (table: string) => {
-        const { error } = await supabase.from(table).delete().eq("user_id", createdUserId);
+      const deleteByUserId = async (table: string, column = "id") => {
+        const { error } = await supabase.from(table).delete().eq(column, createdUserId);
         if (error) appendRollbackError(`delete ${table}`, error.message);
       };
 
-      await deleteByUserId("user_mailboxes");
+      await deleteByUserId("user_mailboxes", "owner_user_id");
       await deleteByUserId("edu_accounts");
-      await deleteByUserId("profiles");
+      await deleteByUserId("profiles", "user_id");
 
       // Guard: only reset the activation code if it was used by THIS created user.
       const { error: codeRollbackError } = await supabase
@@ -363,7 +360,7 @@ export async function POST(request: NextRequest) {
 
     // 4) Upsert initial profile
     const upsert = await supabase.from("profiles").upsert(
-      { id: authUserId, user_id: authUserId, personal_email: normalizedPersonalEmail, is_suspended: false },
+      { user_id: authUserId, personal_email: normalizedPersonalEmail, is_suspended: false },
       { onConflict: "user_id" }
     );
 
@@ -425,19 +422,9 @@ export async function POST(request: NextRequest) {
 
     const result = data[0];
 
-    // 6) Create mailbox on Mailcow; on failure rollback everything.
-    const mailcowResult = await createMailbox(result.edu_email, password);
-    if (!mailcowResult.ok) {
-      const rollbackError = await rollbackCreatedUserData(authUserId);
-      return jsonError(message("mailcowFailed"), 502, {
-        detail: mailcowResult.detail ?? mailcowResult.error,
-        rollback_error: rollbackError ?? undefined
-      });
-    }
-
-    // 7) Final profile upsert (redundant but keeps original behavior)
+    // 6) Final profile upsert (redundant but keeps original behavior)
     const finalUpsert = await supabase.from("profiles").upsert(
-      { id: authUserId, user_id: authUserId, personal_email: normalizedPersonalEmail },
+      { user_id: authUserId, personal_email: normalizedPersonalEmail },
       { onConflict: "user_id" }
     );
 
@@ -465,7 +452,7 @@ export async function POST(request: NextRequest) {
       return jsonError(errorMessage, 400, { rollback_error: rollbackError ?? undefined });
     }
 
-    // 8) Session + success
+    // 7) Session + success
     await createUserSession({ userId: result.user_id, mode: "personal" });
 
     return jsonSuccess({

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getDictionary } from "@/i18n";
-import { getLangFromRequest, withLang } from "@/lib/i18n";
+import { getLangFromRequest } from "@/lib/i18n/server";
+import { withLang } from "@/lib/i18n/shared";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { LoginForm } from "@/components/login-form";
 

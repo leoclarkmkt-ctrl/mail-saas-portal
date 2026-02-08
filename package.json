@@ -9,7 +9,8 @@
   "packageManager": "pnpm@10.13.1",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run guard:profiles && next build",
+    "guard:profiles": "node scripts/guard-profiles-id.mjs",
     "start": "next start",
     "lint": "next lint",
     "lint:assets": "node scripts/check-no-binary-assets.mjs",

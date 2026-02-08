@@ -33,6 +33,26 @@ create table if not exists edu_accounts (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists user_mailboxes (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid unique references auth.users(id) on delete cascade,
+  edu_email text unique not null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists email_messages (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null,
+  edu_email text not null,
+  subject text,
+  mail_from text,
+  received_at timestamptz not null,
+  text_plain text,
+  html_body text,
+  raw_rfc822 text,
+  created_at timestamptz not null default now()
+);
+
 -- password_reset_tokens removed (Supabase Auth handles recovery)
 
 create table if not exists audit_logs (
@@ -48,6 +68,9 @@ create table if not exists audit_logs (
 create index if not exists idx_profiles_email on profiles (personal_email);
 create index if not exists idx_edu_email on edu_accounts (edu_email);
 create index if not exists idx_edu_username on edu_accounts (edu_username);
+create index if not exists idx_mailboxes_owner on user_mailboxes (owner_user_id);
+create index if not exists idx_email_messages_owner on email_messages (owner_user_id);
+create index if not exists idx_email_messages_received on email_messages (received_at desc);
 create index if not exists idx_audit_action on audit_logs (action);
 create index if not exists idx_audit_user on audit_logs (user_id);
 
@@ -94,6 +117,10 @@ begin
   insert into edu_accounts (user_id, edu_email, edu_username, expires_at, status)
   values (v_user.id, v_edu_email, v_username, v_expires, 'active')
   returning * into v_edu;
+
+  insert into user_mailboxes (owner_user_id, edu_email)
+  values (v_user.id, v_edu_email)
+  on conflict (owner_user_id) do update set edu_email = excluded.edu_email;
 
   update activation_codes
   set status = 'used', used_at = v_now, used_by_user_id = v_user.id

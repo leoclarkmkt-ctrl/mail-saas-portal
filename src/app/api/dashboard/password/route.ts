@@ -4,7 +4,6 @@ import { createServerSupabaseAnonClient, createServerSupabaseClient } from "@/li
 import { getSessionEnv } from "@/lib/env";
 import { clearUserSession, getUserSession } from "@/lib/auth/user-session";
 import { jsonSuccess } from "@/lib/utils/api";
-import { updateMailboxPassword } from "@/lib/mailcow";
 
 export const runtime = "nodejs";
 
@@ -19,7 +18,6 @@ export async function POST(request: NextRequest) {
       invalidPassword: "原密码不正确",
       suspended: "账号已冻结",
       updateFailed: "更新失败",
-      mailcowFailed: "邮箱密码更新失败",
       internalError: "服务器内部错误"
     };
     const en = {
@@ -29,7 +27,6 @@ export async function POST(request: NextRequest) {
       invalidPassword: "Invalid password",
       suspended: "Account suspended",
       updateFailed: "Update failed",
-      mailcowFailed: "Failed to update mailbox password",
       internalError: "Internal error"
     };
     const dict = lang === "zh" ? zh : en;
@@ -52,7 +49,7 @@ export async function POST(request: NextRequest) {
   const authClient = createServerSupabaseAnonClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("personal_email, is_suspended")
+    .select("personal_email, is_suspended, user_id")
     .eq("user_id", session.userId)
     .single();
   if (error || !data) {
@@ -61,14 +58,6 @@ export async function POST(request: NextRequest) {
   if (data.is_suspended) {
     clearUserSession();
     return errorResponse("account_suspended", message("suspended"), null, 403);
-  }
-  const { data: eduAccount, error: eduError } = await supabase
-    .from("edu_accounts")
-    .select("edu_email")
-    .eq("user_id", session.userId)
-    .maybeSingle();
-  if (eduError || !eduAccount?.edu_email) {
-    return errorResponse("edu_not_found", message("userNotFound"), eduError?.message ?? null, 404);
   }
   const signIn = await authClient.auth.signInWithPassword({
     email: data.personal_email,
@@ -86,18 +75,6 @@ export async function POST(request: NextRequest) {
       message("updateFailed"),
       update.error.message,
       400
-    );
-  }
-  const mailcowResult = await updateMailboxPassword(
-    eduAccount.edu_email,
-    parsed.data.new_password
-  );
-  if (!mailcowResult.ok) {
-    return errorResponse(
-      "mailcow_failed",
-      message("mailcowFailed"),
-      mailcowResult.detail ?? mailcowResult.error,
-      502
     );
   }
   await supabase.from("audit_logs").insert({
