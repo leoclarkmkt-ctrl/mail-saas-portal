@@ -289,16 +289,18 @@ export async function POST(request: NextRequest) {
 
       const appendRollbackError = (scope: string, err: unknown) => {
         const detail = safeString(err);
-        rollbackError = rollbackError ? `${rollbackError}; ${scope}: ${detail}` : `${scope}: ${detail}`;
+        rollbackError = rollbackError
+          ? `${rollbackError}; ${scope}: ${detail}`
+          : `${scope}: ${detail}`;
       };
 
-      const deleteByUserId = async (table: string, column = "id") => {
+      const deleteByUserId = async (table: string, column = "user_id") => {
         const { error } = await supabase.from(table).delete().eq(column, createdUserId);
         if (error) appendRollbackError(`delete ${table}`, error.message);
       };
 
       await deleteByUserId("user_mailboxes", "owner_user_id");
-      await deleteByUserId("edu_accounts");
+      await deleteByUserId("edu_accounts", "user_id");
       await deleteByUserId("profiles", "user_id");
 
       // Guard: only reset the activation code if it was used by THIS created user.
@@ -358,7 +360,7 @@ export async function POST(request: NextRequest) {
 
     const authUserId = created.data.user.id;
 
-    // 4) Upsert initial profile
+    // 4) Upsert initial profile (schema: profiles PK is user_id)
     const upsert = await supabase.from("profiles").upsert(
       { user_id: authUserId, personal_email: normalizedPersonalEmail, is_suspended: false },
       { onConflict: "user_id" }
@@ -422,7 +424,7 @@ export async function POST(request: NextRequest) {
 
     const result = data[0];
 
-    // 6) Final profile upsert (redundant but keeps original behavior)
+    // 6) Final profile upsert (keeps original behavior)
     const finalUpsert = await supabase.from("profiles").upsert(
       { user_id: authUserId, personal_email: normalizedPersonalEmail },
       { onConflict: "user_id" }

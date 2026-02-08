@@ -14,11 +14,11 @@ export async function GET(request: NextRequest) {
   const supabase = createServerSupabaseClient();
   const userMatches = await supabase
     .from("profiles")
-    .select("user_id")
+    .select("id")
     .ilike("personal_email", `%${query}%`)
     .limit(100);
 
-  const userIds = userMatches.data?.map((row) => row.user_id) ?? [];
+  const userIds = userMatches.data?.map((row) => row.id) ?? [];
 
   let eduQuery = supabase
     .from("edu_accounts")
@@ -36,11 +36,11 @@ export async function GET(request: NextRequest) {
   const eduUserIds = eduRows.map((row) => row.user_id).filter(Boolean);
   const { data: profiles, error: profileError } = await supabase
     .from("profiles")
-    .select("user_id, personal_email, is_suspended")
-    .in("user_id", eduUserIds);
+    .select("id, personal_email, is_suspended")
+    .in("id", eduUserIds);
   if (profileError) return jsonError(profileError.message, 400);
   const profileMap = new Map(
-    (profiles ?? []).map((profile) => [profile.user_id, profile])
+    (profiles ?? []).map((profile) => [profile.id, profile])
   );
   const rows = eduRows.map((row) => {
     const profile = profileMap.get(row.user_id);
@@ -95,7 +95,7 @@ export async function PATCH(request: NextRequest) {
     const { error } = await supabase
       .from("profiles")
       .update({ is_suspended: parsed.data.suspend, suspended_reason: parsed.data.reason ?? null })
-      .eq("user_id", parsed.data.user_id);
+      .eq("id", parsed.data.user_id);
     if (error) return jsonError(error.message, 400);
     await supabase.from("audit_logs").insert({ action: parsed.data.suspend ? "admin_suspend_user" : "admin_unsuspend_user", user_id: parsed.data.user_id });
     return jsonSuccess({ ok: true });
