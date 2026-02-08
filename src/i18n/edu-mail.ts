@@ -37,6 +37,8 @@ type EduMailDict = {
     refreshing: string;
     logout: string;
     loggingOut: string;
+    expiresLabel: string;
+    goDashboard: string;
     emptyTitle: string;
     emptyBody: string;
     from: string;
@@ -95,8 +97,10 @@ const en: EduMailDict = {
     title: "My Inbox",
     refresh: "Refresh Mail",
     refreshing: "Refreshing...",
-    logout: "Logout",
+    logout: "Sign out",
     loggingOut: "Signing Out...",
+    expiresLabel: "Expires",
+    goDashboard: "Go to Student Console",
     emptyTitle: "No messages yet",
     emptyBody: "Please click refresh to load your latest email messages.",
     from: "From",
@@ -154,8 +158,10 @@ const zh: EduMailDict = {
     title: "我的收件箱",
     refresh: "刷新邮件",
     refreshing: "刷新中...",
-    logout: "登出",
+    logout: "退出登录",
     loggingOut: "退出中...",
+    expiresLabel: "到期时间",
+    goDashboard: "前往学生中心控制台",
     emptyTitle: "暂无邮件",
     emptyBody: "请点击刷新按钮加载您的最新邮件。",
     from: "发件人",
