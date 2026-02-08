@@ -23,7 +23,8 @@ export const zh = {
     personal_email_required: "个人邮箱不能为空，请输入个人邮箱！",
     personal_email_invalid: "邮箱格式不正确",
     personal_email_disallowed_domain: "@nsuk.edu.kg邮箱不允许作为个人邮箱使用，请使用个人邮箱！",
-    personal_email_exists: "该邮箱已被注册，请使用个人邮箱！如需找回，请登录学生中心控制台进行找回！",
+    personal_email_exists:
+      "该邮箱已被注册，请使用个人邮箱！如需找回，请登录学生中心控制台进行找回！",
     edu_username_required: "用户名不能为空，请输入3-32字符支持字母/数字/点/下划线/连字符！",
     edu_username_invalid: "3-32字符且仅允许字母/数字/点/下划线/连字符",
     edu_username_exists: "该用户名已被占用，请重新输入！",
@@ -86,7 +87,7 @@ export const zh = {
     description: "仅支持个人邮箱找回密码。",
     email: "个人邮箱",
     submit: "发送重置链接",
-    cooldownSent: "已发送（{{seconds}}s）",
+    cooldownSent: "已发送（{{seconds}}秒）",
     notice: "若邮箱存在，将发送重置链接。"
   },
   reset: {
@@ -243,3 +244,4 @@ export const zh = {
     platforms: ["LinkedIn", "X", "YouTube", "ResearchGate"]
   }
 };
+

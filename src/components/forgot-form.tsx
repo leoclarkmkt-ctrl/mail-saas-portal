@@ -114,6 +114,10 @@ export function ForgotForm({
     }
   };
 
+  const cooldownLabel =
+    labels.cooldownSent?.replace("{{seconds}}", String(cooldown)) ??
+    `${labels.submit} (${cooldown}s)`;
+
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
       <div>
@@ -132,10 +136,7 @@ export function ForgotForm({
       </div>
 
       <Button type="submit" disabled={cooldown > 0}>
-        {cooldown > 0
-          ? labels.cooldownSent?.replace("{{seconds}}", String(cooldown)) ??
-            `${labels.submit} (${cooldown}s)`
-          : labels.submit}
+        {cooldown > 0 ? cooldownLabel : labels.submit}
       </Button>
 
       {message && (
