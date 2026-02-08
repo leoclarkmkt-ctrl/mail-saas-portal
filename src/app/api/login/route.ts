@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("personal_email, is_suspended")
-    .match({ id: data.user_id })
+    .eq("user_id", data.user_id)
     .single();
   if (profileError || !profile) {
     return jsonFieldError("email", "login_edu_email_not_found", 404);
