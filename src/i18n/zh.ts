@@ -85,6 +85,7 @@ export const zh = {
     description: "仅支持个人邮箱找回密码。",
     email: "个人邮箱",
     submit: "发送重置链接",
+    cooldownSent: "已发送（{{seconds}}秒）",
     notice: "若邮箱存在，将发送重置链接。"
   },
   reset: {

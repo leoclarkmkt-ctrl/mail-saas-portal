@@ -90,6 +90,7 @@ export const en = {
     description: "Only personal email can be used to recover password.",
     email: "Personal Email",
     submit: "Send Reset Link",
+    cooldownSent: "Sent ({{seconds}}s)",
     notice: "If the email exists, a reset link will be sent."
   },
   reset: {
