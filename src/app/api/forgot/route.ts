@@ -14,49 +14,56 @@ export async function POST(request: NextRequest) {
   /**
    * Error keys:
    * - forgot_email_required
-   * - forgot_email_not_found
+   *
+   * ⚠️ 注意：
+   * - 无论邮箱是否存在，合法请求一律返回 200 { ok: true }
+   * - 防止邮箱枚举
    */
+
   const rateLimitResponse = await enforceRateLimit(request, "forgot", {
     requests: 3,
     windowSeconds: 60
   });
   if (rateLimitResponse) return rateLimitResponse;
+
   let body: Record<string, unknown> = {};
   try {
     body = (await request.json()) as Record<string, unknown>;
   } catch {
     return jsonFieldError("personal_email", "forgot_email_required", 400);
   }
+
   const personal_email = safeTrimLower(body.personal_email);
   if (!personal_email) {
     return jsonFieldError("personal_email", "forgot_email_required", 400);
   }
 
+  // 使用 service-role 绕过 RLS，仅用于查询 profile 是否存在
   const supabase = createServerSupabaseClient();
+  // anon client 仅用于发送 reset 邮件
   const authClient = createServerSupabaseAnonClient();
   const { APP_BASE_URL } = getAppBaseUrl();
+
   const { data: profile } = await supabase
     .from("profiles")
     .select("user_id")
     .eq("personal_email", personal_email)
     .maybeSingle();
+
   if (profile) {
     const { error } = await authClient.auth.resetPasswordForEmail(personal_email, {
       redirectTo: `${APP_BASE_URL}/reset`
     });
 
     if (error) {
-      console.error("[forgot] resetPasswordForEmail_failed", error);
-      const message = error.message ?? "";
-      const isRedirectError = /redirect|url|not allowed/i.test(message);
-      if (isRedirectError) {
-        return jsonSuccess({
-          ok: true,
-          hint: "Supabase Auth URL 配置未允许该回跳地址。请在 Supabase → Authentication → URL Configuration 添加 Redirect URL: APP_BASE_URL/reset (e.g. https://portal.nsuk.edu.kg/reset)."
-        });
-      }
+      // ❗只记录日志，不向客户端暴露任何内部信息
+      console.error("[forgot] resetPasswordForEmail_failed", {
+        email: personal_email,
+        message: error.message
+      });
     }
   }
 
+  // 统一成功响应（无论邮箱是否存在 / 是否真正发送）
   return jsonSuccess({ ok: true });
 }

@@ -11,9 +11,8 @@ type ForgotValues = {
   personal_email: string;
 };
 
-type ForgotErrorResponse = {
+type ForgotResponse = {
   ok?: boolean;
-  error?: { field?: string; key?: string; message?: string } | string;
 };
 
 export function ForgotForm({
@@ -27,15 +26,18 @@ export function ForgotForm({
 }) {
   const [message, setMessage] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
+
   const emailId = useId();
   const messageId = useId();
   const cooldownKey = `forgot_cooldown_until_${lang}`;
 
+  /* ---------- 初始化冷却时间（localStorage 持久） ---------- */
   useEffect(() => {
     if (typeof window === "undefined") return;
     const raw = window.localStorage.getItem(cooldownKey);
     const until = raw ? Number(raw) : 0;
     if (!until || Number.isNaN(until)) return;
+
     const remaining = Math.max(0, Math.ceil((until - Date.now()) / 1000));
     if (remaining > 0) {
       setCooldown(remaining);
@@ -44,6 +46,7 @@ export function ForgotForm({
     }
   }, [cooldownKey]);
 
+  /* ---------- 倒计时逻辑 ---------- */
   useEffect(() => {
     if (cooldown <= 0) return;
     const timer = window.setInterval(() => {
@@ -59,9 +62,10 @@ export function ForgotForm({
   }, [cooldown, cooldownKey]);
 
   const form = useForm<ForgotValues>({
-    defaultValues: { personal_email: "" },
+    defaultValues: { personal_email: "" }
   });
 
+  /* ---------- 提交逻辑 ---------- */
   const onSubmit = async (values: ForgotValues) => {
     setMessage(null);
     form.clearErrors();
@@ -78,18 +82,13 @@ export function ForgotForm({
       const res = await fetch("/api/forgot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify(values)
       });
 
-      const { data } = await readJsonResponse<ForgotErrorResponse>(res);
+      // API 统一返回 200 + { ok: true }
+      const { data } = await readJsonResponse<ForgotResponse>(res);
 
-      if (!res.ok) {
-        const errorObj = typeof data?.error === "object" ? data?.error : undefined;
-        if (errorObj?.field && errorObj?.key) {
-          const msg = errors[errorObj.key] ?? errors.unknown ?? "Request failed";
-          form.setError("personal_email", { type: "server", message: msg });
-          return;
-        }
+      if (!res.ok || !data?.ok) {
         form.setError("personal_email", {
           type: "server",
           message: errors.unknown ?? "Request failed"
@@ -97,19 +96,14 @@ export function ForgotForm({
         return;
       }
 
-      if (!data?.ok) {
-        form.setError("personal_email", {
-          type: "server",
-          message: errors.unknown ?? "Request failed"
-        });
-        return;
-      }
-
+      // 设置 60 秒冷却
       const until = Date.now() + 60_000;
       if (typeof window !== "undefined") {
         window.localStorage.setItem(cooldownKey, String(until));
       }
       setCooldown(60);
+
+      // 统一成功提示（不区分邮箱是否存在）
       setMessage(labels.notice);
     } catch (error) {
       console.error("[forgot] request_failed", error);
