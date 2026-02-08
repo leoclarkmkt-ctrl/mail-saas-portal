@@ -106,8 +106,7 @@ export const en = {
     eduEmail: "Education Email",
     expiresAt: "Expires At",
     webmail: "Open Education Email",
-    copyInfo: "Copy Login Info",
-    copyWebmail: "Copy Education Email Info",
+    returnHome: "Return Home",
     changePassword: "Change Password",
     oldPassword: "Current Password",
     newPassword: "New Password",
@@ -116,8 +115,22 @@ export const en = {
     renew: "Renew with Activation Code",
     renewHint: "Enter a new activation code to extend by 1 year.",
     renewSubmit: "Renew",
+    renewSuccess: "Renewal successful! Your expiration date has been updated.",
     expiredNotice: "Your mailbox has expired and is temporarily disabled. Renew to restore access.",
     renewEnableFailed: "Renewed successfully, but mailbox re-enable failed. Please retry later.",
+    errorFallback: "Operation failed. Please try again later.",
+    errorMessages: {
+      unauthorized: "Your session has expired. Please sign in again and try once more.",
+      invalid_input: "Some fields are missing or invalid. Please check and submit again.",
+      user_not_found: "We couldn’t find your account data. Please sign in again or contact support.",
+      profile_not_found: "We couldn’t load your profile. Please sign in again and try again.",
+      invalid_password: "Incorrect current password. Please try again.",
+      account_suspended: "Your account is suspended. Please contact support for help.",
+      update_failed: "Update failed. Please try again later.",
+      renew_failed: "Renewal failed. Please verify the activation code or try again later.",
+      internal_error: "Something went wrong on our side. Please try again later.",
+      unknown: "Operation failed. Please try again later."
+    },
     logout: "Sign Out"
   },
   admin: {

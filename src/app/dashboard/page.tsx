@@ -54,22 +54,23 @@ export default async function DashboardPage({ searchParams }: { searchParams?: R
           status: dict.dashboard.status,
           expiresAt: dict.dashboard.expiresAt,
           webmail: dict.dashboard.webmail,
-          copyInfo: dict.dashboard.copyInfo,
+          returnHome: dict.dashboard.returnHome,
           changePassword: dict.dashboard.changePassword,
           oldPassword: dict.dashboard.oldPassword,
           newPassword: dict.dashboard.newPassword,
           submit: dict.common.submit,
           renew: dict.dashboard.renew,
           renewSubmit: dict.dashboard.renewSubmit,
+          renewSuccess: dict.dashboard.renewSuccess,
           activationCode: dict.redeem.activationCode,
-          copied: dict.common.copied,
           suspended: dict.dashboard.suspended,
-          copyWebmail: dict.dashboard.copyWebmail,
           passwordHint: dict.dashboard.passwordHint,
           passwordUpdated: dict.dashboard.passwordUpdated,
           renewHint: dict.dashboard.renewHint,
           expiredNotice: dict.dashboard.expiredNotice,
-          renewEnableFailed: dict.dashboard.renewEnableFailed
+          renewEnableFailed: dict.dashboard.renewEnableFailed,
+          errorFallback: dict.dashboard.errorFallback,
+          errorMessages: dict.dashboard.errorMessages
         }}
       />
     </div>

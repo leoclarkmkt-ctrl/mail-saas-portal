@@ -102,8 +102,7 @@ export const zh = {
     eduEmail: "教育邮箱",
     expiresAt: "到期时间",
     webmail: "登录教育邮箱",
-    copyInfo: "复制登录信息",
-    copyWebmail: "复制教育邮箱信息",
+    returnHome: "返回首页",
     changePassword: "修改密码",
     oldPassword: "旧密码",
     newPassword: "新密码",
@@ -112,8 +111,22 @@ export const zh = {
     renew: "输入激活码续费",
     renewHint: "输入新的激活码可续费 1 年。",
     renewSubmit: "续费",
+    renewSuccess: "续费成功！到期时间已更新。",
     expiredNotice: "邮箱已到期并被临时停用，请续费后恢复使用。",
     renewEnableFailed: "续费成功，但邮箱启用失败，请稍后重试。",
+    errorFallback: "操作未成功，请稍后重试。",
+    errorMessages: {
+      unauthorized: "登录状态已失效，请重新登录后再试。",
+      invalid_input: "提交内容不完整或格式不正确，请检查后再提交。",
+      user_not_found: "未找到您的账号信息，请重新登录或联系管理员。",
+      profile_not_found: "未找到您的用户资料，请重新登录后再试。",
+      invalid_password: "原密码不正确，请重新输入。",
+      account_suspended: "您的账号已被冻结，暂无法操作。如有疑问请联系管理员。",
+      update_failed: "修改失败，请稍后重试。",
+      renew_failed: "续费失败，请检查激活码是否正确，或稍后重试。",
+      internal_error: "系统繁忙，请稍后再试。",
+      unknown: "操作未成功，请稍后重试。"
+    },
     logout: "退出登录"
   },
   admin: {
