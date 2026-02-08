@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { changePasswordSchema } from "@/lib/validation/schemas";
-import { createServerSupabaseAnonClient, createServerSupabaseClient } from "@/lib/supabase/server";
+import {
+  createServerSupabaseAnonClient,
+  createServerSupabaseClient
+} from "@/lib/supabase/server";
 import { getSessionEnv } from "@/lib/env";
 import { clearUserSession, getUserSession } from "@/lib/auth/user-session";
 import { jsonSuccess } from "@/lib/utils/api";
@@ -8,7 +11,9 @@ import { jsonSuccess } from "@/lib/utils/api";
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  // Ensure required envs (SESSION_SECRET etc.)
   getSessionEnv();
+
   const lang = request.nextUrl.searchParams.get("lang") === "zh" ? "zh" : "en";
   const message = (key: string) => {
     const zh = {
@@ -32,13 +37,22 @@ export async function POST(request: NextRequest) {
     const dict = lang === "zh" ? zh : en;
     return dict[key as keyof typeof dict] ?? dict.internalError;
   };
-  const errorResponse = (code: string, msg: string, detail: unknown, status: number) =>
+
+  const errorResponse = (
+    code: string,
+    msg: string,
+    detail: unknown,
+    status: number
+  ) =>
     NextResponse.json({ code, message: msg, detail }, { status });
 
+  // Must be logged in
   const session = await getUserSession();
   if (!session) {
     return errorResponse("unauthorized", message("unauthorized"), null, 401);
   }
+
+  // Validate input
   const body = await request.json();
   const parsed = changePasswordSchema.safeParse(body);
   if (!parsed.success) {
@@ -47,28 +61,48 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServerSupabaseClient();
   const authClient = createServerSupabaseAnonClient();
-  const { data, error } = await supabase
+
+  // 🔒 Correct schema alignment: profiles.user_id = auth.users.id
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("personal_email, is_suspended")
-    .eq("id", session.userId)
+    .eq("user_id", session.userId)
     .single();
-  if (error || !data) {
-    return errorResponse("user_not_found", message("userNotFound"), error?.message ?? null, 404);
+
+  if (profileError || !profile) {
+    return errorResponse(
+      "user_not_found",
+      message("userNotFound"),
+      profileError?.message ?? null,
+      404
+    );
   }
-  if (data.is_suspended) {
+
+  if (profile.is_suspended) {
     clearUserSession();
     return errorResponse("account_suspended", message("suspended"), null, 403);
   }
+
+  // Verify old password via personal email
   const signIn = await authClient.auth.signInWithPassword({
-    email: data.personal_email,
+    email: profile.personal_email,
     password: parsed.data.old_password
   });
+
   if (signIn.error) {
-    return errorResponse("invalid_password", message("invalidPassword"), signIn.error.message, 403);
+    return errorResponse(
+      "invalid_password",
+      message("invalidPassword"),
+      signIn.error.message,
+      403
+    );
   }
+
+  // Update password (admin API)
   const update = await supabase.auth.admin.updateUserById(session.userId, {
     password: parsed.data.new_password
   });
+
   if (update.error) {
     return errorResponse(
       "auth_update_failed",
@@ -77,9 +111,12 @@ export async function POST(request: NextRequest) {
       400
     );
   }
+
+  // Audit log
   await supabase.from("audit_logs").insert({
     user_id: session.userId,
     action: "user_password_change"
   });
+
   return jsonSuccess({ ok: true });
 }

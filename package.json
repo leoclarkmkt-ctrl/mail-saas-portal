@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "check:profiles": "rg -n \"from\\(\\\"profiles\\\"\\).*select\\(\\\"id\" src && exit 1 || rg -n \"from\\(\\\"profiles\\\"\\).*eq\\(\\\"id\\\"\" src && exit 1 || exit 0",
     "start": "next start",
     "lint": "next lint",
     "lint:assets": "node scripts/check-no-binary-assets.mjs",

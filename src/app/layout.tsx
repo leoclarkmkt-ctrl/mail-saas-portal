@@ -48,9 +48,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             </div>
           </header>
 
-          <main className="mx-auto w-full max-w-6xl px-6 py-10">
-            {children}
-          </main>
+          <main className="mx-auto w-full max-w-6xl px-6 py-10">{children}</main>
 
           <SiteFooter />
         </div>

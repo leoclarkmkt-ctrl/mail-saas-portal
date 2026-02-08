@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
     const profile = profileMap.get(row.user_id);
     return {
       id: row.user_id ?? null,
+      user_id: row.user_id ?? null,
       personal_email: profile?.personal_email ?? null,
       is_suspended: profile?.is_suspended ?? false,
       edu_email: row.edu_email,

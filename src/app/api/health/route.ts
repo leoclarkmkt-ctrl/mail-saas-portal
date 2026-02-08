@@ -79,7 +79,7 @@ export async function GET() {
   const schemaMissingRegex = /relation .* does not exist|schema cache|permission denied/i;
 
   try {
-    const profilesQuery = await supabase.from("profiles").select("id").limit(1);
+    const profilesQuery = await supabase.from("profiles").select("user_id").limit(1);
     const codesQuery = await supabase.from("activation_codes").select("code").limit(1);
 
     if (profilesQuery.error || codesQuery.error) {
