@@ -102,7 +102,6 @@ export const zh = {
     eduEmail: "教育邮箱",
     expiresAt: "到期时间",
     webmail: "登录教育邮箱",
-    returnHome: "返回首页",
     changePassword: "修改密码",
     oldPassword: "旧密码",
     newPassword: "新密码",

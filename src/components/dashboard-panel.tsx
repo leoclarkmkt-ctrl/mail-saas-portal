@@ -21,7 +21,7 @@ type DashboardLabels = {
   status: string;
   expiresAt: string;
   webmail: string;
-  returnHome: string;
+  logout: string;
   changePassword: string;
   passwordHint: string;
   oldPassword: string;
@@ -48,6 +48,7 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
   const [newPassword, setNewPassword] = useState("");
   const [isChanging, setIsChanging] = useState(false);
   const [isRenewing, setIsRenewing] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const oldPasswordId = useId();
   const newPasswordId = useId();
@@ -55,7 +56,7 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
   const messageId = useId();
 
   const webmailUrl = "https://portal.nsuk.edu.kg/edu-mail";
-  const returnHomeUrl = "https://www.nsuk.edu.kg/zh";
+  const homeUrl = "https://www.nsuk.edu.kg/";
 
   const parseJson = async <T,>(res: Response): Promise<T | null> => {
     try {
@@ -132,6 +133,18 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
     }
   };
 
+  const logout = async () => {
+    setMessage(null);
+    setIsLoggingOut(true);
+    try {
+      await fetch("/api/logout", { method: "POST" });
+    } finally {
+      // 无论请求是否成功，都跳转官网
+      window.location.href = homeUrl;
+      setIsLoggingOut(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -160,7 +173,9 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
         {/* action bar */}
         <div className="mt-4 flex flex-wrap gap-3">
           <Button onClick={() => window.open(webmailUrl, "_blank")}>{labels.webmail}</Button>
-          <Button onClick={() => (window.location.href = returnHomeUrl)}>{labels.returnHome}</Button>
+          <Button onClick={logout} disabled={isLoggingOut} aria-busy={isLoggingOut}>
+            {labels.logout}
+          </Button>
         </div>
       </div>
 
