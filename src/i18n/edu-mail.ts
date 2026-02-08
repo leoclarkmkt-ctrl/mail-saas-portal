@@ -84,8 +84,10 @@ const en: EduMailDict = {
     unknown: "Login failed. Please try again.",
     login_edu_email_required: "Email is required.",
     login_edu_password_required: "Password is required.",
-    login_edu_email_not_found: "This email does not exist. Please enter the correct email.",
-    login_edu_password_invalid: "Incorrect password. Please check your password.",
+    login_edu_email_not_found:
+      "This email does not exist. Please enter the correct email.",
+    login_edu_password_invalid:
+      "Incorrect password. Please check your password.",
     login_edu_academic_year_not_registered:
       "Academic year not registered. Please register in the Student Dashboard."
   },
@@ -95,7 +97,8 @@ const en: EduMailDict = {
     subtitle:
       "Stay connected with faculty announcements, class updates, and secure student communications from one intelligent portal.",
     cardTitle: "Need a new mailbox?",
-    cardBody: "Claim your education email and manage renewals in the student dashboard.",
+    cardBody:
+      "Claim your education email and manage renewals in the student dashboard.",
     cardCta: "Activate your edu account →"
   },
   inbox: {
@@ -143,7 +146,8 @@ const zh: EduMailDict = {
     hide: "隐藏",
     agreement: "登录即表示你同意校园邮箱使用政策。",
     loginFailed: "登录失败，请检查账号或密码。",
-    academicYearNotRegistered: "学年未注册，请进入学生中心控制台注册！"
+    academicYearNotRegistered:
+      "学年未注册，请进入学生中心控制台注册！"
   },
   errors: {
     unknown: "登录失败，请稍后再试。",
@@ -151,7 +155,8 @@ const zh: EduMailDict = {
     login_edu_password_required: "密码不能为空，请核对密码！",
     login_edu_email_not_found: "该邮箱不存在，请输入正确邮箱！",
     login_edu_password_invalid: "密码错误，请核对密码！",
-    login_edu_academic_year_not_registered: "学年未注册，请进入学生中心控制台注册！"
+    login_edu_academic_year_not_registered:
+      "学年未注册，请进入学生中心控制台注册！"
   },
   hero: {
     eyebrow: "NSUK Edu Mail",
