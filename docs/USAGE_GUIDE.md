@@ -303,6 +303,12 @@
    - 公开视图：返回 `ok`、`supabase`、`app_base_url` 等
    - 管理员视图：包含 `env` 状态详情
 
+> 你接下来要做的唯一动作  
+> 把上面这段加到：  
+> - ✅ `docs/USAGE_GUIDE.md`（推荐）  
+> 或  
+> - ✅ `README.md`
+
    证据：src/app/api/health/route.ts:9-141
 
 2. **GET/POST /api/cron/expire**
