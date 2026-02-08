@@ -16,7 +16,16 @@ export type DashboardData = {
   expired: boolean;
 };
 
-export function DashboardPanel({ data, labels }: { data: DashboardData; labels: Record<string, string> }) {
+const WEBMAIL_URL = "https://portal.nsuk.edu.kg/edu-mail";
+const HOME_URL = "https://www.nsuk.edu.kg/zh";
+
+export function DashboardPanel({
+  data,
+  labels,
+}: {
+  data: DashboardData;
+  labels: Record<string, string> & { errorMessages: Record<string, string> };
+}) {
   const [message, setMessage] = useState<string | null>(null);
   const [renewEnabled, setRenewEnabled] = useState<boolean | null>(null);
   const [renewCode, setRenewCode] = useState("");
@@ -29,21 +38,13 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
   const renewCodeId = useId();
   const messageId = useId();
 
-  const copyInfo = async () => {
-    const text = `${labels.eduEmail}: ${data.eduEmail}\n${labels.webmail}: https://mail.nsuk.edu.kg/`;
-    await navigator.clipboard.writeText(text);
-    setMessage(labels.copied);
-  };
-
   const copyEdu = async () => {
     await navigator.clipboard.writeText(data.eduEmail);
     setMessage(labels.copied);
   };
 
-  const copyWebmail = async () => {
-    await navigator.clipboard.writeText("https://mail.nsuk.edu.kg/");
-    setMessage(labels.copied);
-  };
+  const resolveErrorMessage = (key?: string) =>
+    labels.errorMessages[key ?? ""] ?? labels.errorMessages.unknown ?? labels.errorFallback;
 
   const renew = async () => {
     setMessage(null);
@@ -54,9 +55,9 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ activation_code: renewCode })
       });
-      const { data: payload, text } = await readJsonResponse<{ error?: string; enabled?: boolean; message?: string }>(res);
+      const { data: payload } = await readJsonResponse<{ error?: { key?: string }; enabled?: boolean; message?: string }>(res);
       if (!res.ok) {
-        setMessage(payload?.error ?? text ?? "Failed. Please check /status for configuration hints.");
+        setMessage(resolveErrorMessage(payload?.error?.key));
         return;
       }
       if (payload?.enabled === false) {
@@ -80,9 +81,9 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ old_password: oldPassword, new_password: newPassword })
       });
-      const { data: payload, text } = await readJsonResponse<{ error?: string }>(res);
+      const { data: payload } = await readJsonResponse<{ error?: { key?: string } }>(res);
       if (!res.ok) {
-        setMessage(payload?.error ?? text ?? "Failed. Please check /status for configuration hints.");
+        setMessage(resolveErrorMessage(payload?.error?.key));
         return;
       }
       setMessage(labels.passwordUpdated);
@@ -105,7 +106,7 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
             <p className="text-sm text-slate-500">{labels.eduEmail}</p>
             <div className="flex items-center gap-2">
               <p className="text-lg font-semibold">{data.eduEmail}</p>
-              <Button size="sm" variant="outline" onClick={copyEdu}>{labels.copyInfo}</Button>
+              <Button size="sm" variant="outline" onClick={copyEdu}>{labels.copyEduEmail}</Button>
             </div>
           </div>
           <div>
@@ -118,9 +119,8 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
           </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-3">
-          <Button onClick={() => window.open("https://mail.nsuk.edu.kg/", "_blank")}>{labels.webmail}</Button>
-          <Button variant="outline" onClick={copyWebmail}>{labels.copyWebmail}</Button>
-          <Button variant="outline" onClick={copyInfo}>{labels.copyInfo}</Button>
+          <Button onClick={() => window.open(WEBMAIL_URL, "_blank")}>{labels.webmail}</Button>
+          <Button variant="outline" onClick={() => { window.location.href = HOME_URL; }}>{labels.returnHome}</Button>
         </div>
       </div>
 

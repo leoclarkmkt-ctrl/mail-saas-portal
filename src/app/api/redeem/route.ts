@@ -464,7 +464,7 @@ export async function POST(request: NextRequest) {
       edu_email: result.edu_email,
       expires_at: result.expires_at,
       password,
-      webmail: "https://mail.nsuk.edu.kg/"
+      webmail: "https://portal.nsuk.edu.kg/edu-mail"
     });
   } catch (error) {
     return jsonError(message("internalError"), 500, { detail: safeString(error) });
