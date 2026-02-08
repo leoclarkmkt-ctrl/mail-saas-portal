@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getAdminSession } from "@/lib/auth/admin-session";
 import { getEnvStatus, getMailcowEnvStatus } from "@/lib/env";
-import { checkMailcowStatus } from "@/lib/mailcow";
 
 export const runtime = "nodejs";
 
@@ -53,21 +52,24 @@ export async function GET() {
   }
 
   const supabase = createServerSupabaseClient();
-  let authOk = false;
-  let dbOk = false;
   const schemaHints: string[] = [];
+  let authOk = false;
+  let authStatus: "ok" | "unavailable" | "error" = "unavailable";
+  let authHint: string | undefined;
   try {
-    const randomId = crypto.randomUUID();
-    const authResult = await supabase.auth.admin.getUserById(randomId);
+    const authResult = await supabase.auth.admin.listUsers({ page: 1, perPage: 1 });
     authOk = !authResult.error;
+    authStatus = authOk ? "ok" : "unavailable";
     if (authResult.error) {
-      schemaHints.push(safeMessage(authResult.error.message));
+      authHint = safeMessage(authResult.error.message);
     }
   } catch (error) {
     authOk = false;
-    schemaHints.push(safeMessage(error));
+    authStatus = "error";
+    authHint = safeMessage(error);
   }
 
+  let dbOk = false;
   const schemaMissingRegex = /relation .* does not exist|schema cache|permission denied/i;
   try {
     const profilesQuery = await supabase.from("profiles").select("id").limit(1);
@@ -90,26 +92,22 @@ export async function GET() {
     schemaHints.push(safeMessage(error));
   }
 
-  let mailcowOk = false;
-  let mailcowError: string | undefined;
-  if (mailcowEnv.ok) {
-    const mailcowStatus = await checkMailcowStatus();
-    mailcowOk = mailcowStatus.ok;
-    if (!mailcowStatus.ok) {
-      mailcowError = mailcowStatus.error ?? "Mailcow unavailable";
-    }
-  } else {
-    mailcowOk = false;
-    mailcowError = "Missing Mailcow environment variables";
-  }
+  const mailcowOk = mailcowEnv.ok;
+  const mailcowError = mailcowEnv.ok
+    ? "Mailcow check skipped (deprecated)"
+    : "Missing Mailcow environment variables";
 
-  const ok = envOk && dbOk && mailcowOk;
+  const strictAuth = process.env.HEALTH_AUTH_STRICT === "1";
+  const supabaseOk = strictAuth ? authOk && dbOk : dbOk;
+  const ok = envOk && supabaseOk;
   if (!isAdmin) {
     return NextResponse.json(
       {
         ok,
         supabase: {
-          ok: dbOk,
+          ok: supabaseOk,
+          authOk,
+          authStatus,
           dbOk
         },
         app_base_url: appBaseUrl,
@@ -128,11 +126,14 @@ export async function GET() {
         missing: mailcowEnv.ok ? undefined : mailcowEnv.missing
       },
       supabase: {
-        ok: dbOk,
+        ok: supabaseOk,
         url: supabaseUrl,
         authOk,
+        authStatus,
         dbOk,
-        schemaHints: schemaHints.length > 0 ? schemaHints : undefined
+        schemaHints: schemaHints.length > 0 ? schemaHints : undefined,
+        authHint: authHint ?? undefined,
+        mode: strictAuth ? "auth-strict" : "db-first"
       },
       app_base_url: appBaseUrl,
       time: new Date().toISOString()

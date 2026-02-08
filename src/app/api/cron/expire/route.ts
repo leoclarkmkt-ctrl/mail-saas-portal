@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { setMailboxActive } from "@/lib/mailcow";
 
 export const runtime = "nodejs";
 
@@ -41,15 +40,6 @@ const runExpireJob = async (request: NextRequest) => {
 
   for (const row of rows) {
     const email = row.edu_email;
-    const mailcowResult = await setMailboxActive(email, false);
-    if (!mailcowResult.ok) {
-      failures.push({
-        email,
-        reason: String(mailcowResult.detail ?? mailcowResult.error ?? "Mailcow error")
-      });
-      continue;
-    }
-
     const { error: updateError } = await supabase
       .from("edu_accounts")
       .update({ status: "expired", updated_at: new Date().toISOString() })

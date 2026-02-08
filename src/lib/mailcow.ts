@@ -24,7 +24,11 @@ const request = async (
   body?: Record<string, unknown>,
   timeoutMs = DEFAULT_TIMEOUT_MS
 ): Promise<MailcowResult> => {
-  const { MAILCOW_API_BASE_URL, MAILCOW_API_KEY } = getMailcowEnv();
+  const env = getMailcowEnv();
+  if (!env) {
+    return { ok: false, error: "Missing Mailcow environment variables" };
+  }
+  const { MAILCOW_API_BASE_URL, MAILCOW_API_KEY } = env;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
