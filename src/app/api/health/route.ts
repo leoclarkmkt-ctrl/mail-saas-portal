@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getAdminSession } from "@/lib/auth/admin-session";
 import { getEnvStatus, getMailcowEnvStatus } from "@/lib/env";
-import { checkMailcowStatus } from "@/lib/mailcow";
 
 export const runtime = "nodejs";
 
@@ -90,26 +89,20 @@ export async function GET() {
     schemaHints.push(safeMessage(error));
   }
 
-  let mailcowOk = false;
-  let mailcowError: string | undefined;
-  if (mailcowEnv.ok) {
-    const mailcowStatus = await checkMailcowStatus();
-    mailcowOk = mailcowStatus.ok;
-    if (!mailcowStatus.ok) {
-      mailcowError = mailcowStatus.error ?? "Mailcow unavailable";
-    }
-  } else {
-    mailcowOk = false;
-    mailcowError = "Missing Mailcow environment variables";
-  }
+  const mailcowOk = mailcowEnv.ok;
+  const mailcowError = mailcowEnv.ok
+    ? "Mailcow check skipped (deprecated)"
+    : "Missing Mailcow environment variables";
 
-  const ok = envOk && dbOk && mailcowOk;
+  const supabaseOk = authOk && dbOk;
+  const ok = envOk && supabaseOk;
   if (!isAdmin) {
     return NextResponse.json(
       {
         ok,
         supabase: {
-          ok: dbOk,
+          ok: supabaseOk,
+          authOk,
           dbOk
         },
         app_base_url: appBaseUrl,
@@ -128,7 +121,7 @@ export async function GET() {
         missing: mailcowEnv.ok ? undefined : mailcowEnv.missing
       },
       supabase: {
-        ok: dbOk,
+        ok: supabaseOk,
         url: supabaseUrl,
         authOk,
         dbOk,

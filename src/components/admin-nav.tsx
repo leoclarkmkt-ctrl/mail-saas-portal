@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { withLang } from "@/lib/i18n";
+import { withLang } from "@/lib/i18n/shared";
 import type { Locale } from "@/i18n";
 
 type AdminNavLabels = {

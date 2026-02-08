@@ -1,5 +1,5 @@
 import { getDictionary } from "@/i18n";
-import { getLangFromRequest } from "@/lib/i18n";
+import { getLangFromRequest } from "@/lib/i18n/server";
 import { getRedeemCopy } from "@/lib/redeem-copy";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { RedeemForm } from "@/components/redeem-form";

@@ -10,6 +10,10 @@
   --accent-neon: #00ff9f;
   --cta-orange: #ff6b35;
   --surface: #f6f8fb;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  --font-heading: "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans",
+    "Liberation Sans", sans-serif;
 }
 
 body {

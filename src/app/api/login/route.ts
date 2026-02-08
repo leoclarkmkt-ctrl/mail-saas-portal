@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
   if (mode === "personal") {
     const { data, error } = await supabase
       .from("profiles")
-      .select("user_id, is_suspended")
+      .select("id, is_suspended")
       .eq("personal_email", email)
       .single();
     if (error || !data) {
@@ -69,9 +69,9 @@ export async function POST(request: NextRequest) {
     if (signIn.error) {
       return jsonFieldError("password", "login_personal_password_invalid", 401);
     }
-    await createUserSession({ userId: data.user_id, mode: "personal" });
+    await createUserSession({ userId: data.id, mode: "personal" });
     await supabase.from("audit_logs").insert({
-      user_id: data.user_id,
+      user_id: data.id,
       action: "user_login_personal"
     });
     return jsonSuccess({ ok: true });
@@ -88,8 +88,8 @@ export async function POST(request: NextRequest) {
   }
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("user_id, personal_email, is_suspended")
-    .eq("user_id", data.user_id)
+    .select("id, personal_email, is_suspended")
+    .eq("id", data.user_id)
     .single();
   if (profileError || !profile) {
     return jsonFieldError("email", "login_edu_email_not_found", 404);

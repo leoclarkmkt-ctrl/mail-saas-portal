@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -29,16 +29,16 @@ export function AdminCodes({ labels }: { labels: AdminCodesLabels }) {
   const [status, setStatus] = useState<Status>("all");
   const [message, setMessage] = useState<string | null>(null);
 
-  const load = () => {
+  const load = useCallback(() => {
     const query = status === "all" ? "" : `?status=${status}`;
     fetch(`/api/admin/codes${query}`)
       .then((res) => res.json())
       .then((data) => setCodes(data.codes ?? []));
-  };
+  }, [status]);
 
   useEffect(() => {
     load();
-  }, [status]);
+  }, [load]);
 
   const generate = async () => {
     setMessage(null);
