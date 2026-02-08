@@ -1,5 +1,8 @@
 import { NextRequest } from "next/server";
-import { createServerSupabaseAnonClient } from "@/lib/supabase/server";
+import {
+  createServerSupabaseAnonClient,
+  createServerSupabaseClient
+} from "@/lib/supabase/server";
 import { getAppBaseUrl } from "@/lib/env";
 import { jsonFieldError, jsonSuccess } from "@/lib/utils/api";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
@@ -29,31 +32,30 @@ export async function POST(request: NextRequest) {
     return jsonFieldError("personal_email", "forgot_email_required", 400);
   }
 
-  const supabase = createServerSupabaseAnonClient();
+  const supabase = createServerSupabaseClient();
+  const authClient = createServerSupabaseAnonClient();
   const { APP_BASE_URL } = getAppBaseUrl();
   const { data: profile } = await supabase
     .from("profiles")
     .select("user_id")
     .eq("personal_email", personal_email)
     .maybeSingle();
-  if (!profile) {
-    return jsonFieldError("personal_email", "forgot_email_not_found", 404);
-  }
+  if (profile) {
+    const { error } = await authClient.auth.resetPasswordForEmail(personal_email, {
+      redirectTo: `${APP_BASE_URL}/reset`
+    });
 
-  const { error } = await supabase.auth.resetPasswordForEmail(personal_email, {
-    redirectTo: `${APP_BASE_URL}/reset`
-  });
-
-  if (error) {
-    const message = error.message ?? "";
-    const isRedirectError = /redirect|url|not allowed/i.test(message);
-    if (isRedirectError) {
-      return jsonSuccess({
-        ok: true,
-        hint: "Supabase Auth URL 配置未允许该回跳地址。请在 Supabase → Authentication → URL Configuration 添加 Redirect URL: APP_BASE_URL/reset (e.g. https://portal.nsuk.edu.kg/reset)."
-      });
+    if (error) {
+      const message = error.message ?? "";
+      const isRedirectError = /redirect|url|not allowed/i.test(message);
+      if (isRedirectError) {
+        return jsonSuccess({
+          ok: true,
+          hint: "Supabase Auth URL 配置未允许该回跳地址。请在 Supabase → Authentication → URL Configuration 添加 Redirect URL: APP_BASE_URL/reset (e.g. https://portal.nsuk.edu.kg/reset)."
+        });
+      }
+      return jsonFieldError("personal_email", "unknown", 400, message);
     }
-    return jsonFieldError("personal_email", "unknown", 400, message);
   }
 
   return jsonSuccess({ ok: true });
