@@ -10,10 +10,9 @@
 5. [页面与路由清单（App Router）](#5-页面与路由清单app-router)
 6. [API 清单与契约（前端视角）](#6-api-清单与契约前端视角)
 7. [数据库（Supabase）与表结构](#7-数据库supabase与表结构)
-8. [邮箱系统（Mailcow）集成](#8-邮箱系统mailcow集成)
-9. [运维/运营指南（非开发也能看懂）](#9-运维运营指南非开发也能看懂)
-10. [故障排查：按钮点不动/表单提交无反应](#10-故障排查按钮点不动表单提交无反应)
-11. [附录：关键文件索引（按主题）](#11-附录关键文件索引按主题)
+8. [运维/运营指南（非开发也能看懂）](#8-运维运营指南非开发也能看懂)
+9. [故障排查：按钮点不动/表单提交无反应](#9-故障排查按钮点不动表单提交无反应)
+10. [附录：关键文件索引（按主题）](#10-附录关键文件索引按主题)
 
 ---
 
@@ -22,7 +21,6 @@
 ### 1.1 项目做什么（5 行以内）
 - 这是一个 NSUK 教育邮箱门户（Portal），用于激活、管理与续期教育邮箱账号。
 - 使用 Supabase Auth + PostgreSQL 管理用户与教育邮箱数据。
-- 使用 Mailcow API 创建/维护邮箱账户。
 - 提供用户自助登录/找回/重置密码，以及管理员后台与健康检查。
 - Webmail 本体是外部系统（不在仓库内）。
 
@@ -39,9 +37,9 @@
 - 顶层目录：`src/`（核心代码）、`supabase/`（数据库 SQL）、`public/`（静态资源）、`scripts/`、`middleware.ts`、`vercel.json`、`README.md` 等。
 - `src/app/`：App Router 页面与 API 路由（如 `/login`、`/redeem`、`/api/*`）。
 - `src/components/`：表单/后台/状态面板等 UI 组件。
-- `src/lib/`：环境变量、Supabase/Mailcow 客户端、会话、限流、工具函数等。
+- `src/lib/`：环境变量、Supabase 客户端、会话、限流、工具函数等。
 
-证据：README.md:50-70；vercel.json:1-8；middleware.ts:1-40；src/app/page.tsx:1-35；src/app/api/login/route.ts:1-118；src/components/login-form.tsx:1-200；src/components/redeem-form.tsx:1-199；src/lib/env.ts:1-154；src/lib/supabase/server.ts:1-16；src/lib/mailcow.ts:1-110；src/lib/auth/session.ts:1-49
+证据：README.md:50-70；vercel.json:1-8；middleware.ts:1-40；src/app/page.tsx:1-35；src/app/api/login/route.ts:1-118；src/components/login-form.tsx:1-200；src/components/redeem-form.tsx:1-199；src/lib/env.ts:1-154；src/lib/supabase/server.ts:1-16；src/lib/auth/session.ts:1-49
 
 ---
 
@@ -66,9 +64,8 @@
 - **Supabase Service Role 缺失**导致服务端敏感操作失败（server client 依赖）。
 - **APP_BASE_URL 未配置**会导致找回/重置回跳失败（/api/forgot 使用）。
 - **Upstash 环境变量缺失**会禁用限流（非生产下会警告）。
-- **Mailcow 环境变量缺失**会导致健康检查失败或邮箱操作失败（Mailcow client 依赖）。
 
-证据：src/lib/env.ts:55-105；src/lib/supabase/server.ts:1-8；src/app/api/forgot/route.ts:33-55；src/lib/security/rate-limit.ts:63-83；src/lib/mailcow.ts:21-28；src/app/api/health/route.ts:93-104
+证据：src/lib/env.ts:55-105；src/lib/supabase/server.ts:1-8；src/app/api/forgot/route.ts:33-55；src/lib/security/rate-limit.ts:63-83
 
 ---
 
@@ -88,17 +85,14 @@
 **可选（功能增强）**
 - `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`：请求限流；缺失时限流禁用（非生产警告）。
 
-**Mailcow 必填（邮箱操作）**
-- `MAILCOW_API_BASE_URL` / `MAILCOW_API_KEY`：用于创建/修改/启停邮箱、健康检查。
-
 **Cron 必填（过期任务）**
 - `CRON_SECRET`：保护 `/api/cron/expire` 任务，缺失将返回 500。
 
-证据：src/lib/env.ts:1-153；src/lib/supabase/server.ts:1-8；src/lib/auth/session.ts:4-18；src/app/api/forgot/route.ts:33-55；src/lib/security/rate-limit.ts:63-83；src/lib/mailcow.ts:21-66；src/app/api/cron/expire/route.ts:12-23
+证据：src/lib/env.ts:1-153；src/lib/supabase/server.ts:1-8；src/lib/auth/session.ts:4-18；src/app/api/forgot/route.ts:33-55；src/lib/security/rate-limit.ts:63-83；src/app/api/cron/expire/route.ts:12-23
 
 ### 3.2 缺失时会怎样？
-- `getPublicEnv/getSupabaseServiceEnv/getSessionEnv/getAdminEnv/getMailcowEnv/getCronEnv` 直接抛错（运行时失败）。
-- `/api/health` 会报告缺失 env/DB/Mailcow 状态（用于排障）。
+- `getPublicEnv/getSupabaseServiceEnv/getSessionEnv/getAdminEnv/getCronEnv` 直接抛错（运行时失败）。
+- `/api/health` 会报告缺失 env/DB 状态（用于排障）。
 - `/api/cron/expire` 缺 `CRON_SECRET` 直接 500；token 不匹配 401。
 
 证据：src/lib/env.ts:55-153；src/app/api/health/route.ts:17-141；src/app/api/cron/expire/route.ts:12-23
@@ -115,7 +109,6 @@
 - `SESSION_SECRET`：JWT 会话签名。
 - `APP_BASE_URL`：找回/重置回跳域名。
 - `ADMIN_EMAIL` / `ADMIN_PASSWORD_HASH`：管理员登录。
-- `MAILCOW_API_BASE_URL` / `MAILCOW_API_KEY`：邮箱创建与维护。
 - `CRON_SECRET`：过期任务认证（若启用 cron）。
 
 证据：src/lib/env.ts:1-153
@@ -134,7 +127,7 @@
 1. **兑换（/redeem）**
    - 页面：`src/app/redeem/page.tsx` 使用 `RedeemForm`。
    - 表单逻辑：提交前调用 `/api/health` 做健康检查；提交 `/api/redeem`，校验字段并解析错误。
-   - `/api/redeem`：使用 Supabase Service Role 检查激活码、创建 Auth 用户与 `profiles/edu_accounts`，调用 Mailcow 创建邮箱；失败回滚；成功返回 `personal_email/edu_email/expires_at/password/webmail`。
+   - `/api/redeem`：使用 Supabase Service Role 检查激活码、创建 Auth 用户与 `profiles/edu_accounts`；失败回滚；成功返回 `personal_email/edu_email/expires_at/password/webmail`。
 
    证据：src/app/redeem/page.tsx:1-22；src/components/redeem-form.tsx:86-199；src/app/api/redeem/route.ts:244-477
 
@@ -228,7 +221,7 @@
    - 入参：`activation_code, personal_email, edu_username, password`
    - 鉴权：无（但有 rate limit）
    - 成功：`{ personal_email, edu_email, expires_at, password, webmail }`
-   - 失败：字段错误或 500/502（Mailcow 失败含 rollback）
+   - 失败：字段错误或 500/502
 
    证据：src/app/api/redeem/route.ts:244-477
 
@@ -263,14 +256,14 @@
 6. **POST /api/dashboard/renew**
    - 入参：`activation_code`
    - 鉴权：`nsuk_user_session`
-   - 成功：`{ ok, renewed, enabled, expires_at }`（Mailcow 失败时 `enabled:false`）
+   - 成功：`{ ok, renewed, enabled, expires_at }`
 
    证据：src/app/api/dashboard/renew/route.ts:10-77
 
 7. **POST /api/dashboard/password**
    - 入参：`old_password, new_password`
    - 鉴权：`nsuk_user_session`
-   - 成功：`{ ok: true }`，会同步 Mailcow 密码
+   - 成功：`{ ok: true }`
 
    证据：src/app/api/dashboard/password/route.ts:41-108
 
@@ -308,13 +301,19 @@
 ### 6.3 系统相关
 1. **GET /api/health**
    - 公开视图：返回 `ok`、`supabase`、`app_base_url` 等
-   - 管理员视图：包含 `env/mailcow/schema` 状态详情
+   - 管理员视图：包含 `env` 状态详情
+
+> 你接下来要做的唯一动作  
+> 把上面这段加到：  
+> - ✅ `docs/USAGE_GUIDE.md`（推荐）  
+> 或  
+> - ✅ `README.md`
 
    证据：src/app/api/health/route.ts:9-141
 
 2. **GET/POST /api/cron/expire**
    - 需要 `Authorization: Bearer CRON_SECRET`
-   - 扫描过期教育邮箱并禁用 Mailcow 邮箱
+   - 扫描过期教育邮箱并禁用账号
 
    证据：src/app/api/cron/expire/route.ts:12-79
 
@@ -370,44 +369,22 @@
 
 ---
 
-## 8. 邮箱系统（Mailcow）集成
+## 8. 运维/运营指南（非开发也能看懂）
 
-### 8.1 封装位置与接口
-- 封装文件：`src/lib/mailcow.ts`
-- 方法：`createMailbox`、`updateMailboxPassword`、`setMailboxActive`、`checkMailcowStatus`。
-
-证据：src/lib/mailcow.ts:73-109
-
-### 8.2 依赖环境变量
-- `MAILCOW_API_BASE_URL` / `MAILCOW_API_KEY` 由 `getMailcowEnv()` 读取，缺失即抛错。
-
-证据：src/lib/env.ts:127-135；src/lib/mailcow.ts:21-28
-
-### 8.3 失败策略
-- 兑换时 Mailcow 失败会**回滚**：删除 profiles/edu_accounts、重置 activation code、删除 auth 用户，并写 audit_logs。
-- 续期时 Mailcow 失败会返回 `enabled:false` 并记录审计日志。
-- 改密时 Mailcow 失败会返回错误（不会继续成功）。
-
-证据：src/app/api/redeem/route.ts:289-435；src/app/api/dashboard/renew/route.ts:51-64；src/app/api/dashboard/password/route.ts:91-101
-
----
-
-## 9. 运维/运营指南（非开发也能看懂）
-
-### 9.1 如何创建/发放 activation code
+### 8.1 如何创建/发放 activation code
 - 管理员进入 `/admin/codes`，可生成激活码、导出 CSV、撤销未使用码。
 
 证据：src/app/admin/codes/page.tsx:1-23；src/app/api/admin/codes/route.ts:16-84
 
-### 9.2 常见工单处理思路（依据系统现状）
+### 8.2 常见工单处理思路（依据系统现状）
 - **激活失败**：检查激活码状态（unused/used/revoked）。管理员可在 `/admin/codes` 查询与撤销。
 - **找回失败**：检查 `APP_BASE_URL` 是否配置；`/api/forgot` 会提示回跳 URL 未配置。
 - **登录失败**：确认用户未被停用（`is_suspended`）、邮箱未过期。
-- **邮箱不可用**：可能是 Mailcow 未配置或 API 异常，可检查 `/status` + `/api/health`。
+- **邮箱不可用**：可检查 `/status` + `/api/health`。
 
 证据：src/app/api/admin/codes/route.ts:16-83；src/app/api/forgot/route.ts:33-55；src/app/api/login/route.ts:56-110；src/app/status/page.tsx:8-30；src/app/api/health/route.ts:93-104
 
-### 9.3 Dashboard / 管理后台能看到什么
+### 8.3 Dashboard / 管理后台能看到什么
 - 用户 Dashboard：个人邮箱、教育邮箱、到期时间、状态、续期、改密、Webmail入口。
 - 管理概览 `/admin`：激活码统计、用户数、教育账号活跃/过期、近 24h 活动。
 - 用户管理 `/admin/users`：搜索、续期、冻结、重置密码。
@@ -415,22 +392,21 @@
 
 证据：src/components/dashboard-panel.tsx:96-195；src/app/admin/page.tsx:1-26；src/app/api/admin/summary/route.ts:13-24；src/components/admin-users.tsx:15-92；src/app/api/admin/users/route.ts:11-138；src/components/admin-audit.tsx:13-67；src/app/api/admin/audit/route.ts:13-20
 
-### 9.4 排障 checklist（顺序）
+### 8.4 排障 checklist（顺序）
 1. 浏览器 Network 看请求是否 4xx/5xx（前端表单逻辑均走 `/api/*`）。
-2. Vercel Logs：看服务端报错（常见为 env 缺失或 Supabase/Mailcow）。
-3. `/api/health`：检查 env/DB/Mailcow 状态。
+2. Vercel Logs：看服务端报错（常见为 env 缺失或 Supabase）。
+3. `/api/health`：检查 env/DB 状态。
 4. Supabase Logs：验证表结构与 RLS。需要执行 `schema.sql/rls.sql`。
-5. Mailcow Logs：如果邮件创建/启停失败。
 
-证据：src/components/redeem-form.tsx:145-231；src/components/login-form.tsx:74-115；src/lib/env.ts:55-153；src/lib/mailcow.ts:21-66；src/app/api/health/route.ts:17-141；README.md:50-54；supabase/rls.sql:1-7
+证据：src/components/redeem-form.tsx:145-231；src/components/login-form.tsx:74-115；src/lib/env.ts:55-153；src/app/api/health/route.ts:17-141；README.md:50-54；supabase/rls.sql:1-7
 
 ---
 
-## 10. 故障排查：按钮点不动/表单提交无反应
+## 9. 故障排查：按钮点不动/表单提交无反应
 
 > 仅提供定位方法，不提供修复方案。
 
-### 10.1 可能原因清单（代码级）
+### 9.1 可能原因清单（代码级）
 1. **表单校验未通过导致不提交**
    - `/login`、`/redeem` 在前端会先做字段校验，未填或格式不对直接 `setError`。
    - 验证方法：看前端是否出现错误提示。
@@ -470,9 +446,9 @@
 
 ---
 
-## 11. 附录：关键文件索引（按主题）
+## 10. 附录：关键文件索引（按主题）
 
-### 11.1 配置与运行
+### 10.1 配置与运行
 - `package.json`：Node 版本、脚本、依赖。
 - `vercel.json`：定时任务配置（cron）。
 - `middleware.ts`：路由保护与语言 cookie。
@@ -480,14 +456,14 @@
 
 证据：package.json:6-45；vercel.json:1-8；middleware.ts:5-35；README.md:1-104
 
-### 11.2 认证与会话
+### 10.2 认证与会话
 - `src/lib/auth/session.ts`：JWT 签名/验证、cookie 操作。
 - `src/lib/auth/user-session.ts`：用户会话逻辑。
 - `src/lib/auth/admin-session.ts`：管理员会话逻辑。
 
 证据：src/lib/auth/session.ts:1-49；src/lib/auth/user-session.ts:4-29；src/lib/auth/admin-session.ts:4-28
 
-### 11.3 Supabase / 数据
+### 10.3 Supabase / 数据
 - `src/lib/supabase/server.ts`：服务端 Supabase client（service role）。
 - `src/lib/supabase/client.ts`：浏览器 Supabase client（anon key）。
 - `supabase/schema.sql`：核心表结构与函数。
@@ -496,14 +472,14 @@
 
 证据：src/lib/supabase/server.ts:1-8；src/lib/supabase/client.ts:1-14；supabase/schema.sql:6-182；supabase/rls.sql:1-7；src/lib/data/user.ts:3-13
 
-### 11.4 API 路由
+### 10.4 API 路由
 - `src/app/api/redeem/route.ts`：兑换激活码与邮箱创建。
 - `src/app/api/login/route.ts`：用户登录与会话创建。
 - `src/app/api/forgot/route.ts`：找回密码邮件。
 - `src/app/api/reset/route.ts`：重置密码。
 - `src/app/api/logout/route.ts`：退出登录。
 - `src/app/api/dashboard/renew/route.ts`：续期。
-- `src/app/api/dashboard/password/route.ts`：改密 + Mailcow 同步。
+- `src/app/api/dashboard/password/route.ts`：改密。
 - `src/app/api/health/route.ts`：健康检查。
 - `src/app/api/cron/expire/route.ts`：过期处理任务。
 - `src/app/api/admin/login/route.ts`：管理员登录。
@@ -514,7 +490,7 @@
 
 证据：src/app/api/redeem/route.ts:244-477；src/app/api/login/route.ts:23-117；src/app/api/forgot/route.ts:10-59；src/app/api/reset/route.ts:10-49；src/app/api/logout/route.ts:1-7；src/app/api/dashboard/renew/route.ts:10-77；src/app/api/dashboard/password/route.ts:41-108；src/app/api/health/route.ts:9-141；src/app/api/cron/expire/route.ts:12-79；src/app/api/admin/login/route.ts:12-102；src/app/api/admin/codes/route.ts:16-84；src/app/api/admin/users/route.ts:11-138；src/app/api/admin/audit/route.ts:8-21；src/app/api/admin/summary/route.ts:7-24
 
-### 11.5 UI 页面与组件
+### 10.5 UI 页面与组件
 - `src/app/redeem/page.tsx` + `src/components/redeem-form.tsx`：兑换流程 UI。
 - `src/app/login/page.tsx` + `src/components/login-form.tsx`：登录 UI。
 - `src/app/forgot/page.tsx` + `src/components/forgot-form.tsx`：找回 UI。

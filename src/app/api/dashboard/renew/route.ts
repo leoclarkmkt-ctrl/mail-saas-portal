@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("is_suspended")
-    .eq("id", session.userId)
+    .match({ id: session.userId })
     .single();
   if (profileError) {
     return jsonError(profileError.message, 400);
