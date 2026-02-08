@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getAdminSession } from "@/lib/auth/admin-session";
-import { getEnvStatus, getMailcowEnvStatus } from "@/lib/env";
+import { getEnvStatus } from "@/lib/env";
 
 export const runtime = "nodejs";
 
@@ -9,18 +9,13 @@ export async function GET() {
   const session = await getAdminSession();
   const isAdmin = Boolean(session);
 
-  const safeMessage = (value: unknown) => {
-    const message = value instanceof Error ? value.message : String(value);
-    return message.length > 200 ? message.slice(0, 200) : message;
-  };
-
   const envStatus = getEnvStatus();
   const missing = envStatus.missing;
   const envOk = envStatus.ok;
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
   const appBaseUrl = process.env.APP_BASE_URL ?? "";
-  const mailcowEnv = getMailcowEnvStatus();
+  const strictAuth = process.env.HEALTH_AUTH_STRICT === "1";
+  const mode = strictAuth ? "auth-strict" : "db-first";
 
   const responseHeaders = { "Cache-Control": "no-store" };
 
@@ -32,6 +27,14 @@ export async function GET() {
       return NextResponse.json(
         {
           ok: false,
+          env: { ok: false },
+          supabase: {
+            ok: false,
+            authOk: false,
+            dbOk: false,
+            mode
+          },
+          app_base_url: appBaseUrl,
           time: new Date().toISOString()
         },
         { headers: responseHeaders }
@@ -42,13 +45,11 @@ export async function GET() {
       {
         ok: false,
         env: { ok: false, missing },
-        mailcow: { ok: mailcowEnv.ok, missing: mailcowEnv.missing },
         supabase: {
           ok: false,
-          url: supabaseUrl,
           authOk: false,
           dbOk: false,
-          schemaHints: ["Missing environment variables."]
+          mode
         },
         app_base_url: appBaseUrl,
         time: new Date().toISOString()
@@ -63,8 +64,6 @@ export async function GET() {
   // 2) Auth probe (informational by default)
   // ───────────────────────────────────────────────────────────
   let authOk = false;
-  let authStatus: "ok" | "unavailable" | "error" = "unavailable";
-  let authHint: string | undefined;
 
   try {
     const authResult = await supabase.auth.admin.listUsers({
@@ -72,23 +71,14 @@ export async function GET() {
       perPage: 1
     });
     authOk = !authResult.error;
-    authStatus = authOk ? "ok" : "unavailable";
-    if (authResult.error) {
-      authHint = safeMessage(authResult.error.message);
-    }
   } catch (error) {
     authOk = false;
-    authStatus = "error";
-    authHint = safeMessage(error);
   }
 
   // ───────────────────────────────────────────────────────────
   // 3) DB probe (authoritative in db-first mode)
   // ───────────────────────────────────────────────────────────
-  const schemaHints: string[] = [];
   let dbOk = false;
-  const schemaMissingRegex =
-    /relation .* does not exist|schema cache|permission denied/i;
 
   try {
     const profilesQuery = await supabase
@@ -101,30 +91,14 @@ export async function GET() {
       .select("code")
       .limit(1);
 
-    if (profilesQuery.error || codesQuery.error) {
-      const errors = [profilesQuery.error, codesQuery.error].filter(Boolean);
-      errors.forEach((err) => {
-        if (err && schemaMissingRegex.test(err.message)) {
-          schemaHints.push(
-            "schema missing: run supabase/schema.sql + migrations"
-          );
-        } else if (err) {
-          schemaHints.push(safeMessage(err.message));
-        }
-      });
-      dbOk = false;
-    } else {
-      dbOk = true;
-    }
+    dbOk = !profilesQuery.error && !codesQuery.error;
   } catch (error) {
     dbOk = false;
-    schemaHints.push(safeMessage(error));
   }
 
   // ───────────────────────────────────────────────────────────
   // 4) Mode switch (db-first vs auth-strict)
   // ───────────────────────────────────────────────────────────
-  const strictAuth = process.env.HEALTH_AUTH_STRICT === "1";
   const supabaseOk = strictAuth ? authOk && dbOk : dbOk;
   const ok = envOk && supabaseOk;
 
@@ -135,11 +109,12 @@ export async function GET() {
     return NextResponse.json(
       {
         ok,
+        env: { ok: envOk },
         supabase: {
           ok: supabaseOk,
           authOk,
-          authStatus,
-          dbOk
+          dbOk,
+          mode
         },
         app_base_url: appBaseUrl,
         time: new Date().toISOString()
@@ -155,22 +130,11 @@ export async function GET() {
     {
       ok,
       env: { ok: envOk, missing },
-      mailcow: {
-        ok: mailcowEnv.ok,
-        error: mailcowEnv.ok
-          ? "Mailcow check skipped (deprecated)"
-          : "Missing Mailcow environment variables",
-        missing: mailcowEnv.ok ? undefined : mailcowEnv.missing
-      },
       supabase: {
         ok: supabaseOk,
-        url: supabaseUrl,
         authOk,
-        authStatus,
         dbOk,
-        schemaHints: schemaHints.length > 0 ? schemaHints : undefined,
-        authHint: authHint ?? undefined,
-        mode: strictAuth ? "auth-strict" : "db-first"
+        mode
       },
       app_base_url: appBaseUrl,
       time: new Date().toISOString()

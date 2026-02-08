@@ -36,11 +36,6 @@ const REQUIRED_CRON = [
   "CRON_SECRET"
 ] as const;
 
-const REQUIRED_MAILCOW = [
-  "MAILCOW_API_BASE_URL",
-  "MAILCOW_API_KEY"
-] as const;
-
 const REQUIRED_APP = [
   ...REQUIRED_PUBLIC,
   ...REQUIRED_SUPABASE_SERVICE,
@@ -121,25 +116,6 @@ export function getRateLimitEnv() {
   return {
     UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL as string,
     UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN as string
-  };
-}
-
-export function getMailcowEnv() {
-  const missing = getMissing(REQUIRED_MAILCOW);
-  if (missing.length > 0) {
-    return null;
-  }
-  return {
-    MAILCOW_API_BASE_URL: process.env.MAILCOW_API_BASE_URL as string,
-    MAILCOW_API_KEY: process.env.MAILCOW_API_KEY as string
-  };
-}
-
-export function getMailcowEnvStatus() {
-  const missing = getMissing(REQUIRED_MAILCOW);
-  return {
-    ok: missing.length === 0,
-    missing
   };
 }
 
