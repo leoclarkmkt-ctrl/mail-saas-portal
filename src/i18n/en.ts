@@ -65,7 +65,8 @@ export const en = {
     eduUsername: "Education Email Username",
     eduUsernameHelp: "Customize your education email prefix, e.g. xxxx@nsuk.edu.kg",
     password: "Password",
-    passwordHelp: "Password must be at least 8 characters and include uppercase, lowercase, numbers, and special characters.",
+    passwordHelp:
+      "Password must be at least 8 characters and include uppercase, lowercase, numbers, and special characters.",
     submit: "Activate",
     submitting: "Submitting...",
     networkError: "Network error. Please try again.",
@@ -73,7 +74,7 @@ export const en = {
     webmail: "Education Email URL",
     dashboard: "Go to Dashboard",
     copyInfo: "Copy Login Info",
-    renewNotice: "Detected existing account. This activation will renew the subscription." 
+    renewNotice: "Detected existing account. This activation will renew the subscription."
   },
   login: {
     title: "Sign In",
@@ -211,7 +212,8 @@ export const en = {
   },
   status: {
     title: "System Status",
-    description: "Check environment variables, Supabase connectivity, schema initialization, and Auth redirect URLs.",
+    description:
+      "Check environment variables, Supabase connectivity, schema initialization, and Auth redirect URLs.",
     panel: {
       env: "Environment variables configured",
       envDetailPrefix: "Missing: ",
