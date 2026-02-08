@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { maskEmail } from "@/lib/utils/format";
-import { readJsonResponse } from "@/lib/utils/safe-json";
 
 export type DashboardData = {
   personalEmail: string;
@@ -16,7 +15,31 @@ export type DashboardData = {
   expired: boolean;
 };
 
-export function DashboardPanel({ data, labels }: { data: DashboardData; labels: Record<string, string> }) {
+type DashboardLabels = {
+  personalEmail: string;
+  eduEmail: string;
+  status: string;
+  expiresAt: string;
+  webmail: string;
+  returnHome: string;
+  changePassword: string;
+  passwordHint: string;
+  oldPassword: string;
+  newPassword: string;
+  submit: string;
+  passwordUpdated: string;
+  renew: string;
+  renewHint: string;
+  activationCode: string;
+  renewSubmit: string;
+  suspended: string;
+  expiredNotice: string;
+  renewEnableFailed: string;
+  errorFallback: string;
+  errorMessages: Record<string, string>;
+};
+
+export function DashboardPanel({ data, labels }: { data: DashboardData; labels: DashboardLabels }) {
   const [message, setMessage] = useState<string | null>(null);
   const [renewEnabled, setRenewEnabled] = useState<boolean | null>(null);
   const [renewCode, setRenewCode] = useState("");
@@ -28,21 +51,22 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
   const newPasswordId = useId();
   const renewCodeId = useId();
   const messageId = useId();
+  const webmailUrl = "https://portal.nsuk.edu.kg/edu-mail";
+  const returnHomeUrl = "https://www.nsuk.edu.kg/zh";
 
-  const copyInfo = async () => {
-    const text = `${labels.eduEmail}: ${data.eduEmail}\n${labels.webmail}: https://mail.nsuk.edu.kg/`;
-    await navigator.clipboard.writeText(text);
-    setMessage(labels.copied);
+  const parseJson = async <T,>(res: Response): Promise<T | null> => {
+    try {
+      return (await res.json()) as T;
+    } catch {
+      return null;
+    }
   };
 
-  const copyEdu = async () => {
-    await navigator.clipboard.writeText(data.eduEmail);
-    setMessage(labels.copied);
-  };
-
-  const copyWebmail = async () => {
-    await navigator.clipboard.writeText("https://mail.nsuk.edu.kg/");
-    setMessage(labels.copied);
+  const resolveErrorMessage = (key?: string) => {
+    if (key && labels.errorMessages[key]) {
+      return labels.errorMessages[key];
+    }
+    return labels.errorMessages.unknown ?? labels.errorFallback;
   };
 
   const renew = async () => {
@@ -54,9 +78,13 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ activation_code: renewCode })
       });
-      const { data: payload, text } = await readJsonResponse<{ error?: string; enabled?: boolean; message?: string }>(res);
+      const payload = await parseJson<{
+        error?: { key?: string };
+        enabled?: boolean;
+        message?: string;
+      }>(res);
       if (!res.ok) {
-        setMessage(payload?.error ?? text ?? "Failed. Please check /status for configuration hints.");
+        setMessage(resolveErrorMessage(payload?.error?.key));
         return;
       }
       if (payload?.enabled === false) {
@@ -80,9 +108,9 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ old_password: oldPassword, new_password: newPassword })
       });
-      const { data: payload, text } = await readJsonResponse<{ error?: string }>(res);
+      const payload = await parseJson<{ error?: { key?: string } }>(res);
       if (!res.ok) {
-        setMessage(payload?.error ?? text ?? "Failed. Please check /status for configuration hints.");
+        setMessage(resolveErrorMessage(payload?.error?.key));
         return;
       }
       setMessage(labels.passwordUpdated);
@@ -105,7 +133,9 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
             <p className="text-sm text-slate-500">{labels.eduEmail}</p>
             <div className="flex items-center gap-2">
               <p className="text-lg font-semibold">{data.eduEmail}</p>
-              <Button size="sm" variant="outline" onClick={copyEdu}>{labels.copyInfo}</Button>
+              <Button size="sm" variant="outline" onClick={() => { window.location.href = returnHomeUrl; }}>
+                {labels.returnHome}
+              </Button>
             </div>
           </div>
           <div>
@@ -118,9 +148,7 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
           </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-3">
-          <Button onClick={() => window.open("https://mail.nsuk.edu.kg/", "_blank")}>{labels.webmail}</Button>
-          <Button variant="outline" onClick={copyWebmail}>{labels.copyWebmail}</Button>
-          <Button variant="outline" onClick={copyInfo}>{labels.copyInfo}</Button>
+          <Button onClick={() => window.open(webmailUrl, "_blank")}>{labels.webmail}</Button>
         </div>
       </div>
 
