@@ -18,7 +18,9 @@ import {
  * 2) portal-lang
  * 3) defaultLocale
  */
-export function getLocaleFromCookies(defaultLocale: Locale = "en"): Locale {
+export function getLocaleFromCookies(
+  defaultLocale: Locale = "en"
+): Locale {
   const value =
     cookies().get("lang")?.value ??
     cookies().get("portal-lang")?.value;
@@ -27,14 +29,16 @@ export function getLocaleFromCookies(defaultLocale: Locale = "en"): Locale {
 }
 
 /**
- * Edu-mail dictionaries (used by /edu-mail/* pages)
+ * Edu-mail dictionaries
+ * Used by /edu-mail/*
  */
 export function getDictionary(locale: Locale) {
   return eduMailDictionaries[locale];
 }
 
 /**
- * Portal dictionaries (used by layout / admin / dashboard / public pages)
+ * Portal dictionaries
+ * Used by layout / admin / dashboard / public pages
  */
 const portalDictionaries: Record<Locale, any> = {
   en,
