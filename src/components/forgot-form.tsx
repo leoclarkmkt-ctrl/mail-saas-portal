@@ -132,7 +132,9 @@ export function ForgotForm({
       </div>
 
       <Button type="submit" disabled={cooldown > 0}>
-        {cooldown > 0 ? `已发送（${cooldown}s）` : labels.submit}
+        {cooldown > 0
+          ? labels.cooldownSent.replace("{{seconds}}", String(cooldown))
+          : labels.submit}
       </Button>
 
       {message && (
