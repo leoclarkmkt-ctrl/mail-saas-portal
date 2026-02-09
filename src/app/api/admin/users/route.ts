@@ -34,9 +34,7 @@ export async function GET(request: NextRequest) {
     .from("edu_accounts")
     .select("user_id, edu_email, expires_at, status");
 
-  const orFilters: string[] = [
-    `edu_email.ilike.%${query}%,edu_username.ilike.%${query}%`
-  ];
+  const orFilters: string[] = [`edu_email.ilike.%${query}%,edu_username.ilike.%${query}%`];
 
   if (userIds.length > 0) {
     orFilters.push(`user_id.in.(${userIds.join(",")})`);
@@ -58,9 +56,7 @@ export async function GET(request: NextRequest) {
 
   if (profileError) return jsonError(profileError.message, 400);
 
-  const profileMap = new Map(
-    (profiles ?? []).map((p) => [p.user_id, p])
-  );
+  const profileMap = new Map((profiles ?? []).map((p) => [p.user_id, p]));
 
   // 4) 拼装返回数据（不再返回 id，只返回 user_id）
   const result = rows.map((row) => {
@@ -116,6 +112,7 @@ export async function PATCH(request: NextRequest) {
   // A) 管理员续期（固定 1 年）
   if (parsed.data.action === "renew") {
     const years = 1;
+
     const { error } = await supabase.rpc("admin_renew_user", {
       p_user_id: parsed.data.user_id,
       p_years: years
@@ -155,15 +152,11 @@ export async function PATCH(request: NextRequest) {
 
   // C) 管理员重置密码
   if (parsed.data.reset_password) {
-    const tempPassword = `NSUK-${randomString(
-      8,
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZ23456789"
-    )}!`;
+    const tempPassword = `NSUK-${randomString(8, "ABCDEFGHIJKLMNOPQRSTUVWXYZ23456789")}!`;
 
-    const update = await supabase.auth.admin.updateUserById(
-      parsed.data.user_id,
-      { password: tempPassword }
-    );
+    const update = await supabase.auth.admin.updateUserById(parsed.data.user_id, {
+      password: tempPassword
+    });
 
     if (update.error) return jsonError(update.error.message, 400);
 

@@ -16,8 +16,13 @@ type AdminSectionHeaderProps = {
 export function AdminSectionHeader({ title, lang, labels }: AdminSectionHeaderProps) {
   return (
     <section className="mb-6">
-      <h1 className="mb-5 text-2xl font-semibold text-primary">{title}</h1>
-      <div className="[&>nav]:!text-base">
+      {/* 大标题 */}
+      <h1 className="mb-5 text-2xl font-semibold text-primary">
+        {title}
+      </h1>
+
+      {/* Tabs：字号 +1，与标题保持更大垂直间距 */}
+      <div className="[&>nav]:text-base">
         <AdminNav lang={lang} labels={labels} />
       </div>
     </section>
