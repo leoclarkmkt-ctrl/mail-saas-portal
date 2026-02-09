@@ -89,7 +89,7 @@ export async function GET() {
     const expiredEdu = await supabase
       .from("edu_accounts")
       .select("id", { count: "exact", head: true })
-      // treat expires_at is null as expired for safety
+      // treat expires_at is null as expired for safety (even if column is NOT NULL, this is harmless)
       .or(`status.eq.expired,expires_at.lte.${nowIso},expires_at.is.null`);
     if (expiredEdu.error) throw expiredEdu.error;
 
