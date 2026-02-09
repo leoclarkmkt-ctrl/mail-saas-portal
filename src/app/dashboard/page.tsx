@@ -13,41 +13,54 @@ export default async function DashboardPage({
 
   const data = await requirePersonalDashboardData();
 
-  const eduParam = typeof searchParams?.edu === "string" ? searchParams.edu : undefined;
+  // edu=expired → 首次加载自动弹出“教育邮箱已过期”弹窗
+  const eduParam =
+    typeof searchParams?.edu === "string"
+      ? searchParams.edu
+      : Array.isArray(searchParams?.edu)
+      ? searchParams.edu[0]
+      : undefined;
+
   const showEduExpiredOnLoad = eduParam === "expired";
 
   return (
     <DashboardPanel
       data={data}
       lang={lang}
+      showEduExpiredOnLoad={showEduExpiredOnLoad}
       labels={{
         personalEmail: dict.dashboard.personalEmail,
         eduEmail: dict.dashboard.eduEmail,
         status: dict.dashboard.status,
         expiresAt: dict.dashboard.expiresAt,
         webmail: dict.dashboard.webmail,
+
         logout: dict.dashboard.logout,
+
         changePassword: dict.dashboard.changePassword,
         passwordHint: dict.dashboard.passwordHint,
         oldPassword: dict.dashboard.oldPassword,
         newPassword: dict.dashboard.newPassword,
         submit: dict.common.submit,
         passwordUpdated: dict.dashboard.passwordUpdated,
+
         renew: dict.dashboard.renew,
         renewHint: dict.dashboard.renewHint,
         activationCode: dict.redeem.activationCode,
         renewSubmit: dict.dashboard.renewSubmit,
         renewSuccess: dict.dashboard.renewSuccess,
+
         suspended: dict.dashboard.suspended,
         expiredNotice: dict.dashboard.expiredNotice,
         renewEnableFailed: dict.dashboard.renewEnableFailed,
+
         errorFallback: dict.dashboard.errorFallback,
         errorMessages: dict.dashboard.errorMessages,
+
         eduMailExpiredTitle: dict.dashboard.eduMailExpiredTitle,
         eduMailExpiredBody: dict.dashboard.eduMailExpiredBody,
-        ok: dict.common.submit, // 或者 dict.common.ok（如果你有）
+        ok: dict.common.submit, // 若你有 dict.common.ok，也可换成 ok
       }}
-      showEduExpiredOnLoad={showEduExpiredOnLoad}
     />
   );
 }

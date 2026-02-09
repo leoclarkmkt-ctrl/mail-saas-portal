@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -85,7 +85,9 @@ export function DashboardPanel({
   };
 
   const resolveErrorMessage = (key?: string) => {
-    if (key && labels.errorMessages[key]) return labels.errorMessages[key];
+    if (key && labels.errorMessages[key]) {
+      return labels.errorMessages[key];
+    }
     return labels.errorMessages.unknown ?? labels.errorFallback;
   };
 
@@ -131,7 +133,10 @@ export function DashboardPanel({
       const res = await fetch("/api/dashboard/password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ old_password: oldPassword, new_password: newPassword }),
+        body: JSON.stringify({
+          old_password: oldPassword,
+          new_password: newPassword,
+        }),
       });
 
       const payload = await parseJson<{ error?: { key?: string } }>(res);
@@ -169,7 +174,9 @@ export function DashboardPanel({
         credentials: "include",
       });
 
-      const payload = await parseJson<{ active?: boolean; expired?: boolean }>(res);
+      const payload = await parseJson<{ active?: boolean; expired?: boolean }>(
+        res
+      );
 
       // ✅ only redirect when active === true
       if (res.ok && payload?.active === true) {
@@ -177,7 +184,7 @@ export function DashboardPanel({
         return;
       }
     } catch {
-      // ignore and fall through to modal
+      // ignore
     } finally {
       setIsCheckingEdu(false);
     }
@@ -185,12 +192,14 @@ export function DashboardPanel({
     setShowEduExpired(true);
   };
 
-  // ✅ auto-open modal when redirected back with edu=expired
+  // 自动弹窗（来自 /dashboard?edu=expired）
   useEffect(() => {
-    if (showEduExpiredOnLoad) setShowEduExpired(true);
+    if (showEduExpiredOnLoad) {
+      setShowEduExpired(true);
+    }
   }, [showEduExpiredOnLoad]);
 
-  // ✅ once modal is open, remove edu=expired from URL to avoid sticky modal
+  // 打开弹窗后清理 URL，避免“粘性弹窗”
   useEffect(() => {
     if (!showEduExpired || typeof window === "undefined") return;
     const url = new URL(window.location.href);
@@ -205,7 +214,9 @@ export function DashboardPanel({
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <p className="text-sm text-slate-500">{labels.personalEmail}</p>
-            <p className="text-lg font-semibold">{maskEmail(data.personalEmail)}</p>
+            <p className="text-lg font-semibold">
+              {maskEmail(data.personalEmail)}
+            </p>
           </div>
 
           <div>
@@ -225,10 +236,18 @@ export function DashboardPanel({
         </div>
 
         <div className="mt-4 flex flex-wrap gap-3">
-          <Button onClick={handleEduLogin} disabled={isCheckingEdu} aria-busy={isCheckingEdu}>
+          <Button
+            onClick={handleEduLogin}
+            disabled={isCheckingEdu}
+            aria-busy={isCheckingEdu}
+          >
             {labels.webmail}
           </Button>
-          <Button onClick={logout} disabled={isLoggingOut} aria-busy={isLoggingOut}>
+          <Button
+            onClick={logout}
+            disabled={isLoggingOut}
+            aria-busy={isLoggingOut}
+          >
             {labels.logout}
           </Button>
         </div>
@@ -263,7 +282,6 @@ export function DashboardPanel({
               <Input
                 id={oldPasswordId}
                 type="password"
-                aria-describedby={message ? messageId : undefined}
                 value={oldPassword}
                 onChange={(e) => setOldPassword(e.target.value)}
               />
@@ -274,13 +292,12 @@ export function DashboardPanel({
               <Input
                 id={newPasswordId}
                 type="password"
-                aria-describedby={message ? messageId : undefined}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
               />
             </div>
 
-            <Button onClick={changePassword} disabled={isChanging} aria-busy={isChanging}>
+            <Button onClick={changePassword} disabled={isChanging}>
               {labels.submit}
             </Button>
           </div>
@@ -294,11 +311,10 @@ export function DashboardPanel({
             <Label htmlFor={renewCodeId}>{labels.activationCode}</Label>
             <Input
               id={renewCodeId}
-              aria-describedby={message ? messageId : undefined}
               value={renewCode}
               onChange={(e) => setRenewCode(e.target.value)}
             />
-            <Button onClick={renew} disabled={isRenewing} aria-busy={isRenewing}>
+            <Button onClick={renew} disabled={isRenewing}>
               {labels.renewSubmit}
             </Button>
           </div>
@@ -327,7 +343,9 @@ export function DashboardPanel({
               {labels.eduMailExpiredBody}
             </p>
             <div className="mt-6 flex justify-end">
-              <Button onClick={() => setShowEduExpired(false)}>{labels.ok}</Button>
+              <Button onClick={() => setShowEduExpired(false)}>
+                {labels.ok}
+              </Button>
             </div>
           </div>
         </div>
