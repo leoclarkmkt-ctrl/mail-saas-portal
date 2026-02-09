@@ -21,6 +21,7 @@ export default async function DashboardPage({
     });
     return `${formatter.format(new Date(value))} (UTC)`;
   };
+
   const resolvedLocale = lang === "zh" ? "zh-CN" : "en-US";
   const expiresAtDisplay = data.expiresAtIso
     ? formatExpiresAt(data.expiresAtIso, resolvedLocale)
@@ -65,7 +66,7 @@ export default async function DashboardPage({
         changePassword: dict.dashboard.changePassword,
         passwordHint: dict.dashboard.passwordHint,
         oldPassword: dict.dashboard.oldPassword,
-        newPassword: dict.dashboard.newPassword,
+        newPassword: dict.dashboard.oldPassword,
         submit: dict.common.submit,
         passwordUpdated: dict.dashboard.passwordUpdated,
 
