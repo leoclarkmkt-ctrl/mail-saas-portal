@@ -1,13 +1,26 @@
 import type { ReactNode } from "react";
 
-const urlRegex = /(?:https?:\/\/|www\.)[A-Za-z0-9._~:/?#[\]@!$&'()*+,;=%\s-]+/gi;
+/**
+ * URL matcher:
+ * - supports http/https + www.*
+ * - supports whitespace-broken long URLs (line breaks/spaces inside URL)
+ *
+ * Notes:
+ * - We intentionally allow whitespace inside the match so that long URLs broken
+ *   by email clients are still recognized as a single link.
+ * - We will normalize (strip internal whitespace) before using as href/title.
+ */
+const urlRegex =
+  /(?:https?:\/\/|www\.)[A-Za-z0-9._~:/?#[\]@!$&'()*+,;=%\s-]+/gi;
 
 const linkStyleClass =
   "mail-link inline-flex max-w-full flex-wrap items-center gap-1 align-middle break-words text-sky-600 hover:text-sky-700 visited:!text-indigo-600 visited:hover:!text-indigo-700";
 const linkTextClass = "break-all";
+
 const iconClass = "inline-flex h-3.5 w-3.5 shrink-0 items-center";
 const badgeClass =
   "inline-flex items-center rounded bg-slate-100 px-1 py-0.5 text-[10px] font-semibold uppercase leading-none text-slate-600";
+
 const LINK_ATTRS = {
   target: "_blank",
   rel: "noopener noreferrer nofollow"
@@ -19,11 +32,21 @@ const setLinkAttributes = (anchor: HTMLAnchorElement) => {
 };
 
 const normalizeLinkHref = (href: string) => {
+  // Strip ALL whitespace inside URLs so whitespace-broken URLs become one href.
   const trimmed = href.trim().replace(/\s+/g, "");
   if (trimmed.toLowerCase().startsWith("www.")) {
     return `https://${trimmed}`;
   }
   return trimmed;
+};
+
+const isSafeUrl = (value: string) => {
+  const normalized = normalizeLinkHref(value).toLowerCase();
+  return (
+    normalized.startsWith("http://") ||
+    normalized.startsWith("https://") ||
+    normalized.startsWith("mailto:")
+  );
 };
 
 const getNormalizedHref = (href: string) => {
@@ -32,6 +55,7 @@ const getNormalizedHref = (href: string) => {
     if (normalized.startsWith("http://") || normalized.startsWith("https://")) {
       return new URL(normalized).toString();
     }
+    if (normalized.startsWith("mailto:")) return normalized;
   } catch {
     return href;
   }
@@ -107,34 +131,39 @@ const wrapAnchorContents = (anchor: HTMLAnchorElement, doc: Document) => {
 };
 
 const enhanceAnchor = (anchor: HTMLAnchorElement, doc: Document) => {
-  const href = anchor.getAttribute("href") ?? "";
-  const normalizedHref = getNormalizedHref(href);
-  if (isSafeUrl(normalizedHref)) {
+  const rawHref = anchor.getAttribute("href") ?? "";
+  const normalizedHref = getNormalizedHref(rawHref);
+
+  // If href is safe, set it to normalized version (removes internal whitespace etc.)
+  if (rawHref && isSafeUrl(rawHref)) {
     anchor.setAttribute("href", normalizedHref);
   }
-  const trustedTld = getTrustedTld(normalizedHref);
-  const isExternal = isExternalHttpLink(normalizedHref);
+
   setLinkAttributes(anchor);
 
   // Keep existing classes, append ours.
   anchor.className = `${anchor.className} ${linkStyleClass}`.trim();
 
-  // Hover shows real URL.
+  // Hover shows real URL (normalized).
   anchor.setAttribute("title", normalizedHref);
 
   // Ensure long URLs wrap without breaking clickable area.
   wrapAnchorContents(anchor, doc);
 
+  // Badges/icons depend on final normalized href.
+  const trustedTld = getTrustedTld(normalizedHref);
+  const external = isExternalHttpLink(normalizedHref);
+
   if (trustedTld) {
     anchor.appendChild(createBadgeElement(doc, trustedTld));
   }
-
-  if (isExternal) {
+  if (external) {
     anchor.appendChild(createIconElement(doc));
   }
 };
 
 const stripTrailingPunctuation = (value: string) => {
+  // For whitespace-broken matches, strip trailing whitespace first.
   let url = value.replace(/\s+$/g, "");
   let trailing = "";
   // Important: do NOT strip "?" (query marker), but allow stripping of common trailing punctuation.
@@ -146,15 +175,6 @@ const stripTrailingPunctuation = (value: string) => {
 };
 
 const getUrlMatches = (text: string) => Array.from(text.matchAll(urlRegex));
-
-const isSafeUrl = (value: string) => {
-  const normalized = normalizeLinkHref(value).toLowerCase();
-  return (
-    normalized.startsWith("http://") ||
-    normalized.startsWith("https://") ||
-    normalized.startsWith("mailto:")
-  );
-};
 
 const sanitizeDocument = (doc: Document) => {
   const forbiddenTags = new Set([
@@ -212,6 +232,7 @@ const sanitizeDocument = (doc: Document) => {
     });
   });
 
+  // Convert href-less anchors to spans to avoid "dead links"
   doc.querySelectorAll("a").forEach((anchor) => {
     if (!anchor.getAttribute("href")) {
       const span = doc.createElement("span");
@@ -235,16 +256,17 @@ const linkifyTextNode = (node: Text, doc: Document) => {
     const matchText = match[0];
     const matchIndex = match.index ?? 0;
     const { url, trailing } = stripTrailingPunctuation(matchText);
-    const normalizedHref = normalizeLinkHref(url);
 
     if (matchIndex > lastIndex) {
       fragment.appendChild(doc.createTextNode(text.slice(lastIndex, matchIndex)));
     }
 
-    if (isSafeUrl(normalizedHref)) {
+    const href = normalizeLinkHref(url);
+    if (isSafeUrl(href)) {
       const anchor = doc.createElement("a");
-      anchor.href = normalizedHref;
-      anchor.textContent = normalizedHref;
+      anchor.setAttribute("href", getNormalizedHref(href));
+      // Display text: show normalized (whitespace removed) so it remains "one link"
+      anchor.textContent = href;
       enhanceAnchor(anchor, doc);
       fragment.appendChild(anchor);
     } else {
@@ -287,7 +309,7 @@ export const sanitizeAndLinkifyHtml = (html: string) => {
     current = walker.nextNode();
   }
 
-  textNodes.forEach((node) => linkifyTextNode(node, doc));
+  textNodes.forEach((n) => linkifyTextNode(n, doc));
 
   return doc.body.innerHTML;
 };
@@ -304,20 +326,21 @@ const renderPlainTextLine = (line: string, lineIndex: number) => {
     const matchIndex = match.index ?? 0;
     const { url, trailing } = stripTrailingPunctuation(matchText);
 
-    const normalizedHref = getNormalizedHref(url);
-    const href = normalizeLinkHref(url);
-    const trustedTld = getTrustedTld(normalizedHref);
-    const isExternal = isExternalHttpLink(normalizedHref);
-
     if (matchIndex > lastIndex) {
       parts.push(line.slice(lastIndex, matchIndex));
     }
 
+    const href = normalizeLinkHref(url);
+    const normalizedHref = getNormalizedHref(href);
+
     if (isSafeUrl(href)) {
+      const trustedTld = getTrustedTld(normalizedHref);
+      const external = isExternalHttpLink(normalizedHref);
+
       parts.push(
         <a
           key={`link-${lineIndex}-${matchOrder}`}
-          href={href}
+          href={normalizedHref}
           target={LINK_ATTRS.target}
           rel={LINK_ATTRS.rel}
           title={normalizedHref}
@@ -325,7 +348,7 @@ const renderPlainTextLine = (line: string, lineIndex: number) => {
         >
           <span className={linkTextClass}>{href}</span>
           {trustedTld ? <span className={badgeClass}>{trustedTld}</span> : null}
-          {isExternal ? (
+          {external ? (
             <span className={iconClass} aria-hidden="true">
               <svg
                 viewBox="0 0 24 24"
