@@ -6,6 +6,7 @@ type AdminNavLabels = {
   overview: string;
   codes: string;
   users: string;
+  announcements: string;
   audit: string;
   status: string;
 };
@@ -16,6 +17,7 @@ export function AdminNav({ lang, labels }: { lang: Locale; labels: AdminNavLabel
       <Link href={withLang("/admin", lang)} className="text-primary hover:underline">{labels.overview}</Link>
       <Link href={withLang("/admin/codes", lang)} className="text-primary hover:underline">{labels.codes}</Link>
       <Link href={withLang("/admin/users", lang)} className="text-primary hover:underline">{labels.users}</Link>
+      <Link href={withLang("/admin/announcements", lang)} className="text-primary hover:underline">{labels.announcements}</Link>
       <Link href={withLang("/admin/audit", lang)} className="text-primary hover:underline">{labels.audit}</Link>
       <Link href={withLang("/status", lang)} className="text-primary hover:underline">
         {labels.status}
