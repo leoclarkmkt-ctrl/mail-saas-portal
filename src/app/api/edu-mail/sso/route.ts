@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createUserSession, getUserSession } from "@/lib/auth/user-session";
-import { withLang } from "@/lib/i18n/shared";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { withLang } from "@/lib/i18n/shared";
 
 export const runtime = "nodejs";
 
-function getLangFromUrl(requestUrl: URL): "en" | "zh" {
-  const lang = requestUrl.searchParams.get("lang");
-  return lang === "zh" ? "zh" : "en";
-}
+// 从 URL 的 searchParams 解析 lang=zh/en，默认 zh
+const getLangFromUrl = (url: URL): "en" | "zh" => {
+  const raw = url.searchParams.get("lang");
+  return raw === "en" ? "en" : "zh";
+};
 
 export async function GET(request: NextRequest) {
   const respondRedirect = (url: URL) => {
@@ -20,6 +21,7 @@ export async function GET(request: NextRequest) {
 
   const requestUrl = new URL(request.url);
   const lang = getLangFromUrl(requestUrl);
+
   const session = await getUserSession();
   const loginUrl = new URL(withLang("/login", lang), requestUrl);
 
@@ -27,6 +29,7 @@ export async function GET(request: NextRequest) {
     return respondRedirect(loginUrl);
   }
 
+  // Guard: re-check edu account status/expiry before upgrading session
   const supabase = createServerSupabaseClient();
   const { data, error } = await supabase
     .from("edu_accounts")
