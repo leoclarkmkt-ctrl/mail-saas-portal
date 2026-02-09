@@ -33,15 +33,15 @@ export function LoginForm({ labels, errors, lang }: LoginFormProps) {
   const personalForm = useForm<LoginValues>({
     defaultValues: {
       email: "",
-      password: ""
+      password: "",
     },
   });
 
   const eduForm = useForm<LoginValues>({
     defaultValues: {
       email: "",
-      password: ""
-    }
+      password: "",
+    },
   });
 
   const resolveErrorMessage = (key?: string) => {
@@ -55,15 +55,17 @@ export function LoginForm({ labels, errors, lang }: LoginFormProps) {
     form.clearErrors();
 
     const values = form.getValues();
+
     if (!values.email) {
       form.setError("email", {
         type: "manual",
         message: resolveErrorMessage(
           modeValue === "personal" ? "login_personal_email_required" : "login_edu_email_required"
-        )
+        ),
       });
       return;
     }
+
     if (!values.password) {
       form.setError("password", {
         type: "manual",
@@ -71,7 +73,7 @@ export function LoginForm({ labels, errors, lang }: LoginFormProps) {
           modeValue === "personal"
             ? "login_personal_password_required"
             : "login_edu_password_required"
-        )
+        ),
       });
       return;
     }
@@ -86,8 +88,10 @@ export function LoginForm({ labels, errors, lang }: LoginFormProps) {
 
     if (!res.ok) {
       const errorObj = typeof data?.error === "object" ? data?.error : undefined;
+
       if (errorObj?.field && errorObj?.key) {
         const message = resolveErrorMessage(errorObj.key);
+
         if (errorObj.field === "email" || errorObj.field === "password") {
           form.setError(errorObj.field, { type: "server", message });
         } else {
@@ -95,18 +99,19 @@ export function LoginForm({ labels, errors, lang }: LoginFormProps) {
         }
         return;
       }
+
       form.setError("email", {
         type: "server",
-        message: resolveErrorMessage("unknown")
+        message: resolveErrorMessage("unknown"),
       });
       return;
     }
 
+    // ✅ 登录成功：统一落到 dashboard（edu 登录后后端已创建 personal session，避免 dashboard 再跳回 /login）
     const resolvedLang = lang === "en" || lang === "zh" ? lang : undefined;
-    const redirectPath = modeValue === "edu" ? "/edu-mail/inbox" : "/dashboard";
-    window.location.href = resolvedLang
-      ? `${redirectPath}?lang=${resolvedLang}`
-      : redirectPath;
+    const redirectPath = "/dashboard";
+
+    window.location.href = resolvedLang ? `${redirectPath}?lang=${resolvedLang}` : redirectPath;
   };
 
   return (
