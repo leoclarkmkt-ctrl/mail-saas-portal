@@ -14,7 +14,7 @@ export function EmailBody({ htmlBody, textPlain }: EmailBodyProps) {
     return sanitizeAndLinkifyHtml(htmlBody);
   }, [htmlBody]);
 
-  if (htmlBody?.trim()) {
+  if (sanitizedHtml?.trim()) {
     return (
       <div
         className="mail-body min-h-[360px] w-full max-w-full whitespace-normal break-words [overflow-wrap:anywhere]"

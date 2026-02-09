@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-const urlRegex = /https?:\/\/[^\s<]+/gi;
+const urlRegex = /(?:https?:\/\/|www\.)[^\s<]+/gi;
 
 const linkStyleClass =
   "mail-link inline-flex max-w-full flex-wrap items-center gap-1 align-middle break-words text-sky-600 hover:text-sky-700 visited:!text-indigo-600 visited:hover:!text-indigo-700";
@@ -15,10 +15,19 @@ const setLinkAttributes = (anchor: HTMLAnchorElement) => {
   anchor.setAttribute("rel", LINK_ATTRS.rel);
 };
 
+const normalizeLinkHref = (href: string) => {
+  const trimmed = href.trim();
+  if (trimmed.toLowerCase().startsWith("www.")) {
+    return `https://${trimmed}`;
+  }
+  return trimmed;
+};
+
 const getNormalizedHref = (href: string) => {
   try {
-    if (href.startsWith("http://") || href.startsWith("https://")) {
-      return new URL(href).toString();
+    const normalized = normalizeLinkHref(href);
+    if (normalized.startsWith("http://") || normalized.startsWith("https://")) {
+      return new URL(normalized).toString();
     }
   } catch {
     return href;
@@ -75,7 +84,7 @@ const stripTrailingPunctuation = (value: string) => {
 const getUrlMatches = (text: string) => Array.from(text.matchAll(urlRegex));
 
 const isSafeUrl = (value: string) => {
-  const normalized = value.trim().toLowerCase();
+  const normalized = normalizeLinkHref(value).toLowerCase();
   return (
     normalized.startsWith("http://") ||
     normalized.startsWith("https://") ||
@@ -138,6 +147,16 @@ const sanitizeDocument = (doc: Document) => {
       }
     });
   });
+
+  doc.querySelectorAll("a").forEach((anchor) => {
+    if (!anchor.getAttribute("href")) {
+      const span = doc.createElement("span");
+      while (anchor.firstChild) {
+        span.appendChild(anchor.firstChild);
+      }
+      anchor.replaceWith(span);
+    }
+  });
 };
 
 const linkifyTextNode = (node: Text, doc: Document) => {
@@ -158,7 +177,10 @@ const linkifyTextNode = (node: Text, doc: Document) => {
     }
 
     const anchor = doc.createElement("a");
-    anchor.href = url;
+    const normalizedHref = normalizeLinkHref(url);
+    if (isSafeUrl(normalizedHref)) {
+      anchor.href = normalizedHref;
+    }
     anchor.textContent = url;
     enhanceAnchor(anchor, doc);
     fragment.appendChild(anchor);
@@ -217,6 +239,7 @@ const renderPlainTextLine = (line: string, lineIndex: number) => {
     const { url, trailing } = stripTrailingPunctuation(matchText);
 
     const normalizedHref = getNormalizedHref(url);
+    const href = normalizeLinkHref(url);
 
     if (matchIndex > lastIndex) {
       parts.push(line.slice(lastIndex, matchIndex));
@@ -225,7 +248,7 @@ const renderPlainTextLine = (line: string, lineIndex: number) => {
     parts.push(
       <a
         key={`link-${lineIndex}-${matchOrder}`}
-        href={url}
+        href={href}
         target={LINK_ATTRS.target}
         rel={LINK_ATTRS.rel}
         title={normalizedHref}
