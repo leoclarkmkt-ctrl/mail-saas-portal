@@ -174,13 +174,20 @@ export const zh = {
       expired: "已过期",
       last24h: "近 24 小时",
       redeems: "兑换",
-      logins: "登录"
+      logins: "登录",
+      presence: "用户活跃",
+      onlineUsers: "当前在线",
+      activeUsers: "今日活跃"
     },
     codesLabels: {
       prefix: "前缀",
       note: "备注",
       generate: "生成",
       exportCsv: "导出 CSV",
+      search: "搜索",
+      searchPlaceholder: "搜索激活码或备注",
+      selected: "已选",
+      batchRevoke: "批量撤销",
       codesFailed: "生成失败",
       statuses: {
         all: "全部",

@@ -180,13 +180,20 @@ export const en = {
       expired: "Expired",
       last24h: "Last 24h",
       redeems: "Redeems",
-      logins: "Logins"
+      logins: "Logins",
+      presence: "User Activity",
+      onlineUsers: "Online now",
+      activeUsers: "Active today"
     },
     codesLabels: {
       prefix: "Prefix",
       note: "Note",
       generate: "Generate",
       exportCsv: "Export CSV",
+      search: "Search",
+      searchPlaceholder: "Search code or note",
+      selected: "Selected",
+      batchRevoke: "Revoke selected",
       codesFailed: "Failed",
       statuses: {
         all: "All",

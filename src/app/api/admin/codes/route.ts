@@ -16,32 +16,25 @@ export const runtime = "nodejs";
 export async function GET(request: NextRequest) {
   const session = await getAdminSession();
   if (!session) return jsonError("Unauthorized", 401);
-  const status = request.nextUrl.searchParams.get("status");
-  const exportCsv = request.nextUrl.searchParams.get("export") === "csv";
+  const status = request.nextUrl.searchParams.get("status") ?? "all";
+  const queryValue = request.nextUrl.searchParams.get("q")?.trim() ?? "";
+  const escapedQuery = queryValue.replace(/[%_]/g, "\\$&");
   const supabase = createServerSupabaseClient();
-  let query = supabase.from("activation_codes").select("code,status,created_at,note").order("created_at", { ascending: false });
-  if (status && ["unused", "used", "revoked"].includes(status)) {
+  let query = supabase
+    .from("activation_codes")
+    .select("code,status,created_at,note,used_at,used_by_user_id", { count: "exact" })
+    .order("created_at", { ascending: false });
+  if (["unused", "used", "revoked"].includes(status)) {
     query = query.eq("status", status);
   }
-  const { data } = await query.limit(200);
-  const codes = data ?? [];
-
-  if (exportCsv) {
-    const header = "code,created_at,note";
-    const lines = codes
-      .filter((c) => c.status === "unused")
-      .map((c) => `${c.code},${c.created_at},${(c.note ?? "").replace(/\n|\r|,/g, " ")}`);
-    const csv = [header, ...lines].join("\n");
-    return new Response(csv, {
-      status: 200,
-      headers: {
-        "Content-Type": "text/csv; charset=utf-8",
-        "Content-Disposition": "attachment; filename=activation-codes.csv"
-      }
-    });
+  if (queryValue) {
+    query = query.or(
+      `code.ilike.%${escapedQuery}%,note.ilike.%${escapedQuery}%,code.ilike.${escapedQuery}%`
+    );
   }
-
-  return jsonSuccess({ codes });
+  const { data, count, error } = await query.limit(200);
+  if (error) return jsonError(error.message, 500);
+  return jsonSuccess({ ok: true, data: data ?? [], total: count ?? 0 });
 }
 
 export async function POST(request: NextRequest) {
