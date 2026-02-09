@@ -386,6 +386,7 @@ export function AdminCodes({ labels }: { labels: AdminCodesLabels }) {
               onChange={(e) => setQuantity(Number(e.target.value))}
             />
           </div>
+
           <div className="flex min-w-[160px] flex-1 flex-col gap-1">
             <label className="text-base font-medium text-slate-500">{labels.formLabels.prefix}</label>
             <Input
@@ -394,42 +395,35 @@ export function AdminCodes({ labels }: { labels: AdminCodesLabels }) {
               onChange={(e) => setPrefix(e.target.value.toUpperCase())}
             />
           </div>
+
           <div className="flex min-w-[200px] flex-1 flex-col gap-1">
             <label className="text-base font-medium text-slate-500">{labels.formLabels.note}</label>
-            <Input
-              placeholder={labels.placeholders.note}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-            />
+            <Input placeholder={labels.placeholders.note} value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
+
           <Button className="shrink-0" onClick={generate} disabled={isGenerating}>
             {isGenerating ? labels.generating : labels.generate}
           </Button>
         </div>
       </div>
+
       <div className="w-full max-w-2xl">
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <Input
-              className="w-full max-w-md"
-              placeholder="搜索激活码或备注"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            <Button className="shrink-0" onClick={applySearch}>
-              {labels.search}
-            </Button>
-          </div>
+        <div className="flex items-center gap-2">
+          <Input
+            className="w-full max-w-md"
+            placeholder="搜索激活码或备注"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          <Button className="h-10 px-6 whitespace-nowrap" onClick={applySearch}>
+            {labels.search}
+          </Button>
         </div>
       </div>
+
       <div className="flex flex-wrap items-center gap-2 text-sm">
         {STATUSES.map((item) => (
-          <Button
-            key={item}
-            size="sm"
-            variant={status === item ? "default" : "outline"}
-            onClick={() => setStatus(item)}
-          >
+          <Button key={item} size="sm" variant={status === item ? "default" : "outline"} onClick={() => setStatus(item)}>
             {labels.statuses[item]}
           </Button>
         ))}
@@ -439,21 +433,19 @@ export function AdminCodes({ labels }: { labels: AdminCodesLabels }) {
           </Button>
         </div>
       </div>
+
       <div className="flex items-center gap-3 text-sm text-slate-600">
         <span>
           {labels.selected}: {selectedCodes.size}
         </span>
         <span className="text-xs text-slate-400">{labels.selectedHelp}</span>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={revokeSelected}
-          disabled={isRevoking || selectedCodes.size === 0}
-        >
+        <Button size="sm" variant="outline" onClick={revokeSelected} disabled={isRevoking || selectedCodes.size === 0}>
           {isRevoking ? labels.revoking : labels.batchRevoke}
         </Button>
       </div>
+
       {message && <p className="text-sm text-rose-500">{message}</p>}
+
       {toast && (
         <div
           className={`fixed right-6 top-6 z-50 rounded-lg px-4 py-3 text-sm shadow-lg ${
@@ -463,6 +455,7 @@ export function AdminCodes({ labels }: { labels: AdminCodesLabels }) {
           {toast.message}
         </div>
       )}
+
       <div ref={tableRef} className="overflow-auto rounded-lg border border-slate-200 bg-white">
         <table className="min-w-full text-sm">
           <thead className="bg-slate-50 text-left">
@@ -489,7 +482,10 @@ export function AdminCodes({ labels }: { labels: AdminCodesLabels }) {
                 </td>
                 <td className="p-3 font-mono text-xs">{code.code}</td>
                 <td className="p-3">
-                  <StatusBadge status={code.status} label={labels.statusLabels[code.status] ?? labels.statusLabels.unknown} />
+                  <StatusBadge
+                    status={code.status}
+                    label={labels.statusLabels[code.status] ?? labels.statusLabels.unknown}
+                  />
                 </td>
                 <td className="p-3">{code.created_at}</td>
                 <td className="p-3">{code.note ?? "-"}</td>
@@ -505,21 +501,14 @@ export function AdminCodes({ labels }: { labels: AdminCodesLabels }) {
           </tbody>
         </table>
       </div>
+
       <AlertDialog
         open={Boolean(confirmDialog)}
-        title={
-          confirmDialog?.type === "batch" ? labels.batchRevokeConfirmTitle : labels.revokeConfirmTitle
-        }
+        title={confirmDialog?.type === "batch" ? labels.batchRevokeConfirmTitle : labels.revokeConfirmTitle}
         description={
-          confirmDialog?.type === "batch"
-            ? labels.batchRevokeConfirmDescription
-            : labels.revokeConfirmDescription
+          confirmDialog?.type === "batch" ? labels.batchRevokeConfirmDescription : labels.revokeConfirmDescription
         }
-        confirmLabel={
-          confirmDialog?.type === "batch"
-            ? labels.batchRevokeConfirmAction
-            : labels.revokeConfirmAction
-        }
+        confirmLabel={confirmDialog?.type === "batch" ? labels.batchRevokeConfirmAction : labels.revokeConfirmAction}
         cancelLabel={labels.confirmCancel}
         loadingLabel={labels.confirmProcessing}
         isLoading={isRevoking}
