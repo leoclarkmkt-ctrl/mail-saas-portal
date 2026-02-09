@@ -240,7 +240,7 @@ export function AdminAnnouncements({ labels, lang }: AdminAnnouncementsProps) {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={labels.searchPlaceholder}
-              className="w-52"
+              className="w-full max-w-xs"
             />
             <Button type="button" variant="outline" onClick={applySearch}>
               {labels.search}
@@ -252,7 +252,7 @@ export function AdminAnnouncements({ labels, lang }: AdminAnnouncementsProps) {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+      <div className="space-y-6">
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
