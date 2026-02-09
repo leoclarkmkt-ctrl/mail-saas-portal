@@ -5,7 +5,7 @@ import {
   createServerSupabaseClient
 } from "@/lib/supabase/server";
 import { getSessionEnv } from "@/lib/env";
-import { clearUserSession, getUserSession } from "@/lib/auth/user-session";
+import { clearUserSession, requireUserSession } from "@/lib/auth/user-session";
 import { jsonSuccess } from "@/lib/utils/api";
 
 export const runtime = "nodejs";
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     NextResponse.json({ ok: false, error: { key } }, { status });
 
   // Must be logged in
-  const session = await getUserSession();
+  const session = await requireUserSession();
   if (!session) {
     return errorResponse("unauthorized", 401);
   }

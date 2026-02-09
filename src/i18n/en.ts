@@ -180,7 +180,10 @@ export const en = {
       expired: "Expired",
       last24h: "Last 24h",
       redeems: "Redeems",
-      logins: "Logins"
+      logins: "Logins",
+      presence: "User Activity",
+      onlineUsers: "Online now",
+      activeUsers: "Active today"
     },
     codesLabels: {
       prefix: "Prefix",
