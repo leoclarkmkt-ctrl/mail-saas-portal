@@ -16,7 +16,55 @@ type AdminAuditLabels = {
   retry: string;
 };
 
-export function AdminAudit({ labels, lang }: { labels: AdminAuditLabels; lang: Locale }) {
+type AdminAuditActionLabels = Record<string, string>;
+
+type AdminAuditProps = {
+  labels: AdminAuditLabels;
+  actionLabels: AdminAuditActionLabels;
+  lang: Locale;
+};
+
+const formatRelativeTime = (date: Date, lang: Locale) => {
+  if (Number.isNaN(date.getTime())) return "-";
+  const diffMs = Date.now() - date.getTime();
+  if (!Number.isFinite(diffMs)) return "-";
+  const diffSeconds = Math.max(0, Math.floor(diffMs / 1000));
+  if (diffSeconds < 60) {
+    return lang === "zh" ? "刚刚" : "just now";
+  }
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  if (diffMinutes < 60) {
+    return lang === "zh" ? `${diffMinutes} 分钟前` : `${diffMinutes} minutes ago`;
+  }
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) {
+    return lang === "zh" ? `${diffHours} 小时前` : `${diffHours} hours ago`;
+  }
+  const diffDays = Math.floor(diffHours / 24);
+  return lang === "zh" ? `${diffDays} 天前` : `${diffDays} days ago`;
+};
+
+const formatLocalTime = (value: string, lang: Locale) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const locale = lang === "zh" ? "zh-CN" : "en-US";
+  return date.toLocaleString(locale, {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false
+  });
+};
+
+const resolveActionLabel = (action: string | null | undefined, actionLabels: AdminAuditActionLabels) => {
+  if (!action) return actionLabels.unknown ?? "Unknown";
+  return actionLabels[action] ?? action ?? actionLabels.unknown ?? "Unknown";
+};
+
+export function AdminAudit({ labels, actionLabels, lang }: AdminAuditProps) {
   const [query, setQuery] = useState("");
   const [logs, setLogs] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -75,10 +123,19 @@ export function AdminAudit({ labels, lang }: { labels: AdminAuditLabels; lang: L
           <tbody>
             {logs.map((log) => (
               <tr key={log.id} className="border-t border-slate-100">
-                <td className="p-3">{log.action}</td>
-                <td className="p-3">{log.user_id ?? "-"}</td>
-                <td className="p-3">{log.ip ?? "-"}</td>
-                <td className="p-3">{log.created_at}</td>
+                <td className="p-3">{resolveActionLabel(log.action, actionLabels)}</td>
+                <td className="p-3">{log.edu_email ?? "-"}</td>
+                <td className="p-3">
+                  {typeof log.ip === "string" && log.ip.trim() && log.ip !== "-" ? log.ip : "-"}
+                </td>
+                <td className="p-3">
+                  <div className="flex flex-col">
+                    <span>{formatLocalTime(log.created_at, lang)}</span>
+                    <span className="text-xs text-slate-500">
+                      {formatRelativeTime(new Date(log.created_at), lang)}
+                    </span>
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
