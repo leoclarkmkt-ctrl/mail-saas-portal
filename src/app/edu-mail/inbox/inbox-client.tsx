@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { LogoutButton } from "@/components/edu-mail-actions";
 import { formatDate } from "@/lib/utils/format";
@@ -54,7 +53,6 @@ const buildInboxLink = (id: string | null, lang: "en" | "zh") => {
 };
 
 export function InboxClient({ lang, dict, selectedId }: InboxClientProps) {
-  const router = useRouter();
   const [eduEmail, setEduEmail] = useState("edu@nsuk.edu.kg");
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [messages, setMessages] = useState<InboxMessage[]>([]);
@@ -190,7 +188,9 @@ export function InboxClient({ lang, dict, selectedId }: InboxClientProps) {
                 variant="outline"
                 size="sm"
                 className="border-accent text-accent hover:bg-accent/10"
-                onClick={() => router.push(withLang("/dashboard", lang))}
+                onClick={() => {
+                  window.location.href = withLang("/api/edu-mail/back-to-dashboard", lang);
+                }}
               >
                 {dict.inbox.goDashboard}
               </Button>
