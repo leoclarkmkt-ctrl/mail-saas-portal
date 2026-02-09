@@ -249,28 +249,6 @@ export function InboxClient({ lang, dict, selectedId }: InboxClientProps) {
         </div>
       </div>
 
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h2 className="text-2xl font-semibold text-primary">
-          {dict.inbox.title}
-        </h2>
-        <Button
-          type="button"
-          variant="outline"
-          className="border-accent text-accent hover:bg-accent/10"
-          onClick={() => {
-            fetchMessages();
-            fetchMessageDetail(selectedId);
-            fetchAnnouncements();
-          }}
-          disabled={loading || detailLoading}
-        >
-          {loading || detailLoading
-            ? dict.inbox.refreshing
-            : dict.inbox.refresh}
-        </Button>
-      </div>
-
       {/* Announcements */}
       <div className="rounded-2xl border border-slate-200 bg-white px-6 py-4 shadow-sm">
         <div className="flex items-center justify-between">
@@ -325,6 +303,28 @@ export function InboxClient({ lang, dict, selectedId }: InboxClientProps) {
             })
           )}
         </div>
+      </div>
+
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h2 className="text-2xl font-semibold text-primary">
+          {dict.inbox.title}
+        </h2>
+        <Button
+          type="button"
+          variant="outline"
+          className="border-accent text-accent hover:bg-accent/10"
+          onClick={() => {
+            fetchMessages();
+            fetchMessageDetail(selectedId);
+            fetchAnnouncements();
+          }}
+          disabled={loading || detailLoading}
+        >
+          {loading || detailLoading
+            ? dict.inbox.refreshing
+            : dict.inbox.refresh}
+        </Button>
       </div>
 
       {/* Content */}
