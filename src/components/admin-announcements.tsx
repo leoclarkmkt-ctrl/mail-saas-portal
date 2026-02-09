@@ -158,6 +158,7 @@ export function AdminAnnouncements({ labels, lang }: AdminAnnouncementsProps) {
   const saveAnnouncement = async () => {
     setSaving(true);
     setMessage(null);
+
     const payload = {
       title: formTitle.trim(),
       excerpt: formExcerpt.trim() || null,
@@ -167,15 +168,20 @@ export function AdminAnnouncements({ labels, lang }: AdminAnnouncementsProps) {
     };
 
     try {
-      const res = await fetch(selectedId ? `/api/admin/announcements/${selectedId}` : "/api/admin/announcements", {
-        method: selectedId ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
+      const res = await fetch(
+        selectedId ? `/api/admin/announcements/${selectedId}` : "/api/admin/announcements",
+        {
+          method: selectedId ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        }
+      );
+
       if (!res.ok) {
         setMessage(labels.saveFailed);
         return;
       }
+
       setMessage(labels.saveSuccess);
       await load();
     } catch {
@@ -207,6 +213,7 @@ export function AdminAnnouncements({ labels, lang }: AdminAnnouncementsProps) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sort_order: nextValue })
     });
+
     if (selectedId === id) {
       setFormSortOrder(nextValue);
     }
@@ -235,6 +242,8 @@ export function AdminAnnouncements({ labels, lang }: AdminAnnouncementsProps) {
               </Button>
             ))}
           </div>
+
+          {/* Search only (no "new announcement" button) */}
           <div className="flex items-center gap-2">
             <Input
               value={query}
@@ -242,7 +251,12 @@ export function AdminAnnouncements({ labels, lang }: AdminAnnouncementsProps) {
               placeholder={labels.searchPlaceholder}
               className="w-full max-w-md"
             />
-            <Button type="button" onClick={applySearch} className="h-10 px-6 whitespace-nowrap">
+            <Button
+              type="button"
+              onClick={applySearch}
+              variant="default"
+              className="h-10 px-6 whitespace-nowrap"
+            >
               {labels.search}
             </Button>
           </div>
@@ -266,6 +280,7 @@ export function AdminAnnouncements({ labels, lang }: AdminAnnouncementsProps) {
                   <th className="py-2">{labels.table.actions}</th>
                 </tr>
               </thead>
+
               <tbody>
                 {announcements.length === 0 ? (
                   <tr>
@@ -280,11 +295,19 @@ export function AdminAnnouncements({ labels, lang }: AdminAnnouncementsProps) {
                         <div className="font-medium text-slate-900">{announcement.title}</div>
                         <div className="text-xs text-slate-400">{announcement.excerpt ?? "--"}</div>
                       </td>
+
                       <td className="py-3 pr-4">
-                        <span className={`rounded-full px-2 py-1 text-xs font-medium ${announcement.is_published ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                        <span
+                          className={`rounded-full px-2 py-1 text-xs font-medium ${
+                            announcement.is_published
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-amber-100 text-amber-700"
+                          }`}
+                        >
                           {announcement.is_published ? labels.published : labels.draft}
                         </span>
                       </td>
+
                       <td className="py-3 pr-4">
                         <div className="flex items-center gap-2">
                           <button
@@ -317,6 +340,7 @@ export function AdminAnnouncements({ labels, lang }: AdminAnnouncementsProps) {
                           />
                         </div>
                       </td>
+
                       <td className="py-3 pr-4 text-xs text-slate-500">
                         {announcement.published_at ? formatDate(announcement.published_at) : "--"}
                       </td>
@@ -332,6 +356,7 @@ export function AdminAnnouncements({ labels, lang }: AdminAnnouncementsProps) {
                       <td className="py-3 pr-4 text-xs text-slate-500">
                         {announcement.stats?.unique_users_total ?? 0}
                       </td>
+
                       <td className="py-3 text-xs text-slate-600">
                         <div className="flex flex-wrap gap-2">
                           <button
@@ -373,7 +398,9 @@ export function AdminAnnouncements({ labels, lang }: AdminAnnouncementsProps) {
           </div>
 
           <div className="mt-4 flex items-center justify-between text-sm text-slate-500">
-            <span>{page} / {totalPages}</span>
+            <span>
+              {page} / {totalPages}
+            </span>
             <div className="flex gap-2">
               <Button
                 type="button"
@@ -447,9 +474,7 @@ export function AdminAnnouncements({ labels, lang }: AdminAnnouncementsProps) {
             <AnnouncementEditor
               value={contentJson}
               onChange={setContentJson}
-              labels={{
-                content: labels.content
-              }}
+              labels={{ content: labels.content }}
             />
 
             {message && <p className="text-sm text-slate-500">{message}</p>}
