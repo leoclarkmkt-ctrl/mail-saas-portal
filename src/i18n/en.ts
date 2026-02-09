@@ -10,6 +10,7 @@ export const en = {
     copy: "Copy",
     copied: "Copied",
     submit: "Submit",
+    ok: "OK",
     cancel: "Cancel",
     back: "Back",
     failedToLoad: "Failed to load",
@@ -128,6 +129,8 @@ export const en = {
     renewSuccess: "Renewal successful! Your expiration date has been updated.",
     expiredNotice: "Your mailbox has expired and is temporarily disabled. Renew to restore access.",
     renewEnableFailed: "Renewed successfully, but mailbox re-enable failed. Please retry later.",
+    eduMailExpiredTitle: "Mailbox expired",
+    eduMailExpiredBody: "Your education mailbox has expired. Please renew to continue.",
     errorFallback: "Operation failed. Please try again later.",
     errorMessages: {
       unauthorized: "Your session has expired. Please sign in again and try once more.",
