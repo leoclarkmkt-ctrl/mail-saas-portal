@@ -1,5 +1,5 @@
 import { getDictionary } from "@/i18n";
-import { getLocale } from "@/lib/i18n/server";
+import { getLocaleFromCookies } from "@/lib/i18n/server";
 import { DashboardPanel } from "@/components/dashboard-panel";
 import { requirePersonalDashboardData } from "@/lib/dashboard/require-personal-dashboard-data";
 
@@ -8,7 +8,7 @@ export default async function DashboardPage({
 }: {
   searchParams?: Record<string, string | string[] | undefined>;
 }) {
-  const lang = await getLocale();
+  const lang = getLocaleFromCookies();
   const dict = await getDictionary(lang);
 
   const data = await requirePersonalDashboardData();
@@ -59,7 +59,8 @@ export default async function DashboardPage({
         eduMailExpiredTitle: dict.dashboard.eduMailExpiredTitle,
         eduMailExpiredBody: dict.dashboard.eduMailExpiredBody,
 
-        // ✅ 如果你字典里没有 common.ok，就用 submit 兜底（也可在字典补一个 ok）
+        // 如果你 common 里还没有 ok，就先用 submit 顶一下，保证编译过
+        // 建议后续在 i18n/en.ts 和 i18n/zh.ts 给 common 加一个 ok: "OK"/"确定"
         ok: (dict.common as any).ok ?? dict.common.submit,
       }}
     />
