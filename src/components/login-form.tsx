@@ -110,8 +110,9 @@ export function LoginForm({ labels, errors, lang }: LoginFormProps) {
     // ✅ 登录成功：统一落到 dashboard（edu 登录后后端已创建 personal session，避免 dashboard 再跳回 /login）
     const resolvedLang = lang === "en" || lang === "zh" ? lang : undefined;
     const redirectPath = "/dashboard";
-
-    window.location.href = resolvedLang ? `${redirectPath}?lang=${resolvedLang}` : redirectPath;
+    window.location.href = resolvedLang
+      ? `${redirectPath}?lang=${resolvedLang}`
+      : redirectPath;
   };
 
   return (

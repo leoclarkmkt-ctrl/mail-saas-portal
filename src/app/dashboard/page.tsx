@@ -21,9 +21,17 @@ export default async function DashboardPage({
     });
     return `${formatter.format(new Date(value))} (UTC)`;
   };
+
+  const resolvedLocale = lang === "zh" ? "zh-CN" : "en-US";
   const expiresAtDisplay = data.expiresAtIso
-    ? formatExpiresAt(data.expiresAtIso, lang)
+    ? formatExpiresAt(data.expiresAtIso, resolvedLocale)
     : "--";
+  const statusLabelMap: Record<string, string> = {
+    active: dict.dashboard.active,
+    expired: dict.dashboard.expired,
+    suspended: dict.dashboard.suspended,
+  };
+  const statusDisplay = statusLabelMap[data.statusKey] ?? data.statusKey;
 
   // edu=expired → 首次加载自动弹出“教育邮箱已过期”弹窗
   const eduParam =
@@ -41,7 +49,7 @@ export default async function DashboardPage({
         personalEmail: data.personalEmail,
         eduEmail: data.eduEmail,
         expiresAt: expiresAtDisplay,
-        status: data.status,
+        status: statusDisplay,
         suspended: data.suspended,
         expired: data.expired,
       }}
