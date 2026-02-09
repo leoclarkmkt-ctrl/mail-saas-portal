@@ -208,6 +208,12 @@ export const zh = {
       eduEmail: "教育邮箱",
       expires: "到期时间",
       status: "状态",
+      statusLabels: {
+        active: "有效",
+        expired: "已过期",
+        suspended: "已停用",
+        unknown: "未知"
+      },
       actions: "操作",
       renew: "续费",
       suspend: "停用",
@@ -215,7 +221,6 @@ export const zh = {
       resetPassword: "重置密码",
       tempPassword: "临时密码",
       suspended: "已停用",
-      renewYears: "续费年限",
       failedToLoad: "加载失败",
       retry: "重试"
     },
@@ -228,6 +233,16 @@ export const zh = {
       user: "用户",
       ip: "IP",
       time: "时间"
+    },
+    auditActionLabels: {
+      user_login_personal: "个人邮箱登录",
+      user_login_edu: "教育邮箱登录",
+      user_redeem: "兑换激活码",
+      user_password_change: "修改密码",
+      admin_create_codes: "管理员生成激活码",
+      admin_generate_codes: "管理员生成激活码",
+      admin_revoke_code: "管理员撤销激活码",
+      unknown: "未知操作"
     }
   },
   status: {

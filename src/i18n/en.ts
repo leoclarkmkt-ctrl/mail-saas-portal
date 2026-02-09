@@ -214,6 +214,12 @@ export const en = {
       eduEmail: "Edu Email",
       expires: "Expires",
       status: "Status",
+      statusLabels: {
+        active: "Active",
+        expired: "Expired",
+        suspended: "Suspended",
+        unknown: "Unknown"
+      },
       actions: "Actions",
       renew: "Renew",
       suspend: "Suspend",
@@ -221,7 +227,6 @@ export const en = {
       resetPassword: "Reset Password",
       tempPassword: "Temp password",
       suspended: "Suspended",
-      renewYears: "Renew years",
       failedToLoad: "Failed to load",
       retry: "Retry"
     },
@@ -234,6 +239,16 @@ export const en = {
       user: "User",
       ip: "IP",
       time: "Time"
+    },
+    auditActionLabels: {
+      user_login_personal: "Personal email login",
+      user_login_edu: "Education email login",
+      user_redeem: "Redeemed activation code",
+      user_password_change: "Changed password",
+      admin_create_codes: "Admin generated activation codes",
+      admin_generate_codes: "Admin generated activation codes",
+      admin_revoke_code: "Admin revoked activation code",
+      unknown: "Unknown action"
     }
   },
   status: {

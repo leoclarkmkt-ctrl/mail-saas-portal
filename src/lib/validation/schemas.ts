@@ -62,6 +62,7 @@ export const adminRevokeCodeSchema = z.object({
 export const adminUserActionSchema = z.object({
   user_id: z.string().uuid(),
   years: z.number().int().min(1).max(5).optional(),
+  renew: z.boolean().optional(),
   suspend: z.boolean().optional(),
   reason: z.string().max(200).optional(),
   reset_password: z.boolean().optional()

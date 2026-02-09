@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { adminUserActionSchema } from "@/lib/validation/schemas";
 import { jsonError, jsonSuccess } from "@/lib/utils/api";
 import { randomString } from "@/lib/security/random";
+import { getClientIp } from "@/lib/security/client-ip";
 
 export const runtime = "nodejs";
 
@@ -110,19 +111,22 @@ export async function PATCH(request: NextRequest) {
   }
 
   const supabase = createServerSupabaseClient();
+  const clientIp = getClientIp(request);
 
   // A) 管理员续期
-  if (parsed.data.years) {
+  if (parsed.data.renew || parsed.data.years) {
+    const years = parsed.data.years ?? 1;
     const { error } = await supabase.rpc("admin_renew_user", {
       p_user_id: parsed.data.user_id,
-      p_years: parsed.data.years
+      p_years: years
     });
     if (error) return jsonError(error.message, 400);
 
     await supabase.from("audit_logs").insert({
       action: "admin_renew_user",
       user_id: parsed.data.user_id,
-      meta: { years: parsed.data.years }
+      meta: { years },
+      ip: clientIp
     });
 
     return jsonSuccess({ ok: true });
@@ -142,7 +146,8 @@ export async function PATCH(request: NextRequest) {
 
     await supabase.from("audit_logs").insert({
       action: parsed.data.suspend ? "admin_suspend_user" : "admin_unsuspend_user",
-      user_id: parsed.data.user_id
+      user_id: parsed.data.user_id,
+      ip: clientIp
     });
 
     return jsonSuccess({ ok: true });
@@ -164,7 +169,8 @@ export async function PATCH(request: NextRequest) {
 
     await supabase.from("audit_logs").insert({
       action: "admin_reset_password",
-      user_id: parsed.data.user_id
+      user_id: parsed.data.user_id,
+      ip: clientIp
     });
 
     return jsonSuccess({ temp_password: tempPassword });
