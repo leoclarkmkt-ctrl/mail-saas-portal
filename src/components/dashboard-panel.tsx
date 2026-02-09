@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useId, useEffect } from "react";
+import { useEffect, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,7 +49,7 @@ export function DashboardPanel({
   data,
   labels,
   lang,
-  showEduExpiredOnLoad
+  showEduExpiredOnLoad,
 }: {
   data: DashboardData;
   labels: DashboardLabels;
@@ -85,9 +85,7 @@ export function DashboardPanel({
   };
 
   const resolveErrorMessage = (key?: string) => {
-    if (key && labels.errorMessages[key]) {
-      return labels.errorMessages[key];
-    }
+    if (key && labels.errorMessages[key]) return labels.errorMessages[key];
     return labels.errorMessages.unknown ?? labels.errorFallback;
   };
 
@@ -133,7 +131,10 @@ export function DashboardPanel({
       const res = await fetch("/api/dashboard/password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ old_password: oldPassword, new_password: newPassword }),
+        body: JSON.stringify({
+          old_password: oldPassword,
+          new_password: newPassword,
+        }),
       });
 
       const payload = await parseJson<{ error?: { key?: string } }>(res);
@@ -157,7 +158,6 @@ export function DashboardPanel({
     try {
       await fetch("/api/logout", { method: "POST" });
     } finally {
-      // 无论请求是否成功，都跳转官网
       window.location.href = homeUrl;
       setIsLoggingOut(false);
     }
@@ -171,17 +171,16 @@ export function DashboardPanel({
         cache: "no-store",
         credentials: "include",
       });
-      const payload = await parseJson<{
-        active?: boolean;
-        expired?: boolean;
-      }>(res);
 
+      const payload = await parseJson<{ active?: boolean; expired?: boolean }>(res);
+
+      // ✅ only redirect when active === true
       if (res.ok && payload?.active === true) {
         window.location.href = withLang("/api/edu-mail/sso", lang);
         return;
       }
     } catch {
-      // ignore and fall through to modal
+      // ignore
     } finally {
       setIsCheckingEdu(false);
     }
@@ -189,12 +188,12 @@ export function DashboardPanel({
     setShowEduExpired(true);
   };
 
+  // ✅ 自动弹窗（来自 /dashboard?edu=expired）
   useEffect(() => {
-    if (showEduExpiredOnLoad) {
-      setShowEduExpired(true);
-    }
+    if (showEduExpiredOnLoad) setShowEduExpired(true);
   }, [showEduExpiredOnLoad]);
 
+  // ✅ 打开弹窗后清理 URL，避免“粘性弹窗”
   useEffect(() => {
     if (!showEduExpired || typeof window === "undefined") return;
     const url = new URL(window.location.href);
@@ -228,7 +227,6 @@ export function DashboardPanel({
           </div>
         </div>
 
-        {/* action bar */}
         <div className="mt-4 flex flex-wrap gap-3">
           <Button onClick={handleEduLogin} disabled={isCheckingEdu} aria-busy={isCheckingEdu}>
             {labels.webmail}
@@ -268,7 +266,6 @@ export function DashboardPanel({
               <Input
                 id={oldPasswordId}
                 type="password"
-                aria-describedby={message ? messageId : undefined}
                 value={oldPassword}
                 onChange={(e) => setOldPassword(e.target.value)}
               />
@@ -279,7 +276,6 @@ export function DashboardPanel({
               <Input
                 id={newPasswordId}
                 type="password"
-                aria-describedby={message ? messageId : undefined}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
               />
@@ -297,12 +293,7 @@ export function DashboardPanel({
 
           <div className="mt-4 space-y-3">
             <Label htmlFor={renewCodeId}>{labels.activationCode}</Label>
-            <Input
-              id={renewCodeId}
-              aria-describedby={message ? messageId : undefined}
-              value={renewCode}
-              onChange={(e) => setRenewCode(e.target.value)}
-            />
+            <Input id={renewCodeId} value={renewCode} onChange={(e) => setRenewCode(e.target.value)} />
             <Button onClick={renew} disabled={isRenewing} aria-busy={isRenewing}>
               {labels.renewSubmit}
             </Button>
