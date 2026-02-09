@@ -10,6 +10,7 @@ export const zh = {
     copy: "复制",
     copied: "已复制",
     submit: "提交",
+    ok: "确定",
     cancel: "取消",
     back: "返回",
     failedToLoad: "加载失败",
@@ -122,6 +123,8 @@ export const zh = {
     renewSuccess: "续费成功！到期时间已更新。",
     expiredNotice: "邮箱已到期并被临时停用，请续费后恢复使用。",
     renewEnableFailed: "续费成功，但邮箱启用失败，请稍后重试。",
+    eduMailExpiredTitle: "教育邮箱已过期",
+    eduMailExpiredBody: "教育邮箱已过期，请续费使用！",
     errorFallback: "操作未成功，请稍后重试。",
     errorMessages: {
       unauthorized: "登录状态已失效，请重新登录后再试。",
