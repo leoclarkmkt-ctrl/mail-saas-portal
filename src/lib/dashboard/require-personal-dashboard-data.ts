@@ -2,13 +2,11 @@ import { redirect } from "next/navigation";
 
 import { getUserSession } from "@/lib/auth/user-session";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { formatDate } from "@/lib/utils/format";
-
 export async function requirePersonalDashboardData(): Promise<{
   personalEmail: string;
   eduEmail: string;
-  expiresAt: string;
-  status: string;
+  expiresAtIso: string | null;
+  statusKey: string;
   suspended: boolean;
   expired: boolean;
 }> {
@@ -41,13 +39,11 @@ export async function requirePersonalDashboardData(): Promise<{
   const expiresAtMs = eduAccount.expires_at ? Date.parse(eduAccount.expires_at) : NaN;
   const expired = Number.isNaN(expiresAtMs) || expiresAtMs <= Date.now();
   const suspended = profile.is_suspended ?? eduAccount.status === "suspended";
-  const expiresAt = eduAccount.expires_at ? formatDate(eduAccount.expires_at) : "--";
-
   return {
     personalEmail: profile.personal_email,
     eduEmail: eduAccount.edu_email,
-    expiresAt,
-    status: eduAccount.status,
+    expiresAtIso: eduAccount.expires_at ?? null,
+    statusKey: eduAccount.status,
     suspended,
     expired
   };

@@ -103,9 +103,10 @@ export function LoginForm({ labels, errors, lang }: LoginFormProps) {
     }
 
     const resolvedLang = lang === "en" || lang === "zh" ? lang : undefined;
+    const redirectPath = "/dashboard";
     window.location.href = resolvedLang
-      ? `/dashboard?lang=${resolvedLang}`
-      : "/dashboard";
+      ? `${redirectPath}?lang=${resolvedLang}`
+      : redirectPath;
   };
 
   return (

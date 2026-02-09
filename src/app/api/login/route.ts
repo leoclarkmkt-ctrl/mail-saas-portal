@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
     }
     return jsonFieldError("email", "login_edu_academic_year_not_registered", 401);
   }
-  await createUserSession({ userId: data.user_id, mode: "edu" });
+  await createUserSession({ userId: data.user_id, mode: "personal" });
   await supabase.from("audit_logs").insert({
     user_id: data.user_id,
     action: "user_login_edu"
