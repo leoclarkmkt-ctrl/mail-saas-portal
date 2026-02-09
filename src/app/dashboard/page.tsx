@@ -12,6 +12,18 @@ export default async function DashboardPage({
   const dict = await getDictionary(lang);
 
   const data = await requirePersonalDashboardData();
+  const formatExpiresAt = (value: string, locale: string) => {
+    const formatter = new Intl.DateTimeFormat(locale, {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone: "UTC",
+    });
+    return `${formatter.format(new Date(value))} (UTC)`;
+  };
+  const expiresAtDisplay = data.expiresAtIso
+    ? formatExpiresAt(data.expiresAtIso, lang)
+    : "--";
 
   // edu=expired → 首次加载自动弹出“教育邮箱已过期”弹窗
   const eduParam =
@@ -25,7 +37,14 @@ export default async function DashboardPage({
 
   return (
     <DashboardPanel
-      data={data}
+      data={{
+        personalEmail: data.personalEmail,
+        eduEmail: data.eduEmail,
+        expiresAt: expiresAtDisplay,
+        status: data.status,
+        suspended: data.suspended,
+        expired: data.expired,
+      }}
       lang={lang}
       showEduExpiredOnLoad={showEduExpiredOnLoad}
       labels={{
