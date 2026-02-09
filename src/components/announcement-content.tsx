@@ -103,7 +103,7 @@ function parseInlineMarkdown(text: string, keyPrefix: string): ReactNode[] {
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-primary hover:underline"
+          className="text-blue-600 underline underline-offset-2 hover:text-blue-700"
         >
           {label}
         </a>

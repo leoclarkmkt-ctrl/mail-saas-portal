@@ -415,10 +415,7 @@ export function AdminCodes({ labels }: { labels: AdminCodesLabels }) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          <Button
-            className="h-10 px-6 whitespace-nowrap"
-            onClick={applySearch}
-          >
+          <Button className="h-10 px-6 whitespace-nowrap" onClick={applySearch}>
             {labels.search}
           </Button>
         </div>
@@ -511,9 +508,7 @@ export function AdminCodes({ labels }: { labels: AdminCodesLabels }) {
         description={
           confirmDialog?.type === "batch" ? labels.batchRevokeConfirmDescription : labels.revokeConfirmDescription
         }
-        confirmLabel={
-          confirmDialog?.type === "batch" ? labels.batchRevokeConfirmAction : labels.revokeConfirmAction
-        }
+        confirmLabel={confirmDialog?.type === "batch" ? labels.batchRevokeConfirmAction : labels.revokeConfirmAction}
         cancelLabel={labels.confirmCancel}
         loadingLabel={labels.confirmProcessing}
         isLoading={isRevoking}
