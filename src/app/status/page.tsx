@@ -3,7 +3,7 @@ import { getDictionary } from "@/i18n";
 import { getAdminSession } from "@/lib/auth/admin-session";
 import { getLangFromRequest } from "@/lib/i18n/server";
 import { withLang } from "@/lib/i18n/shared";
-import { AdminNav } from "@/components/admin-nav";
+import { AdminSectionHeader } from "@/components/admin-section-header";
 import { StatusPanel } from "@/components/status-panel";
 
 export default async function StatusPage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
@@ -14,9 +14,9 @@ export default async function StatusPage({ searchParams }: { searchParams?: Reco
     redirect(withLang("/admin/login", lang));
   }
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-semibold text-primary">{dict.status.title}</h2>
-      <AdminNav
+    <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+      <AdminSectionHeader
+        title={dict.status.title}
         lang={lang}
         labels={{
           overview: dict.admin.summary,
@@ -26,8 +26,10 @@ export default async function StatusPage({ searchParams }: { searchParams?: Reco
           status: dict.admin.status
         }}
       />
-      <p className="text-sm text-slate-500">{dict.status.description}</p>
-      <StatusPanel labels={dict.status.panel} />
+      <div className="space-y-4">
+        <p className="text-sm text-slate-500">{dict.status.description}</p>
+        <StatusPanel labels={dict.status.panel} />
+      </div>
     </div>
   );
 }

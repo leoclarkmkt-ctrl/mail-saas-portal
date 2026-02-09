@@ -4,6 +4,7 @@ import { createServerSupabaseAnonClient, createServerSupabaseClient } from "@/li
 import { getSessionEnv } from "@/lib/env";
 import { jsonError, jsonSuccess } from "@/lib/utils/api";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
+import { getClientIp } from "@/lib/security/client-ip";
 
 export const runtime = "nodejs";
 
@@ -22,6 +23,7 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServerSupabaseClient();
   const authed = createServerSupabaseAnonClient();
+  const clientIp = getClientIp(request);
   await authed.auth.setSession({
     access_token: parsed.data.access_token,
     refresh_token: ""
@@ -41,7 +43,8 @@ export async function POST(request: NextRequest) {
   if (user.data.user) {
     await supabase.from("audit_logs").insert({
       user_id: user.data.user.id,
-      action: "user_password_reset"
+      action: "user_password_reset",
+      ip: clientIp
     });
   }
 
