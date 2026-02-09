@@ -21,6 +21,7 @@ export default async function DashboardPage({
     });
     return `${formatter.format(new Date(value))} (UTC)`;
   };
+
   const resolvedLocale = lang === "zh" ? "zh-CN" : "en-US";
   const expiresAtDisplay = data.expiresAtIso
     ? formatExpiresAt(data.expiresAtIso, resolvedLocale)
