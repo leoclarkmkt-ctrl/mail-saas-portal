@@ -1,15 +1,15 @@
 import { getDictionary } from "@/i18n";
 import { getLangFromRequest } from "@/lib/i18n/server";
 import { AdminSectionHeader } from "@/components/admin-section-header";
-import { AdminAudit } from "@/components/admin-audit";
+import { AdminAnnouncements } from "@/components/admin-announcements";
 
-export default function AdminAuditPage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
+export default function AdminAnnouncementsPage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
   const lang = getLangFromRequest(searchParams);
   const dict = getDictionary(lang);
   return (
     <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
       <AdminSectionHeader
-        title={dict.admin.audit}
+        title={dict.admin.announcements}
         lang={lang}
         labels={{
           overview: dict.admin.summary,
@@ -20,12 +20,7 @@ export default function AdminAuditPage({ searchParams }: { searchParams?: Record
           status: dict.admin.status
         }}
       />
-      <AdminAudit
-        key={lang}
-        lang={lang}
-        labels={dict.admin.auditLabels}
-        actionLabels={dict.admin.auditActionLabels}
-      />
+      <AdminAnnouncements labels={dict.admin.announcementsLabels} lang={lang} />
     </div>
   );
 }

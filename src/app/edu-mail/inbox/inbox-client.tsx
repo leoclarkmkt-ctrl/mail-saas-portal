@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { LogoutButton } from "@/components/edu-mail-actions";
+import { AnnouncementContent } from "@/components/announcement-content";
 import { formatDate } from "@/lib/utils/format";
 import { withLang } from "@/lib/i18n/shared";
 
@@ -28,6 +29,10 @@ type InboxClientProps = {
       detailPlaceholderTitle: string;
       detailPlaceholderBody: string;
       emailContentTitle: string;
+      announcementsTitle: string;
+      announcementsEmpty: string;
+      announcementsMore: string;
+      announcementUnsupported: string;
     };
   };
   selectedId: string | null;
@@ -45,6 +50,15 @@ type MessageDetail = InboxMessage & {
   html_body: string | null;
 };
 
+type Announcement = {
+  id: string;
+  title: string;
+  excerpt: string | null;
+  content_json: unknown;
+  published_at: string | null;
+  sort_order: number;
+};
+
 const buildInboxLink = (id: string | null, lang: "en" | "zh") => {
   if (!id) return withLang("/edu-mail/inbox", lang);
   const url = new URL(withLang("/edu-mail/inbox", lang), "http://localhost");
@@ -59,6 +73,10 @@ export function InboxClient({ lang, dict, selectedId }: InboxClientProps) {
   const [messageDetail, setMessageDetail] = useState<MessageDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [announcementsLoading, setAnnouncementsLoading] = useState(true);
+  const [expandedAnnouncementId, setExpandedAnnouncementId] = useState<string | null>(null);
+  const trackedAnnouncementIds = useRef<Set<string>>(new Set());
 
   const fetchMessages = useCallback(async () => {
     setLoading(true);
@@ -106,9 +124,31 @@ export function InboxClient({ lang, dict, selectedId }: InboxClientProps) {
     }
   }, []);
 
+  const fetchAnnouncements = useCallback(async () => {
+    setAnnouncementsLoading(true);
+    try {
+      const res = await fetch("/api/announcements?limit=5", {
+        credentials: "include"
+      });
+      const data = (await res.json()) as {
+        ok: boolean;
+        data?: Announcement[];
+      };
+      if (data.ok) {
+        setAnnouncements(data.data ?? []);
+      }
+    } finally {
+      setAnnouncementsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchMessages();
   }, [fetchMessages]);
+
+  useEffect(() => {
+    fetchAnnouncements();
+  }, [fetchAnnouncements]);
 
   useEffect(() => {
     fetchMessageDetail(selectedId);
@@ -221,6 +261,7 @@ export function InboxClient({ lang, dict, selectedId }: InboxClientProps) {
           onClick={() => {
             fetchMessages();
             fetchMessageDetail(selectedId);
+            fetchAnnouncements();
           }}
           disabled={loading || detailLoading}
         >
@@ -228,6 +269,62 @@ export function InboxClient({ lang, dict, selectedId }: InboxClientProps) {
             ? dict.inbox.refreshing
             : dict.inbox.refresh}
         </Button>
+      </div>
+
+      {/* Announcements */}
+      <div className="rounded-2xl border border-slate-200 bg-white px-6 py-4 shadow-sm">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-primary">{dict.inbox.announcementsTitle}</h3>
+          <span className="text-xs text-slate-400">{dict.inbox.announcementsMore}</span>
+        </div>
+        <div className="mt-4 space-y-3">
+          {announcementsLoading ? (
+            <p className="text-sm text-slate-500">{dict.inbox.refreshing}</p>
+          ) : announcements.length === 0 ? (
+            <p className="text-sm text-slate-500">{dict.inbox.announcementsEmpty}</p>
+          ) : (
+            announcements.map((announcement) => {
+              const isExpanded = expandedAnnouncementId === announcement.id;
+              return (
+                <div key={announcement.id} className="rounded-xl border border-slate-200">
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                    onClick={() => {
+                      const nextId = isExpanded ? null : announcement.id;
+                      setExpandedAnnouncementId(nextId);
+                      if (nextId && !trackedAnnouncementIds.current.has(nextId)) {
+                        trackedAnnouncementIds.current.add(nextId);
+                        fetch("/api/announcements/view", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ announcementId: nextId })
+                        }).catch(() => undefined);
+                      }
+                    }}
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">{announcement.title}</p>
+                      <p className="text-xs text-slate-400">
+                        {announcement.published_at ? formatDate(announcement.published_at) : "--"}
+                      </p>
+                    </div>
+                    <span className="text-xs text-slate-400">{isExpanded ? "-" : "+"}</span>
+                  </button>
+                  {isExpanded && (
+                    <div className="border-t border-slate-200 px-4 py-3 text-sm text-slate-700">
+                      <AnnouncementContent
+                        content={announcement.content_json}
+                        excerpt={announcement.excerpt}
+                        fallback={dict.inbox.announcementUnsupported}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
 
       {/* Content */}

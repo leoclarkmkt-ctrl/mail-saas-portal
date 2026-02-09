@@ -8,6 +8,7 @@ type AdminSectionHeaderProps = {
     overview: string;
     codes: string;
     users: string;
+    announcements: string;
     audit: string;
     status: string;
   };
