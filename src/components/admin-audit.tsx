@@ -24,12 +24,14 @@ export function AdminAudit({ labels, lang }: { labels: AdminAuditLabels; lang: L
   const load = useCallback(async () => {
     setError(null);
     try {
-      const res = await fetch(`/api/admin/audit?query=${encodeURIComponent(query)}`);
+      const trimmed = query.trim();
+      const endpoint = trimmed ? `/api/admin/audit?query=${encodeURIComponent(trimmed)}` : "/api/admin/audit";
+      const res = await fetch(endpoint);
       if (!res.ok) {
         throw new Error(labels.failedToLoad);
       }
-      const data = await res.json();
-      setLogs(data.logs ?? []);
+      const payload = await res.json();
+      setLogs(payload.data ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : labels.failedToLoad);
     }
@@ -41,9 +43,16 @@ export function AdminAudit({ labels, lang }: { labels: AdminAuditLabels; lang: L
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-3">
-        <Input placeholder={labels.searchPlaceholder} value={query} onChange={(e) => setQuery(e.target.value)} />
-        <Button onClick={load}>{labels.search}</Button>
+      <div className="flex items-center gap-2">
+        <Input
+          className="w-full max-w-md"
+          placeholder={labels.searchPlaceholder}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <Button className="shrink-0" onClick={load}>
+          {labels.search}
+        </Button>
       </div>
       {error && (
         <div className="flex items-center gap-3 text-sm text-rose-500">

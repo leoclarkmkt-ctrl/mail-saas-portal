@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { renewSchema } from "@/lib/validation/schemas";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { clearUserSession, getUserSession } from "@/lib/auth/user-session";
+import { clearUserSession, requireUserSession } from "@/lib/auth/user-session";
 import { jsonSuccess } from "@/lib/utils/api";
 import { NextResponse } from "next/server";
 
@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 export async function POST(request: NextRequest) {
   const errorResponse = (key: string, status: number) =>
     NextResponse.json({ ok: false, error: { key } }, { status });
-  const session = await getUserSession();
+  const session = await requireUserSession();
   if (!session) {
     return errorResponse("unauthorized", 401);
   }

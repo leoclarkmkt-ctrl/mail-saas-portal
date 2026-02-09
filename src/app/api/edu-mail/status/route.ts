@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getUserSession } from "@/lib/auth/user-session";
+import { requireUserSession } from "@/lib/auth/user-session";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -12,7 +12,7 @@ export async function GET() {
     return response;
   };
 
-  const session = await getUserSession();
+  const session = await requireUserSession();
   if (!session || session.mode !== "personal") {
     return respond({ ok: true, active: false, expired: true });
   }

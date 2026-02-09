@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getUserSession } from "@/lib/auth/user-session";
+import { requireUserSession } from "@/lib/auth/user-session";
 
 export const runtime = "nodejs";
 
@@ -8,7 +8,7 @@ const jsonError = (code: string, message: string, status = 400) =>
   NextResponse.json({ ok: false, error: { code, message } }, { status });
 
 export async function GET(request: NextRequest) {
-  const session = await getUserSession();
+  const session = await requireUserSession();
   if (!session || session.mode !== "edu") {
     return jsonError("unauthorized", "Unauthorized", 401);
   }

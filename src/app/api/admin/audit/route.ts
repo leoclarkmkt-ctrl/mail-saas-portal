@@ -8,14 +8,25 @@ export const runtime = "nodejs";
 export async function GET(request: NextRequest) {
   const session = await getAdminSession();
   if (!session) return jsonError("Unauthorized", 401);
-  const query = request.nextUrl.searchParams.get("query")?.toLowerCase() ?? "";
+  const query = request.nextUrl.searchParams.get("query")?.trim() ?? "";
+  const escapedQuery = query.replace(/[%_]/g, "\\$&");
   const supabase = createServerSupabaseClient();
+  if (!query) {
+    const { data, error } = await supabase
+      .from("audit_logs")
+      .select("id, user_id, action, ip, created_at")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (error) return jsonError(error.message, 500);
+    return jsonSuccess({ ok: true, data: data ?? [] });
+  }
+
   const { data, error } = await supabase
     .from("audit_logs")
     .select("id, user_id, action, ip, created_at")
-    .or(`action.ilike.%${query}%,user_id.ilike.%${query}%`)
+    .or(`action.ilike.%${escapedQuery}%,ip.ilike.%${escapedQuery}%,user_id::text.ilike.%${escapedQuery}%`)
     .order("created_at", { ascending: false })
     .limit(200);
-  if (error) return jsonError(error.message, 400);
-  return jsonSuccess({ logs: data ?? [] });
+  if (error) return jsonError(error.message, 500);
+  return jsonSuccess({ ok: true, data: data ?? [] });
 }
