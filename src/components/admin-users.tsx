@@ -52,7 +52,7 @@ export function AdminUsers({ labels, lang }: { labels: AdminUsersLabels; lang: L
     await fetch("/api/admin/users", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user_id: userId, renew: true })
+      body: JSON.stringify({ user_id: userId, action: "renew" })
     });
     search();
   };

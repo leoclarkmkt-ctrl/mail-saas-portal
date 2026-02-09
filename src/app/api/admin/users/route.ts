@@ -113,9 +113,9 @@ export async function PATCH(request: NextRequest) {
   const supabase = createServerSupabaseClient();
   const clientIp = getClientIp(request);
 
-  // A) 管理员续期
-  if (parsed.data.renew || parsed.data.years) {
-    const years = parsed.data.years ?? 1;
+  // A) 管理员续期（固定 1 年）
+  if (parsed.data.action === "renew") {
+    const years = 1;
     const { error } = await supabase.rpc("admin_renew_user", {
       p_user_id: parsed.data.user_id,
       p_years: years
