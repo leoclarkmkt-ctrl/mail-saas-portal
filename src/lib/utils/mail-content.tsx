@@ -5,10 +5,6 @@ const urlRegex = /https?:\/\/[^\s<]+/gi;
 const linkStyleClass =
   "mail-link inline-flex max-w-full flex-wrap items-center gap-1 align-middle break-words text-sky-600 hover:text-sky-700 visited:!text-indigo-600 visited:hover:!text-indigo-700";
 const linkTextClass = "break-all";
-const iconClass = "inline-flex h-3.5 w-3.5 items-center";
-const badgeClass =
-  "inline-flex items-center rounded bg-emerald-50 px-1 py-0.5 text-[10px] font-semibold uppercase leading-none text-emerald-700";
-
 const LINK_ATTRS = {
   target: "_blank",
   rel: "noopener noreferrer nofollow"
@@ -28,56 +24,6 @@ const getNormalizedHref = (href: string) => {
     return href;
   }
   return href;
-};
-
-const getTrustedTld = (href: string) => {
-  try {
-    const url = new URL(href);
-    if (url.hostname.endsWith(".edu")) return "EDU";
-    if (url.hostname.endsWith(".gov")) return "GOV";
-  } catch {
-    return null;
-  }
-  return null;
-};
-
-const isExternalHttpLink = (href: string) =>
-  href.startsWith("http://") || href.startsWith("https://");
-
-const createIconElement = (doc: Document) => {
-  const span = doc.createElement("span");
-  span.className = iconClass;
-  span.setAttribute("aria-hidden", "true");
-
-  const svg = doc.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("viewBox", "0 0 24 24");
-  svg.setAttribute("fill", "none");
-  svg.setAttribute("stroke", "currentColor");
-  svg.setAttribute("stroke-width", "2");
-  svg.setAttribute("stroke-linecap", "round");
-  svg.setAttribute("stroke-linejoin", "round");
-  svg.setAttribute("width", "14");
-  svg.setAttribute("height", "14");
-
-  const path = doc.createElementNS("http://www.w3.org/2000/svg", "path");
-  path.setAttribute("d", "M7 7h10v10");
-  const line = doc.createElementNS("http://www.w3.org/2000/svg", "line");
-  line.setAttribute("x1", "7");
-  line.setAttribute("y1", "17");
-  line.setAttribute("x2", "17");
-  line.setAttribute("y2", "7");
-
-  svg.appendChild(path);
-  svg.appendChild(line);
-  span.appendChild(svg);
-  return span;
-};
-
-const createBadgeElement = (doc: Document, label: string) => {
-  const badge = doc.createElement("span");
-  badge.className = badgeClass;
-  badge.textContent = label;
-  return badge;
 };
 
 const wrapAnchorContents = (anchor: HTMLAnchorElement, doc: Document) => {
@@ -101,9 +47,6 @@ const wrapAnchorContents = (anchor: HTMLAnchorElement, doc: Document) => {
 const enhanceAnchor = (anchor: HTMLAnchorElement, doc: Document) => {
   const href = anchor.getAttribute("href") ?? "";
   const normalizedHref = getNormalizedHref(href);
-  const trustedTld = getTrustedTld(normalizedHref);
-  const isExternal = isExternalHttpLink(normalizedHref);
-
   setLinkAttributes(anchor);
 
   // Keep existing classes, append ours.
@@ -115,13 +58,7 @@ const enhanceAnchor = (anchor: HTMLAnchorElement, doc: Document) => {
   // Ensure long URLs wrap without breaking clickable area.
   wrapAnchorContents(anchor, doc);
 
-  if (trustedTld) {
-    anchor.appendChild(createBadgeElement(doc, trustedTld));
-  }
-
-  if (isExternal) {
-    anchor.appendChild(createIconElement(doc));
-  }
+  return;
 };
 
 const stripTrailingPunctuation = (value: string) => {
@@ -137,33 +74,41 @@ const stripTrailingPunctuation = (value: string) => {
 
 const getUrlMatches = (text: string) => Array.from(text.matchAll(urlRegex));
 
-const isSafeUrl = (value: string, attributeName: string) => {
+const isSafeUrl = (value: string) => {
   const normalized = value.trim().toLowerCase();
-  if (normalized.startsWith("javascript:") || normalized.startsWith("vbscript:")) {
-    return false;
-  }
-  if (attributeName === "src" && normalized.startsWith("data:image/")) {
-    return true;
-  }
   return (
     normalized.startsWith("http://") ||
     normalized.startsWith("https://") ||
-    normalized.startsWith("mailto:") ||
-    normalized.startsWith("tel:") ||
-    normalized.startsWith("/") ||
-    normalized.startsWith("#")
+    normalized.startsWith("mailto:")
   );
 };
 
 const sanitizeDocument = (doc: Document) => {
   const forbiddenTags = new Set([
-    "script",
-    "iframe",
+    "audio",
+    "base",
+    "button",
+    "canvas",
     "embed",
-    "object",
+    "form",
+    "iframe",
+    "img",
+    "input",
     "link",
     "meta",
-    "base"
+    "object",
+    "picture",
+    "script",
+    "style",
+    "svg",
+    "video",
+    "select",
+    "textarea"
+  ]);
+
+  const allowedAttributes = new Map<string, Set<string>>([
+    ["a", new Set(["href", "target", "rel", "class", "title"])],
+    ["*", new Set(["class"])]
   ]);
 
   const elements = Array.from(doc.body.querySelectorAll("*"));
@@ -181,10 +126,15 @@ const sanitizeDocument = (doc: Document) => {
         return;
       }
 
-      if (name === "href" || name === "src") {
-        if (!isSafeUrl(attr.value, name)) {
-          element.removeAttribute(attr.name);
-        }
+      const tagAllowed =
+        allowedAttributes.get(tagName) ?? allowedAttributes.get("*") ?? new Set();
+      if (!tagAllowed.has(name)) {
+        element.removeAttribute(attr.name);
+        return;
+      }
+
+      if (tagName === "a" && name === "href" && !isSafeUrl(attr.value)) {
+        element.removeAttribute(attr.name);
       }
     });
   });
@@ -267,8 +217,6 @@ const renderPlainTextLine = (line: string, lineIndex: number) => {
     const { url, trailing } = stripTrailingPunctuation(matchText);
 
     const normalizedHref = getNormalizedHref(url);
-    const trustedTld = getTrustedTld(normalizedHref);
-    const isExternal = isExternalHttpLink(normalizedHref);
 
     if (matchIndex > lastIndex) {
       parts.push(line.slice(lastIndex, matchIndex));
@@ -284,24 +232,6 @@ const renderPlainTextLine = (line: string, lineIndex: number) => {
         className={linkStyleClass}
       >
         <span className={linkTextClass}>{url}</span>
-        {trustedTld ? <span className={badgeClass}>{trustedTld}</span> : null}
-        {isExternal ? (
-          <span className={iconClass} aria-hidden="true">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              width="14"
-              height="14"
-            >
-              <path d="M7 7h10v10" />
-              <line x1="7" y1="17" x2="17" y2="7" />
-            </svg>
-          </span>
-        ) : null}
       </a>
     );
 
