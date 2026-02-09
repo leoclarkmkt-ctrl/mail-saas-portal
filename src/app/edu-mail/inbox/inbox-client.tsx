@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { LogoutButton } from "@/components/edu-mail-actions";
 import { AnnouncementContent } from "@/components/announcement-content";
 import { formatDate } from "@/lib/utils/format";
-import { renderPlainTextWithLinks, sanitizeAndLinkifyHtml } from "@/lib/utils/mail-content";
+import { EmailBody } from "@/components/email-body";
 import { withLang } from "@/lib/i18n/shared";
 
 type InboxClientProps = {
@@ -77,7 +77,6 @@ export function InboxClient({ lang, dict, selectedId }: InboxClientProps) {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [announcementsLoading, setAnnouncementsLoading] = useState(true);
   const [expandedAnnouncementId, setExpandedAnnouncementId] = useState<string | null>(null);
-  const [sanitizedHtmlBody, setSanitizedHtmlBody] = useState<string | null>(null);
   const trackedAnnouncementIds = useRef<Set<string>>(new Set());
 
   const fetchMessages = useCallback(async () => {
@@ -155,15 +154,6 @@ export function InboxClient({ lang, dict, selectedId }: InboxClientProps) {
   useEffect(() => {
     fetchMessageDetail(selectedId);
   }, [fetchMessageDetail, selectedId]);
-
-  useEffect(() => {
-    if (!messageDetail?.html_body) {
-      setSanitizedHtmlBody(null);
-      return;
-    }
-
-    setSanitizedHtmlBody(sanitizeAndLinkifyHtml(messageDetail.html_body));
-  }, [messageDetail?.html_body]);
 
   const listContent = useMemo(() => {
     if (loading) {
@@ -367,18 +357,16 @@ export function InboxClient({ lang, dict, selectedId }: InboxClientProps) {
                 </p>
               </div>
 
-              {messageDetail.text_plain ? (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
-                  <pre className="whitespace-pre-wrap font-sans">
-                    {renderPlainTextWithLinks(messageDetail.text_plain)}
-                  </pre>
-                </div>
-              ) : messageDetail.html_body ? (
+              {messageDetail.html_body?.trim() || messageDetail.text_plain?.trim() ? (
                 <div
                   title={dict.inbox.emailContentTitle}
-                  className="min-h-[360px] w-full rounded-xl border border-slate-200"
-                  dangerouslySetInnerHTML={{ __html: sanitizedHtmlBody ?? "" }}
-                />
+                  className="rounded-xl border border-slate-200 p-4 text-sm text-slate-700"
+                >
+                  <EmailBody
+                    htmlBody={messageDetail.html_body}
+                    textPlain={messageDetail.text_plain}
+                  />
+                </div>
               ) : (
                 <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
                   {dict.inbox.noContent}
