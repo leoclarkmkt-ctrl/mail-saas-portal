@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useId, useEffect } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,7 +49,7 @@ export function DashboardPanel({
   data,
   labels,
   lang,
-  showEduExpiredOnLoad
+  showEduExpiredOnLoad,
 }: {
   data: DashboardData;
   labels: DashboardLabels;
@@ -85,9 +85,7 @@ export function DashboardPanel({
   };
 
   const resolveErrorMessage = (key?: string) => {
-    if (key && labels.errorMessages[key]) {
-      return labels.errorMessages[key];
-    }
+    if (key && labels.errorMessages[key]) return labels.errorMessages[key];
     return labels.errorMessages.unknown ?? labels.errorFallback;
   };
 
@@ -157,7 +155,6 @@ export function DashboardPanel({
     try {
       await fetch("/api/logout", { method: "POST" });
     } finally {
-      // 无论请求是否成功，都跳转官网
       window.location.href = homeUrl;
       setIsLoggingOut(false);
     }
@@ -171,11 +168,10 @@ export function DashboardPanel({
         cache: "no-store",
         credentials: "include",
       });
-      const payload = await parseJson<{
-        active?: boolean;
-        expired?: boolean;
-      }>(res);
 
+      const payload = await parseJson<{ active?: boolean; expired?: boolean }>(res);
+
+      // ✅ only redirect when active === true
       if (res.ok && payload?.active === true) {
         window.location.href = withLang("/api/edu-mail/sso", lang);
         return;
@@ -189,12 +185,12 @@ export function DashboardPanel({
     setShowEduExpired(true);
   };
 
+  // ✅ auto-open modal when redirected back with edu=expired
   useEffect(() => {
-    if (showEduExpiredOnLoad) {
-      setShowEduExpired(true);
-    }
+    if (showEduExpiredOnLoad) setShowEduExpired(true);
   }, [showEduExpiredOnLoad]);
 
+  // ✅ once modal is open, remove edu=expired from URL to avoid sticky modal
   useEffect(() => {
     if (!showEduExpired || typeof window === "undefined") return;
     const url = new URL(window.location.href);
@@ -228,7 +224,6 @@ export function DashboardPanel({
           </div>
         </div>
 
-        {/* action bar */}
         <div className="mt-4 flex flex-wrap gap-3">
           <Button onClick={handleEduLogin} disabled={isCheckingEdu} aria-busy={isCheckingEdu}>
             {labels.webmail}
