@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useId } from "react";
+import { useState, useId, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { Locale } from "@/i18n";
+import { withLang } from "@/lib/i18n/shared";
 import { maskEmail } from "@/lib/utils/format";
 
 export type DashboardData = {
@@ -38,9 +40,22 @@ type DashboardLabels = {
   renewEnableFailed: string;
   errorFallback: string;
   errorMessages: Record<string, string>;
+  eduMailExpiredTitle: string;
+  eduMailExpiredBody: string;
+  ok: string;
 };
 
-export function DashboardPanel({ data, labels }: { data: DashboardData; labels: DashboardLabels }) {
+export function DashboardPanel({
+  data,
+  labels,
+  lang,
+  showEduExpiredOnLoad
+}: {
+  data: DashboardData;
+  labels: DashboardLabels;
+  lang?: Locale;
+  showEduExpiredOnLoad?: boolean;
+}) {
   const [message, setMessage] = useState<string | null>(null);
   const [renewEnabled, setRenewEnabled] = useState<boolean | null>(null);
   const [renewCode, setRenewCode] = useState("");
@@ -49,13 +64,16 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
   const [isChanging, setIsChanging] = useState(false);
   const [isRenewing, setIsRenewing] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isCheckingEdu, setIsCheckingEdu] = useState(false);
+  const [showEduExpired, setShowEduExpired] = useState(false);
 
   const oldPasswordId = useId();
   const newPasswordId = useId();
   const renewCodeId = useId();
   const messageId = useId();
+  const eduModalTitleId = useId();
+  const eduModalBodyId = useId();
 
-  const webmailUrl = "https://portal.nsuk.edu.kg/edu-mail";
   const homeUrl = "https://www.nsuk.edu.kg/";
 
   const parseJson = async <T,>(res: Response): Promise<T | null> => {
@@ -145,6 +163,37 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
     }
   };
 
+  const handleEduLogin = async () => {
+    setIsCheckingEdu(true);
+    try {
+      const res = await fetch(withLang("/api/edu-mail/status", lang), {
+        method: "GET",
+        credentials: "include",
+      });
+      const payload = await parseJson<{
+        active?: boolean;
+        expired?: boolean;
+      }>(res);
+
+      if (res.ok && payload?.active === true) {
+        window.location.href = withLang("/api/edu-mail/sso", lang);
+        return;
+      }
+    } catch {
+      // ignore and fall through to modal
+    } finally {
+      setIsCheckingEdu(false);
+    }
+
+    setShowEduExpired(true);
+  };
+
+  useEffect(() => {
+    if (showEduExpiredOnLoad) {
+      setShowEduExpired(true);
+    }
+  }, [showEduExpiredOnLoad]);
+
   return (
     <div className="space-y-6">
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -172,7 +221,9 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
 
         {/* action bar */}
         <div className="mt-4 flex flex-wrap gap-3">
-          <Button onClick={() => window.open(webmailUrl, "_blank")}>{labels.webmail}</Button>
+          <Button onClick={handleEduLogin} disabled={isCheckingEdu} aria-busy={isCheckingEdu}>
+            {labels.webmail}
+          </Button>
           <Button onClick={logout} disabled={isLoggingOut} aria-busy={isLoggingOut}>
             {labels.logout}
           </Button>
@@ -254,6 +305,28 @@ export function DashboardPanel({ data, labels }: { data: DashboardData; labels: 
         <p className="text-sm text-slate-500" id={messageId}>
           {message}
         </p>
+      )}
+
+      {showEduExpired && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={eduModalTitleId}
+          aria-describedby={eduModalBodyId}
+        >
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg">
+            <h3 className="text-lg font-semibold" id={eduModalTitleId}>
+              {labels.eduMailExpiredTitle}
+            </h3>
+            <p className="mt-2 text-sm text-slate-600" id={eduModalBodyId}>
+              {labels.eduMailExpiredBody}
+            </p>
+            <div className="mt-6 flex justify-end">
+              <Button onClick={() => setShowEduExpired(false)}>{labels.ok}</Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

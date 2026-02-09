@@ -46,6 +46,13 @@ export default async function DashboardPage({
     ? dict.dashboard.expired
     : dict.dashboard.active;
 
+  const eduExpiredFlag =
+    typeof searchParams?.edu === "string"
+      ? searchParams.edu
+      : Array.isArray(searchParams?.edu)
+      ? searchParams?.edu?.[0]
+      : undefined;
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-semibold text-primary">{dict.dashboard.title}</h2>
@@ -88,7 +95,12 @@ export default async function DashboardPage({
 
           errorFallback: dict.dashboard.errorFallback,
           errorMessages: dict.dashboard.errorMessages,
+          eduMailExpiredTitle: dict.dashboard.eduMailExpiredTitle,
+          eduMailExpiredBody: dict.dashboard.eduMailExpiredBody,
+          ok: dict.common.ok,
         }}
+        lang={lang}
+        showEduExpiredOnLoad={eduExpiredFlag === "expired"}
       />
     </div>
   );
