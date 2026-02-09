@@ -88,7 +88,11 @@ export default async function DashboardPage({
 
           errorFallback: dict.dashboard.errorFallback,
           errorMessages: dict.dashboard.errorMessages,
+          eduMailExpiredTitle: dict.dashboard.eduMailExpiredTitle,
+          eduMailExpiredBody: dict.dashboard.eduMailExpiredBody,
+          ok: dict.common.ok,
         }}
+        lang={lang}
       />
     </div>
   );
