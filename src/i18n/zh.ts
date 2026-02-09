@@ -188,17 +188,63 @@ export const zh = {
       prefix: "前缀",
       note: "备注",
       generate: "生成",
+      generating: "生成中...",
+      export: "导出",
+      exporting: "导出中...",
       exportCsv: "导出 CSV",
       search: "搜索",
       searchPlaceholder: "搜索激活码或备注",
+      searchLabel: "搜索激活码",
+      searchHelp: "支持按激活码或备注内容搜索。",
+      formLabels: {
+        quantity: "生成数量",
+        prefix: "前缀",
+        note: "备注"
+      },
+      formHelp: {
+        quantity: "设置本次生成的数量。",
+        prefix: "可选前缀，用于批次管理。",
+        note: "可选备注，便于运营追踪。"
+      },
+      placeholders: {
+        quantity: "例如：10",
+        prefix: "可选，例如：NSUK",
+        note: "可选，用于说明用途"
+      },
       selected: "已选",
+      selectedHelp: "仅撤销未使用，其他将被跳过。",
       batchRevoke: "批量撤销",
+      revoking: "撤销中...",
+      revokeConfirmTitle: "确认撤销该激活码？",
+      revokeConfirmDescription: "仅撤销未使用状态，已使用或已撤销将被跳过。",
+      revokeConfirmAction: "确认撤销",
+      batchRevokeConfirmTitle: "确认批量撤销选中激活码？",
+      batchRevokeConfirmDescription: "仅撤销未使用状态，已使用或已撤销将被跳过。",
+      batchRevokeConfirmAction: "确认撤销",
+      confirmCancel: "取消",
+      confirmProcessing: "处理中...",
       codesFailed: "生成失败",
+      toasts: {
+        generateSuccess: "成功生成 {{count}} 个激活码。",
+        generateFailed: "生成失败，请重试。",
+        exportFilteredSuccess: "已导出筛选结果。",
+        exportSelectedSuccess: "已导出选中 {{count}} 条。",
+        exportFailed: "导出失败，请重试。",
+        revokeSuccess: "已撤销 {{revoked}} 个，跳过 {{skipped}} 个。",
+        revokeFailed: "撤销失败，请重试。",
+        revokeSingleSuccess: "激活码已撤销。"
+      },
       statuses: {
         all: "全部",
         unused: "未使用",
         used: "已使用",
         revoked: "已撤销"
+      },
+      statusLabels: {
+        unused: "未使用",
+        used: "已使用",
+        revoked: "已撤销",
+        unknown: "未知"
       },
       code: "激活码",
       status: "状态",

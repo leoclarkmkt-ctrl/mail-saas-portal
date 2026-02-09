@@ -194,17 +194,63 @@ export const en = {
       prefix: "Prefix",
       note: "Note",
       generate: "Generate",
+      generating: "Generating...",
+      export: "Export",
+      exporting: "Exporting...",
       exportCsv: "Export CSV",
       search: "Search",
       searchPlaceholder: "Search code or note",
+      searchLabel: "Search activation codes",
+      searchHelp: "Search by code or note content.",
+      formLabels: {
+        quantity: "Count",
+        prefix: "Prefix",
+        note: "Note"
+      },
+      formHelp: {
+        quantity: "How many codes to generate in this batch.",
+        prefix: "Optional prefix to group codes.",
+        note: "Optional note for operational tracking."
+      },
+      placeholders: {
+        quantity: "e.g. 10",
+        prefix: "Optional, e.g. NSUK",
+        note: "Optional, for tracking purpose"
+      },
       selected: "Selected",
+      selectedHelp: "Only unused codes can be revoked.",
       batchRevoke: "Revoke selected",
+      revoking: "Revoking...",
+      revokeConfirmTitle: "Revoke this activation code?",
+      revokeConfirmDescription: "Only unused codes will be revoked. Used or revoked codes will be skipped.",
+      revokeConfirmAction: "Confirm revoke",
+      batchRevokeConfirmTitle: "Revoke selected activation codes?",
+      batchRevokeConfirmDescription: "Only unused codes will be revoked. Used or revoked codes will be skipped.",
+      batchRevokeConfirmAction: "Confirm revoke",
+      confirmCancel: "Cancel",
+      confirmProcessing: "Processing...",
       codesFailed: "Failed",
+      toasts: {
+        generateSuccess: "Generated {{count}} activation codes.",
+        generateFailed: "Failed to generate codes.",
+        exportFilteredSuccess: "Exported filtered activation codes.",
+        exportSelectedSuccess: "Exported {{count}} selected activation codes.",
+        exportFailed: "Failed to export codes.",
+        revokeSuccess: "Revoked {{revoked}} codes, skipped {{skipped}}.",
+        revokeFailed: "Failed to revoke codes.",
+        revokeSingleSuccess: "Activation code revoked."
+      },
       statuses: {
         all: "All",
         unused: "Unused",
         used: "Used",
         revoked: "Revoked"
+      },
+      statusLabels: {
+        unused: "Unused",
+        used: "Used",
+        revoked: "Revoked",
+        unknown: "Unknown"
       },
       code: "Code",
       status: "Status",
