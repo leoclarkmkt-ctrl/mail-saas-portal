@@ -92,6 +92,14 @@ export async function POST(request: NextRequest) {
       action: "user_login_personal"
     });
 
+    await supabase.from("user_presence").upsert(
+      {
+        user_id: userId,
+        last_seen_at: new Date().toISOString()
+      },
+      { onConflict: "user_id" }
+    );
+
     return jsonSuccess({ ok: true });
   }
 
@@ -145,6 +153,14 @@ export async function POST(request: NextRequest) {
     user_id: data.user_id,
     action: "user_login_edu"
   });
+
+  await supabase.from("user_presence").upsert(
+    {
+      user_id: data.user_id,
+      last_seen_at: new Date().toISOString()
+    },
+    { onConflict: "user_id" }
+  );
 
   return jsonSuccess({ ok: true });
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { createUserSession, getUserSession } from "@/lib/auth/user-session";
+import { createUserSession, requireUserSession } from "@/lib/auth/user-session";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { withLang } from "@/lib/i18n/shared";
 
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const lang = getLangFromUrl(requestUrl);
 
-  const session = await getUserSession();
+  const session = await requireUserSession();
   const loginUrl = new URL(withLang("/login", lang), requestUrl);
 
   // 必须是 personal session 才允许 SSO
