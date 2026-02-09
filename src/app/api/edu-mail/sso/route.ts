@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     .maybeSingle();
 
   const expiresAtMs = data?.expires_at ? Date.parse(data.expires_at) : NaN;
-  const expired = !expiresAtMs || Number.isNaN(expiresAtMs) || expiresAtMs <= Date.now();
+  const expired = Number.isNaN(expiresAtMs) || expiresAtMs <= Date.now();
   const active = data?.status === "active" && !expired;
 
   if (error || !data || !active) {

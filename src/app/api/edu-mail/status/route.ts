@@ -29,7 +29,7 @@ export async function GET() {
   }
 
   const expiresAtMs = data.expires_at ? Date.parse(data.expires_at) : NaN;
-  const expired = !expiresAtMs || Number.isNaN(expiresAtMs) || expiresAtMs <= Date.now();
+  const expired = Number.isNaN(expiresAtMs) || expiresAtMs <= Date.now();
   const active = data.status === "active" && !expired;
 
   return respond({ ok: true, active, expired });

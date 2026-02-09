@@ -168,6 +168,7 @@ export function DashboardPanel({
     try {
       const res = await fetch(withLang("/api/edu-mail/status", lang), {
         method: "GET",
+        cache: "no-store",
         credentials: "include",
       });
       const payload = await parseJson<{
@@ -193,6 +194,14 @@ export function DashboardPanel({
       setShowEduExpired(true);
     }
   }, [showEduExpiredOnLoad]);
+
+  useEffect(() => {
+    if (!showEduExpired || typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("edu") !== "expired") return;
+    url.searchParams.delete("edu");
+    window.history.replaceState({}, "", url.toString());
+  }, [showEduExpired]);
 
   return (
     <div className="space-y-6">
