@@ -70,6 +70,25 @@ create table if not exists user_presence (
   last_seen_at timestamptz not null
 );
 
+create table if not exists announcements (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  excerpt text,
+  content_json jsonb not null default '{}'::jsonb,
+  is_published boolean not null default false,
+  published_at timestamptz,
+  sort_order int not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists announcement_views (
+  id bigint generated always as identity primary key,
+  announcement_id uuid not null references public.announcements(id) on delete cascade,
+  user_id uuid references auth.users(id),
+  created_at timestamptz not null default now()
+);
+
 create index if not exists idx_profiles_email on profiles (personal_email);
 create index if not exists idx_edu_email on edu_accounts (edu_email);
 create index if not exists idx_edu_username on edu_accounts (edu_username);
@@ -80,6 +99,26 @@ create index if not exists idx_audit_action on audit_logs (action);
 create index if not exists idx_audit_user on audit_logs (user_id);
 create unique index if not exists idx_user_presence_user_id on user_presence (user_id);
 create index if not exists idx_user_presence_last_seen on user_presence (last_seen_at desc);
+create index if not exists idx_announcements_published_at on announcements (is_published, published_at desc);
+create index if not exists idx_announcements_sort on announcements (sort_order desc, published_at desc, created_at desc);
+create index if not exists idx_announcement_views_announcement_time on announcement_views (announcement_id, created_at desc);
+create index if not exists idx_announcement_views_time on announcement_views (created_at desc);
+create index if not exists idx_announcement_views_announcement_user on announcement_views (announcement_id, user_id);
+
+alter table announcements enable row level security;
+alter table announcement_views enable row level security;
+
+create policy announcements_select_published
+on announcements
+for select
+to anon, authenticated
+using (is_published = true);
+
+create policy announcement_views_insert
+on announcement_views
+for insert
+to anon, authenticated
+with check (true);
 
 create or replace function redeem_activation_code(
   p_code text,

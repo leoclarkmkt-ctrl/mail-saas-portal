@@ -53,6 +53,10 @@ type EduMailDict = {
     noSubject: string;
     loading: string;
     failed: string;
+    announcementsTitle: string;
+    announcementsEmpty: string;
+    announcementsMore: string;
+    announcementUnsupported: string;
   };
 };
 
@@ -121,7 +125,11 @@ const en: EduMailDict = {
     unknownSender: "Unknown",
     noSubject: "(No subject)",
     loading: "Loading...",
-    failed: "Failed to load"
+    failed: "Failed to load",
+    announcementsTitle: "System announcements",
+    announcementsEmpty: "No announcements yet.",
+    announcementsMore: "More",
+    announcementUnsupported: "Announcement preview is unavailable."
   }
 };
 
@@ -186,7 +194,11 @@ const zh: EduMailDict = {
     unknownSender: "未知",
     noSubject: "(无主题)",
     loading: "加载中...",
-    failed: "加载失败"
+    failed: "加载失败",
+    announcementsTitle: "系统公告",
+    announcementsEmpty: "暂无公告",
+    announcementsMore: "更多",
+    announcementUnsupported: "公告内容暂不支持预览。"
   }
 };
 

@@ -15,6 +15,7 @@ export default function AdminCodesPage({ searchParams }: { searchParams?: Record
           overview: dict.admin.summary,
           codes: dict.admin.codes,
           users: dict.admin.users,
+          announcements: dict.admin.announcements,
           audit: dict.admin.audit,
           status: dict.admin.status
         }}
