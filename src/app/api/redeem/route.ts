@@ -6,6 +6,7 @@ import { createUserSession } from "@/lib/auth/user-session";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { isBlockedPersonalEmail } from "@/lib/validation/email-domain";
 import { safeTrim, safeTrimLower } from "@/lib/safe-trim";
+import { getClientIp } from "@/lib/security/client-ip";
 
 export const runtime = "nodejs";
 
@@ -30,6 +31,7 @@ export async function POST(request: NextRequest) {
     windowSeconds: 60
   });
   if (rateLimitResponse) return rateLimitResponse;
+  const clientIp = getClientIp(request);
 
   const safeString = (value: unknown) => {
     if (value instanceof Error) return value.message;
@@ -321,7 +323,8 @@ export async function POST(request: NextRequest) {
       const { error: auditErr } = await supabase.from("audit_logs").insert({
         user_id: createdUserId,
         action: "redeem_rollback",
-        meta: rollbackError ? { error: rollbackError } : { ok: true }
+        meta: rollbackError ? { error: rollbackError } : { ok: true },
+        ip: clientIp
       });
       if (auditErr) appendRollbackError("insert audit_logs", auditErr.message);
 

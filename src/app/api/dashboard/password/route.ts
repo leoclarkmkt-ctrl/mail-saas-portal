@@ -7,6 +7,7 @@ import {
 import { getSessionEnv } from "@/lib/env";
 import { clearUserSession, requireUserSession } from "@/lib/auth/user-session";
 import { jsonSuccess } from "@/lib/utils/api";
+import { getClientIp } from "@/lib/security/client-ip";
 
 export const runtime = "nodejs";
 
@@ -32,6 +33,7 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServerSupabaseClient();
   const authClient = createServerSupabaseAnonClient();
+  const clientIp = getClientIp(request);
 
   // 🔒 Schema-aligned lookup: profiles.user_id === auth.users.id
   const { data: profile, error: profileError } = await supabase
@@ -77,7 +79,8 @@ export async function POST(request: NextRequest) {
   // Audit log
   await supabase.from("audit_logs").insert({
     user_id: session.userId,
-    action: "user_password_change"
+    action: "user_password_change",
+    ip: clientIp
   });
 
   return jsonSuccess({ ok: true });

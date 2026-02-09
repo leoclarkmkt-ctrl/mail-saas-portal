@@ -5,6 +5,41 @@ import { jsonError, jsonSuccess } from "@/lib/utils/api";
 
 export const runtime = "nodejs";
 
+type AuditLogRow = {
+  id: string;
+  user_id: string | null;
+  action: string | null;
+  ip: string | null;
+  created_at: string;
+};
+
+type AuditLogWithEmail = AuditLogRow & { edu_email: string | null };
+type AttachEduEmailsResult = { data: AuditLogWithEmail[] } | { error: Error };
+
+async function attachEduEmails(
+  supabase: ReturnType<typeof createServerSupabaseClient>,
+  rows: AuditLogRow[]
+): Promise<AttachEduEmailsResult> {
+  const userIds = Array.from(new Set(rows.map((row) => row.user_id).filter(Boolean))) as string[];
+  if (userIds.length === 0) {
+    return { data: rows.map((row) => ({ ...row, edu_email: null })) };
+  }
+
+  const { data, error } = await supabase
+    .from("edu_accounts")
+    .select("user_id, edu_email")
+    .in("user_id", userIds);
+  if (error) return { error: new Error(error.message) };
+
+  const eduMap = new Map((data ?? []).map((row) => [row.user_id, row.edu_email]));
+  return {
+    data: rows.map((row) => ({
+      ...row,
+      edu_email: row.user_id ? eduMap.get(row.user_id) ?? null : null
+    }))
+  };
+}
+
 export async function GET(request: NextRequest) {
   const session = await getAdminSession();
   if (!session) return jsonError("Unauthorized", 401);
@@ -18,7 +53,9 @@ export async function GET(request: NextRequest) {
       .order("created_at", { ascending: false })
       .limit(50);
     if (error) return jsonError(error.message, 500);
-    return jsonSuccess({ ok: true, data: data ?? [] });
+    const enriched = await attachEduEmails(supabase, (data ?? []) as AuditLogRow[]);
+    if ("error" in enriched) return jsonError(enriched.error.message, 500);
+    return jsonSuccess({ ok: true, data: enriched.data ?? [] });
   }
 
   const { data, error } = await supabase
@@ -28,5 +65,7 @@ export async function GET(request: NextRequest) {
     .order("created_at", { ascending: false })
     .limit(200);
   if (error) return jsonError(error.message, 500);
-  return jsonSuccess({ ok: true, data: data ?? [] });
+  const enriched = await attachEduEmails(supabase, (data ?? []) as AuditLogRow[]);
+  if ("error" in enriched) return jsonError(enriched.error.message, 500);
+  return jsonSuccess({ ok: true, data: enriched.data ?? [] });
 }

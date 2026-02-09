@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { adminGenerateCodesSchema, adminRevokeCodeSchema } from "@/lib/validation/schemas";
 import { jsonError, jsonSuccess } from "@/lib/utils/api";
 import { randomString } from "@/lib/security/random";
+import { getClientIp } from "@/lib/security/client-ip";
 
 const CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -47,11 +48,14 @@ export async function POST(request: NextRequest) {
   const { quantity, prefix, length, note } = parsed.data;
   const codes = Array.from({ length: quantity }, () => `${prefix ?? ""}${generateCode(length)}`);
   const supabase = createServerSupabaseClient();
+  const clientIp = getClientIp(request);
   const { error } = await supabase
     .from("activation_codes")
     .insert(codes.map((code) => ({ code, note: note ?? null })));
   if (error) return jsonError(error.message, 400);
-  await supabase.from("audit_logs").insert({ action: "admin_generate_codes", meta: { quantity, note } });
+  await supabase
+    .from("audit_logs")
+    .insert({ action: "admin_generate_codes", meta: { quantity, note }, ip: clientIp });
   const { data } = await supabase.from("activation_codes").select("code,status,created_at,note").in("code", codes);
   return jsonSuccess({ codes: data ?? [] });
 }
@@ -64,6 +68,7 @@ export async function PATCH(request: NextRequest) {
   if (!parsed.success) return jsonError("Invalid input", 400);
 
   const supabase = createServerSupabaseClient();
+  const clientIp = getClientIp(request);
   const { data } = await supabase.from("activation_codes").select("status").eq("code", parsed.data.code).single();
   if (!data || data.status !== "unused") {
     return jsonError("Code cannot be revoked", 400);
@@ -72,6 +77,8 @@ export async function PATCH(request: NextRequest) {
     .from("activation_codes")
     .update({ status: "revoked" })
     .eq("code", parsed.data.code);
-  await supabase.from("audit_logs").insert({ action: "admin_revoke_code", meta: { code: parsed.data.code } });
+  await supabase
+    .from("audit_logs")
+    .insert({ action: "admin_revoke_code", meta: { code: parsed.data.code }, ip: clientIp });
   return jsonSuccess({ ok: true });
 }

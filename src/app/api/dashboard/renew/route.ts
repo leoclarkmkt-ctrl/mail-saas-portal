@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { clearUserSession, requireUserSession } from "@/lib/auth/user-session";
 import { jsonSuccess } from "@/lib/utils/api";
 import { NextResponse } from "next/server";
+import { getClientIp } from "@/lib/security/client-ip";
 
 export const runtime = "nodejs";
 
@@ -21,6 +22,7 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createServerSupabaseClient();
+  const clientIp = getClientIp(request);
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("is_suspended")
@@ -49,7 +51,8 @@ export async function POST(request: NextRequest) {
 
   await supabase.from("audit_logs").insert({
     user_id: session.userId,
-    action: "user_renew"
+    action: "user_renew",
+    ip: clientIp
   });
 
   return jsonSuccess({
