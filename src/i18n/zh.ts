@@ -208,6 +208,12 @@ export const zh = {
       eduEmail: "教育邮箱",
       expires: "到期时间",
       status: "状态",
+      statusLabels: {
+        active: "有效",
+        expired: "已过期",
+        suspended: "已停用",
+        unknown: "未知"
+      },
       actions: "操作",
       renew: "续费",
       suspend: "停用",
@@ -215,7 +221,6 @@ export const zh = {
       resetPassword: "重置密码",
       tempPassword: "临时密码",
       suspended: "已停用",
-      renewYears: "续费年限",
       failedToLoad: "加载失败",
       retry: "重试"
     },

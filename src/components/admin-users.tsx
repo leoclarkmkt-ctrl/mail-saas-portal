@@ -12,6 +12,7 @@ type AdminUsersLabels = {
   eduEmail: string;
   expires: string;
   status: string;
+  statusLabels: Record<string, string>;
   actions: string;
   renew: string;
   suspend: string;
@@ -19,7 +20,6 @@ type AdminUsersLabels = {
   resetPassword: string;
   tempPassword: string;
   suspended: string;
-  renewYears: string;
   failedToLoad: string;
   retry: string;
 };
@@ -27,7 +27,6 @@ type AdminUsersLabels = {
 export function AdminUsers({ labels, lang }: { labels: AdminUsersLabels; lang: Locale }) {
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<any[]>([]);
-  const [years, setYears] = useState(1);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,7 +52,7 @@ export function AdminUsers({ labels, lang }: { labels: AdminUsersLabels; lang: L
     await fetch("/api/admin/users", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user_id: userId, years })
+      body: JSON.stringify({ user_id: userId, action: "renew" })
     });
     search();
   };
@@ -79,15 +78,26 @@ export function AdminUsers({ labels, lang }: { labels: AdminUsersLabels; lang: L
     }
   };
 
+  const resolveStatusLabel = (status: string | null | undefined, isSuspended: boolean) => {
+    if (isSuspended) {
+      return labels.statusLabels.suspended ?? labels.suspended ?? status ?? "-";
+    }
+    if (!status) return labels.statusLabels.unknown ?? status ?? "-";
+    return labels.statusLabels[status] ?? status ?? labels.statusLabels.unknown ?? "Unknown";
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end gap-3">
-        <Input placeholder={labels.searchPlaceholder} value={query} onChange={(e) => setQuery(e.target.value)} />
-        <Button onClick={search}>{labels.search}</Button>
-        <label className="flex items-center gap-2 text-sm text-slate-600">
-          <span>{labels.renewYears}</span>
-          <Input className="w-20" type="number" min={1} value={years} onChange={(e) => setYears(Number(e.target.value) || 1)} />
-        </label>
+      <div className="flex items-center gap-2">
+        <Input
+          className="w-full max-w-md"
+          placeholder={labels.searchPlaceholder}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <Button className="shrink-0" onClick={search}>
+          {labels.search}
+        </Button>
       </div>
       {error && (
         <div className="flex items-center gap-3 text-sm text-rose-500">
@@ -115,7 +125,7 @@ export function AdminUsers({ labels, lang }: { labels: AdminUsersLabels; lang: L
                 <td className="p-3">{user.personal_email}</td>
                 <td className="p-3">{user.edu_email}</td>
                 <td className="p-3">{user.expires_at}</td>
-                <td className="p-3">{user.is_suspended ? labels.suspended : user.status}</td>
+                <td className="p-3">{resolveStatusLabel(user.status, user.is_suspended)}</td>
                 <td className="flex gap-2 p-3">
                   <Button size="sm" onClick={() => renew(user.user_id)}>{labels.renew}</Button>
                   <Button size="sm" variant="outline" onClick={() => toggleSuspend(user.user_id, user.is_suspended)}>

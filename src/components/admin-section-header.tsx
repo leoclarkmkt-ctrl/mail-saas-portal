@@ -21,11 +21,10 @@ export function AdminSectionHeader({ title, lang, labels }: AdminSectionHeaderPr
         {title}
       </h1>
 
-      {/* Tabs：字号 +1 */}
+      {/* Tabs：字号 +1，与标题保持更大垂直间距 */}
       <div className="[&>nav]:text-base">
         <AdminNav lang={lang} labels={labels} />
       </div>
     </section>
   );
 }
-

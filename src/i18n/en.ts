@@ -214,6 +214,12 @@ export const en = {
       eduEmail: "Edu Email",
       expires: "Expires",
       status: "Status",
+      statusLabels: {
+        active: "Active",
+        expired: "Expired",
+        suspended: "Suspended",
+        unknown: "Unknown"
+      },
       actions: "Actions",
       renew: "Renew",
       suspend: "Suspend",
@@ -221,7 +227,6 @@ export const en = {
       resetPassword: "Reset Password",
       tempPassword: "Temp password",
       suspended: "Suspended",
-      renewYears: "Renew years",
       failedToLoad: "Failed to load",
       retry: "Retry"
     },
