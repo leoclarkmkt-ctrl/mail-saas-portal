@@ -235,24 +235,21 @@ export function AdminAnnouncements({ labels, lang }: AdminAnnouncementsProps) {
               </Button>
             ))}
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2">
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={labels.searchPlaceholder}
-              className="w-52"
+              className="w-full max-w-md"
             />
-            <Button type="button" variant="outline" onClick={applySearch}>
+            <Button type="button" onClick={applySearch}>
               {labels.search}
-            </Button>
-            <Button type="button" onClick={resetForm}>
-              {labels.newAnnouncement}
             </Button>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+      <div className="space-y-6">
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
