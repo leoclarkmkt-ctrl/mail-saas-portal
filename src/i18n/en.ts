@@ -190,6 +190,10 @@ export const en = {
       note: "Note",
       generate: "Generate",
       exportCsv: "Export CSV",
+      search: "Search",
+      searchPlaceholder: "Search code or note",
+      selected: "Selected",
+      batchRevoke: "Revoke selected",
       codesFailed: "Failed",
       statuses: {
         all: "All",

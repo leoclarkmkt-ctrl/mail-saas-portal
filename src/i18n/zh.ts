@@ -184,6 +184,10 @@ export const zh = {
       note: "备注",
       generate: "生成",
       exportCsv: "导出 CSV",
+      search: "搜索",
+      searchPlaceholder: "搜索激活码或备注",
+      selected: "已选",
+      batchRevoke: "批量撤销",
       codesFailed: "生成失败",
       statuses: {
         all: "全部",
