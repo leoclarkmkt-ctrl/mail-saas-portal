@@ -4,6 +4,8 @@ import { jsonError, jsonSuccess } from "@/lib/utils/api";
 
 export const runtime = "nodejs";
 
+type DebugErr = { message: string; code?: string };
+
 export async function GET() {
   const session = await getAdminSession();
   if (!session) {
@@ -17,8 +19,9 @@ export async function GET() {
   const last5mIso = new Date(now.getTime() - 5 * 60 * 1000).toISOString();
 
   const warnings: string[] = [];
-  const debugErrors: Record<string, { message: string; code?: string }> = {};
+  const debugErrors: Record<string, DebugErr> = {};
 
+  // 1) Activation codes
   let activationCodes = { unused: 0, used: 0, revoked: 0 };
   try {
     const unusedCodes = await supabase
@@ -53,10 +56,15 @@ export async function GET() {
     };
   }
 
+  // 2) Users total (profiles)
   let users = { total: 0 };
   try {
-    const totalUsers = await supabase.from("profiles").select("id", { count: "exact", head: true });
+    // IMPORTANT: profiles primary key is user_id (not id)
+    const totalUsers = await supabase
+      .from("profiles")
+      .select("user_id", { count: "exact", head: true });
     if (totalUsers.error) throw totalUsers.error;
+
     users = { total: totalUsers.count ?? 0 };
   } catch (error) {
     warnings.push("profiles");
@@ -67,6 +75,7 @@ export async function GET() {
     };
   }
 
+  // 3) Edu accounts (mailboxes)
   let mailboxes = { active: 0, expired: 0 };
   try {
     const activeEdu = await supabase
@@ -80,6 +89,7 @@ export async function GET() {
     const expiredEdu = await supabase
       .from("edu_accounts")
       .select("id", { count: "exact", head: true })
+      // treat expires_at is null as expired for safety (even if column is NOT NULL, this is harmless)
       .or(`status.eq.expired,expires_at.lte.${nowIso},expires_at.is.null`);
     if (expiredEdu.error) throw expiredEdu.error;
 
@@ -96,6 +106,7 @@ export async function GET() {
     };
   }
 
+  // 4) Last 24h audit stats
   let last24h = { redeemed: 0, logins: 0 };
   try {
     const redeems24h = await supabase
@@ -125,6 +136,7 @@ export async function GET() {
     };
   }
 
+  // 5) Presence stats
   let presence = { online5m: 0, active24h: 0 };
   try {
     const online5m = await supabase
