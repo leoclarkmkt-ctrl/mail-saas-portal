@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
   const email = safeTrimLower(body.email);
   const password = safeTrim(body.password);
   const mode = body.mode === "edu" ? "edu" : "personal";
+  const source = body.source === "edu-mail" ? "edu-mail" : undefined;
 
   if (!email) {
     return jsonFieldError(
@@ -117,7 +118,8 @@ export async function POST(request: NextRequest) {
     }
     return jsonFieldError("email", "login_edu_academic_year_not_registered", 401);
   }
-  await createUserSession({ userId: data.user_id, mode: "edu" });
+  const sessionMode = source === "edu-mail" ? "edu" : "personal";
+  await createUserSession({ userId: data.user_id, mode: sessionMode });
   await supabase.from("audit_logs").insert({
     user_id: data.user_id,
     action: "user_login_edu"
