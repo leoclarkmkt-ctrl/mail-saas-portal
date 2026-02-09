@@ -378,8 +378,7 @@ export function AdminCodes({ labels }: { labels: AdminCodesLabels }) {
       <div className="w-full max-w-2xl">
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex min-w-[140px] flex-1 flex-col gap-1">
-            <label className="text-xs font-medium text-slate-500">{labels.formLabels.quantity}</label>
-            <p className="text-xs text-slate-400">{labels.formHelp.quantity}</p>
+            <label className="text-base font-medium text-slate-500">{labels.formLabels.quantity}</label>
             <Input
               type="number"
               value={quantity}
@@ -388,8 +387,7 @@ export function AdminCodes({ labels }: { labels: AdminCodesLabels }) {
             />
           </div>
           <div className="flex min-w-[160px] flex-1 flex-col gap-1">
-            <label className="text-xs font-medium text-slate-500">{labels.formLabels.prefix}</label>
-            <p className="text-xs text-slate-400">{labels.formHelp.prefix}</p>
+            <label className="text-base font-medium text-slate-500">{labels.formLabels.prefix}</label>
             <Input
               placeholder={labels.placeholders.prefix}
               value={prefix}
@@ -397,8 +395,7 @@ export function AdminCodes({ labels }: { labels: AdminCodesLabels }) {
             />
           </div>
           <div className="flex min-w-[200px] flex-1 flex-col gap-1">
-            <label className="text-xs font-medium text-slate-500">{labels.formLabels.note}</label>
-            <p className="text-xs text-slate-400">{labels.formHelp.note}</p>
+            <label className="text-base font-medium text-slate-500">{labels.formLabels.note}</label>
             <Input
               placeholder={labels.placeholders.note}
               value={note}
@@ -411,20 +408,18 @@ export function AdminCodes({ labels }: { labels: AdminCodesLabels }) {
         </div>
       </div>
       <div className="w-full max-w-2xl">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="flex flex-1 flex-col gap-1">
-            <label className="text-xs font-medium text-slate-500">{labels.searchLabel}</label>
-            <p className="text-xs text-slate-400">{labels.searchHelp}</p>
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
             <Input
-              className="w-full"
-              placeholder={labels.searchPlaceholder}
+              className="w-full max-w-md"
+              placeholder="搜索激活码或备注"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
+            <Button className="shrink-0" onClick={applySearch}>
+              {labels.search}
+            </Button>
           </div>
-          <Button className="shrink-0" onClick={applySearch}>
-            {labels.search}
-          </Button>
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2 text-sm">

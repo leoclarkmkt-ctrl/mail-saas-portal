@@ -33,156 +33,183 @@ function isSafeUrl(url?: string | null) {
   }
 }
 
-function renderTextNode(node: TiptapNode, key: string): { element: ReactNode; supported: boolean } {
-  let supported = true;
-  let output: ReactNode = node.text ?? "";
-  const marks = node.marks ?? [];
+function stringifyTiptapNode(node: TiptapNode | undefined): string {
+  if (!node) return "";
+  const children = (node.content ?? []).map((child) => stringifyTiptapNode(child)).join("");
 
-  marks.forEach((mark, index) => {
-    const markKey = `${key}-mark-${index}`;
-    switch (mark.type) {
-      case "bold":
-        output = <strong key={markKey}>{output}</strong>;
-        break;
-      case "italic":
-        output = <em key={markKey}>{output}</em>;
-        break;
-      case "link": {
-        const href = typeof mark.attrs?.href === "string" ? mark.attrs.href : "";
-        if (isSafeUrl(href)) {
-          output = (
-            <a
-              key={markKey}
-              href={href}
-              target="_blank"
-              rel="noreferrer"
-              className="text-accent underline"
-            >
-              {output}
-            </a>
-          );
-        } else {
-          supported = false;
-        }
-        break;
-      }
-      default:
-        supported = false;
+  switch (node.type) {
+    case "doc":
+      return (node.content ?? []).map((child) => stringifyTiptapNode(child)).join("\n\n");
+    case "paragraph":
+      return children.trim() ? children : "";
+    case "heading": {
+      const level = typeof node.attrs?.level === "number" ? node.attrs.level : 2;
+      const prefix = "#".repeat(Math.min(Math.max(level, 1), 6));
+      return `${prefix} ${children}`.trim();
     }
-  });
-
-  return { element: output, supported };
+    case "text": {
+      let text = node.text ?? "";
+      (node.marks ?? []).forEach((mark) => {
+        if (mark.type === "link") {
+          const href = typeof mark.attrs?.href === "string" ? mark.attrs.href : "";
+          if (isSafeUrl(href)) {
+            text = `[${text}](${href})`;
+          }
+        }
+      });
+      return text;
+    }
+    case "bulletList":
+      return (node.content ?? [])
+        .map((child) => {
+          const item = stringifyTiptapNode(child).trim();
+          return item ? `- ${item}` : "";
+        })
+        .filter(Boolean)
+        .join("\n");
+    case "orderedList":
+      return (node.content ?? [])
+        .map((child, index) => {
+          const item = stringifyTiptapNode(child).trim();
+          return item ? `${index + 1}. ${item}` : "";
+        })
+        .filter(Boolean)
+        .join("\n");
+    case "listItem":
+      return children.replace(/\n+/g, " ").trim();
+    case "hardBreak":
+      return "\n";
+    default:
+      return "";
+  }
 }
 
-function renderNodes(nodes: TiptapNode[] | undefined, keyPrefix: string) {
-  let supported = true;
-  const children = (nodes ?? []).map((node, index) => {
-    const key = `${keyPrefix}-${index}`;
-    if (!node || typeof node !== "object") {
-      supported = false;
-      return null;
+function parseInlineMarkdown(text: string, keyPrefix: string): ReactNode[] {
+  const parts: ReactNode[] = [];
+  const regex = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let linkIndex = 0;
+
+  while ((match = regex.exec(text)) !== null) {
+    const [full, label, url] = match;
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    if (isSafeUrl(url)) {
+      parts.push(
+        <a
+          key={`${keyPrefix}-link-${linkIndex}`}
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary hover:underline"
+        >
+          {label}
+        </a>
+      );
+    } else {
+      parts.push(full);
+    }
+    lastIndex = match.index + full.length;
+    linkIndex += 1;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return parts;
+}
+
+function renderParagraph(text: string, key: string) {
+  const lines = text.split("\n");
+  return (
+    <p key={key} className="mb-3 last:mb-0">
+      {lines.flatMap((line, index) => {
+        const nodes = parseInlineMarkdown(line, `${key}-line-${index}`);
+        if (index === lines.length - 1) return nodes;
+        return [...nodes, <br key={`${key}-br-${index}`} />];
+      })}
+    </p>
+  );
+}
+
+function renderMarkdown(markdown: string) {
+  const trimmed = markdown.trim();
+  if (!trimmed) return [];
+  const lines = trimmed.split("\n");
+  const blocks: ReactNode[] = [];
+  let buffer: string[] = [];
+  let listItems: string[] | null = null;
+  let listType: "ul" | "ol" | null = null;
+
+  const flushParagraph = (key: string) => {
+    if (buffer.length === 0) return;
+    const text = buffer.join("\n").trim();
+    if (text) blocks.push(renderParagraph(text, key));
+    buffer = [];
+  };
+
+  const flushList = (key: string) => {
+    if (!listItems || listItems.length === 0 || !listType) return;
+    const Tag = listType === "ol" ? "ol" : "ul";
+    blocks.push(
+      <Tag
+        key={key}
+        className={`mb-3 space-y-1 pl-5 ${listType === "ol" ? "list-decimal" : "list-disc"}`}
+      >
+        {listItems.map((item, index) => (
+          <li key={`${key}-item-${index}`} className="text-sm text-slate-700">
+            {parseInlineMarkdown(item, `${key}-item-${index}`)}
+          </li>
+        ))}
+      </Tag>
+    );
+    listItems = null;
+    listType = null;
+  };
+
+  lines.forEach((line, index) => {
+    const bulletMatch = line.match(/^\s*[-*]\s+(.+)$/);
+    const orderedMatch = line.match(/^\s*\d+\.\s+(.+)$/);
+
+    if (bulletMatch || orderedMatch) {
+      flushParagraph(`p-${index}`);
+      const nextType = orderedMatch ? "ol" : "ul";
+      if (listType && listType !== nextType) {
+        flushList(`list-${index}-switch`);
+      }
+      listType = nextType;
+      if (!listItems) listItems = [];
+      listItems.push((bulletMatch?.[1] ?? orderedMatch?.[1] ?? "").trim());
+      return;
     }
 
-    switch (node.type) {
-      case "doc": {
-        const result = renderNodes(node.content, key);
-        if (!result.supported) supported = false;
-        return <div key={key}>{result.nodes}</div>;
-      }
-      case "paragraph": {
-        const result = renderNodes(node.content, key);
-        if (!result.supported) supported = false;
-        return (
-          <p key={key} className="mb-3 last:mb-0">
-            {result.nodes}
-          </p>
-        );
-      }
-      case "heading": {
-        const level = typeof node.attrs?.level === "number" ? node.attrs.level : 2;
-        const Tag = `h${Math.min(Math.max(level, 1), 6)}` as keyof JSX.IntrinsicElements;
-        const result = renderNodes(node.content, key);
-        if (!result.supported) supported = false;
-        return (
-          <Tag key={key} className="mb-3 text-lg font-semibold text-slate-900">
-            {result.nodes}
-          </Tag>
-        );
-      }
-      case "text": {
-        const result = renderTextNode(node, key);
-        if (!result.supported) supported = false;
-        return <span key={key}>{result.element}</span>;
-      }
-      case "bulletList": {
-        const result = renderNodes(node.content, key);
-        if (!result.supported) supported = false;
-        return (
-          <ul key={key} className="mb-3 list-disc space-y-1 pl-5">
-            {result.nodes}
-          </ul>
-        );
-      }
-      case "orderedList": {
-        const result = renderNodes(node.content, key);
-        if (!result.supported) supported = false;
-        return (
-          <ol key={key} className="mb-3 list-decimal space-y-1 pl-5">
-            {result.nodes}
-          </ol>
-        );
-      }
-      case "listItem": {
-        const result = renderNodes(node.content, key);
-        if (!result.supported) supported = false;
-        return (
-          <li key={key} className="text-sm text-slate-700">
-            {result.nodes}
-          </li>
-        );
-      }
-      case "image": {
-        const src = typeof node.attrs?.src === "string" ? node.attrs.src : "";
-        if (!isSafeUrl(src)) {
-          supported = false;
-          return null;
-        }
-        const alt = typeof node.attrs?.alt === "string" ? node.attrs.alt : "";
-        return (
-          <img
-            key={key}
-            src={src}
-            alt={alt}
-            className="mb-3 max-h-80 w-full rounded-lg border border-slate-200 object-cover"
-          />
-        );
-      }
-      case "hardBreak": {
-        return <br key={key} />;
-      }
-      default:
-        supported = false;
-        return null;
+    if (line.trim() === "") {
+      flushParagraph(`p-${index}`);
+      flushList(`list-${index}`);
+      return;
     }
+
+    if (listItems) {
+      flushList(`list-${index}`);
+    }
+
+    buffer.push(line);
   });
 
-  return { nodes: children, supported };
+  flushParagraph("p-last");
+  flushList("list-last");
+
+  return blocks;
 }
 
 export function AnnouncementContent({ content, excerpt, fallback, className }: AnnouncementContentProps) {
-  if (!isRecord(content)) {
-    return (
-      <p className={className}>{excerpt ?? fallback ?? DEFAULT_FALLBACK}</p>
-    );
+  const markdown = isRecord(content) ? stringifyTiptapNode(content as TiptapNode) : "";
+  const nodes = renderMarkdown(markdown);
+  if (!markdown.trim() || nodes.length === 0) {
+    return <p className={className}>{excerpt ?? fallback ?? DEFAULT_FALLBACK}</p>;
   }
-
-  const result = renderNodes([content as TiptapNode], "content");
-  const hasContent = result.nodes.some(Boolean);
-  if (!result.supported || !hasContent) {
-    return (
-      <p className={className}>{excerpt ?? fallback ?? DEFAULT_FALLBACK}</p>
-    );
-  }
-
-  return <div className={className}>{result.nodes}</div>;
+  return <div className={className}>{nodes}</div>;
 }
