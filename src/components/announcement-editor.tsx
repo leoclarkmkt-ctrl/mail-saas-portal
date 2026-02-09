@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ComponentType } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 const DEFAULT_CONTENT = {
   type: "doc",
@@ -12,19 +11,12 @@ const DEFAULT_CONTENT = {
 
 type AnnouncementEditorLabels = {
   content: string;
-  imageUrl: string;
-  addImage: string;
-  linkUrl: string;
-  addLink: string;
-  removeLink: string;
 };
 
 type TiptapModules = {
   EditorContent: ComponentType<{ editor: any }>;
   useEditor: (options: any) => any;
   StarterKit: any;
-  Link: any;
-  Image: any;
 };
 
 function createDocFromText(text: string) {
@@ -74,16 +66,10 @@ function TiptapEditor({
   onChange: (nextValue: unknown) => void;
   labels: AnnouncementEditorLabels;
 }) {
-  const { EditorContent, useEditor, StarterKit, Link, Image } = modules;
-  const [imageUrl, setImageUrl] = useState("");
-  const [linkUrl, setLinkUrl] = useState("");
+  const { EditorContent, useEditor, StarterKit } = modules;
 
   const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Link.configure({ openOnClick: false }),
-      Image
-    ],
+    extensions: [StarterKit],
     content: value ?? DEFAULT_CONTENT,
     onUpdate: ({ editor: tiptapEditor }: { editor: any }) => {
       onChange(tiptapEditor.getJSON());
@@ -95,23 +81,6 @@ function TiptapEditor({
       editor.commands.setContent(value);
     }
   }, [editor, value]);
-
-  const insertImage = () => {
-    const url = imageUrl.trim();
-    if (!url || !editor) return;
-    editor.chain().focus().setImage({ src: url }).run();
-    setImageUrl("");
-  };
-
-  const setLink = () => {
-    if (!editor) return;
-    const url = linkUrl.trim();
-    if (!url) {
-      editor.chain().focus().unsetLink().run();
-      return;
-    }
-    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
-  };
 
   return (
     <div>
@@ -137,33 +106,6 @@ function TiptapEditor({
         </Button>
       </div>
 
-      <div className="mt-3 grid gap-2 sm:grid-cols-2">
-        <Input
-          value={imageUrl}
-          onChange={(event) => setImageUrl(event.target.value)}
-          placeholder={labels.imageUrl}
-        />
-        <Button type="button" variant="outline" onClick={insertImage}>
-          {labels.addImage}
-        </Button>
-      </div>
-
-      <div className="mt-3 grid gap-2 sm:grid-cols-2">
-        <Input
-          value={linkUrl}
-          onChange={(event) => setLinkUrl(event.target.value)}
-          placeholder={labels.linkUrl}
-        />
-        <div className="flex gap-2">
-          <Button type="button" variant="outline" onClick={setLink}>
-            {labels.addLink}
-          </Button>
-          <Button type="button" variant="outline" onClick={() => editor?.chain().focus().unsetLink().run()}>
-            {labels.removeLink}
-          </Button>
-        </div>
-      </div>
-
       <div className="mt-4 rounded-xl border border-slate-200 p-3">
         <EditorContent editor={editor} />
       </div>
@@ -182,7 +124,6 @@ function FallbackEditor({
 }) {
   const initialText = useMemo(() => extractPlainText(value), [value]);
   const [text, setText] = useState(initialText);
-  const [imageUrl, setImageUrl] = useState("");
 
   useEffect(() => {
     setText(initialText);
@@ -193,19 +134,6 @@ function FallbackEditor({
     onChange(createDocFromText(nextText));
   };
 
-  const handleInsertImage = () => {
-    const url = imageUrl.trim();
-    if (!url) return;
-    const baseContent = createDocFromText(text);
-    const contentArray = Array.isArray((baseContent as any).content) ? (baseContent as any).content : [];
-    const nextContent = {
-      ...baseContent,
-      content: [...contentArray, { type: "image", attrs: { src: url } }]
-    };
-    onChange(nextContent);
-    setImageUrl("");
-  };
-
   return (
     <div>
       <label className="text-sm font-medium text-slate-700">{labels.content}</label>
@@ -214,16 +142,7 @@ function FallbackEditor({
         value={text}
         onChange={(event) => handleTextChange(event.target.value)}
       />
-      <div className="mt-3 grid gap-2 sm:grid-cols-2">
-        <Input
-          value={imageUrl}
-          onChange={(event) => setImageUrl(event.target.value)}
-          placeholder={labels.imageUrl}
-        />
-        <Button type="button" variant="outline" onClick={handleInsertImage}>
-          {labels.addImage}
-        </Button>
-      </div>
+      <p className="mt-2 text-xs text-slate-500">支持 Markdown 链接格式：[文字](https://链接)</p>
     </div>
   );
 }
@@ -245,15 +164,11 @@ export function AnnouncementEditor({
       try {
         const tiptapReact = await dynamicImport("@tiptap/react");
         const starterKit = await dynamicImport("@tiptap/starter-kit");
-        const linkExtension = await dynamicImport("@tiptap/extension-link");
-        const imageExtension = await dynamicImport("@tiptap/extension-image");
         if (!active) return;
         setTiptapModules({
           EditorContent: tiptapReact.EditorContent,
           useEditor: tiptapReact.useEditor,
-          StarterKit: starterKit.default,
-          Link: linkExtension.default,
-          Image: imageExtension.default
+          StarterKit: starterKit.default
         });
       } catch {
         if (active) setTiptapModules(null);

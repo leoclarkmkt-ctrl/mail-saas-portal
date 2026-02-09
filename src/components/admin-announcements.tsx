@@ -158,6 +158,7 @@ export function AdminAnnouncements({ labels, lang }: AdminAnnouncementsProps) {
   const saveAnnouncement = async () => {
     setSaving(true);
     setMessage(null);
+
     const payload = {
       title: formTitle.trim(),
       excerpt: formExcerpt.trim() || null,
@@ -175,10 +176,12 @@ export function AdminAnnouncements({ labels, lang }: AdminAnnouncementsProps) {
           body: JSON.stringify(payload)
         }
       );
+
       if (!res.ok) {
         setMessage(labels.saveFailed);
         return;
       }
+
       setMessage(labels.saveSuccess);
       await load();
     } catch {
@@ -210,6 +213,7 @@ export function AdminAnnouncements({ labels, lang }: AdminAnnouncementsProps) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sort_order: nextValue })
     });
+
     if (selectedId === id) {
       setFormSortOrder(nextValue);
     }
@@ -247,8 +251,12 @@ export function AdminAnnouncements({ labels, lang }: AdminAnnouncementsProps) {
               placeholder={labels.searchPlaceholder}
               className="w-full max-w-md"
             />
-            {/* Make search button look like the previous "new announcement" primary button */}
-            <Button type="button" onClick={applySearch} variant="default">
+            <Button
+              type="button"
+              onClick={applySearch}
+              variant="default"
+              className="h-10 px-6 whitespace-nowrap"
+            >
               {labels.search}
             </Button>
           </div>
@@ -424,7 +432,11 @@ export function AdminAnnouncements({ labels, lang }: AdminAnnouncementsProps) {
           <div className="mt-4 space-y-4">
             <div>
               <label className="text-sm font-medium text-slate-700">{labels.table.title}</label>
-              <Input value={formTitle} onChange={(event) => setFormTitle(event.target.value)} className="mt-1" />
+              <Input
+                value={formTitle}
+                onChange={(event) => setFormTitle(event.target.value)}
+                className="mt-1"
+              />
             </div>
 
             <div>
@@ -462,14 +474,7 @@ export function AdminAnnouncements({ labels, lang }: AdminAnnouncementsProps) {
             <AnnouncementEditor
               value={contentJson}
               onChange={setContentJson}
-              labels={{
-                content: labels.content,
-                imageUrl: labels.imageUrl,
-                addImage: labels.addImage,
-                linkUrl: labels.linkUrl,
-                addLink: labels.addLink,
-                removeLink: labels.removeLink
-              }}
+              labels={{ content: labels.content }}
             />
 
             {message && <p className="text-sm text-slate-500">{message}</p>}
