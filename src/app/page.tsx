@@ -9,10 +9,31 @@ export default function HomePage({ searchParams }: { searchParams?: Record<strin
   const lang = getLangFromRequest(searchParams);
   const dict = getDictionary(lang);
   return (
-    <section className="relative overflow-hidden rounded-3xl bg-white p-10 shadow-sm">
+    <section className="relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white/70 shadow-sm min-h-[360px] flex flex-col justify-center">
       <HeroParticlesCanvas fadeDistance={320} />
-      <div className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-b from-white/90 via-white/75 to-white/70" />
-      <div className="relative z-10">
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-50 via-white to-slate-50" />
+        <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-sky-200/25 blur-3xl" />
+        <div className="absolute -bottom-28 -right-20 h-80 w-80 rounded-full bg-indigo-200/20 blur-3xl" />
+        <div
+          className="absolute inset-0 opacity-[0.06]"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, rgba(15, 23, 42, 0.12) 1px, transparent 1px), linear-gradient(to bottom, rgba(15, 23, 42, 0.12) 1px, transparent 1px)",
+            backgroundSize: "48px 48px",
+          }}
+        />
+        <div
+          className="absolute inset-0 opacity-[0.05]"
+          style={{
+            backgroundImage:
+              "radial-gradient(rgba(15, 23, 42, 0.12) 0.5px, transparent 0.6px), radial-gradient(rgba(15, 23, 42, 0.12) 0.5px, transparent 0.6px)",
+            backgroundPosition: "0 0, 12px 12px",
+            backgroundSize: "24px 24px",
+          }}
+        />
+      </div>
+      <div className="relative z-10 px-10 py-10">
         <div className="max-w-3xl">
           <h1 className="text-4xl font-semibold text-slate-900">National Science University of Kyrgyzstan</h1>
           <h2 className="mt-3 text-2xl font-medium text-primary">NSUK 官方邮箱门户</h2>
