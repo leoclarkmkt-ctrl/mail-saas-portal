@@ -66,7 +66,7 @@ export default async function DashboardPage({
         changePassword: dict.dashboard.changePassword,
         passwordHint: dict.dashboard.passwordHint,
         oldPassword: dict.dashboard.oldPassword,
-        newPassword: dict.dashboard.newPassword,
+        newPassword: dict.dashboard.oldPassword,
         submit: dict.common.submit,
         passwordUpdated: dict.dashboard.passwordUpdated,
 

@@ -38,9 +38,7 @@ export async function requirePersonalDashboardData(): Promise<{
     redirect("/login");
   }
 
-  const expiresAtMs = eduAccount.expires_at
-    ? Date.parse(eduAccount.expires_at)
-    : NaN;
+  const expiresAtMs = eduAccount.expires_at ? Date.parse(eduAccount.expires_at) : NaN;
 
   const expired = Number.isNaN(expiresAtMs) || expiresAtMs <= Date.now();
   const suspended = profile.is_suspended ?? eduAccount.status === "suspended";

@@ -102,7 +102,7 @@ export function EduMailLoginForm({
     const res = await fetch("/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, mode: "edu" }),
+      body: JSON.stringify({ email, password, mode: "edu", source: "edu-mail" }),
     });
 
     const { data } = await readJsonResponse<LoginErrorResponse>(res);
