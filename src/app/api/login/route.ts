@@ -5,6 +5,7 @@ import { jsonFieldError, jsonSuccess } from "@/lib/utils/api";
 import { createUserSession } from "@/lib/auth/user-session";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { safeTrim, safeTrimLower } from "@/lib/safe-trim";
+import { getClientIp } from "@/lib/security/client-ip";
 
 export const runtime = "nodejs";
 
@@ -59,6 +60,7 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServerSupabaseClient();
   const authClient = createServerSupabaseAnonClient();
+  const clientIp = getClientIp(request);
 
   if (mode === "personal") {
     const { data, error } = await supabase
@@ -89,7 +91,8 @@ export async function POST(request: NextRequest) {
 
     await supabase.from("audit_logs").insert({
       user_id: userId,
-      action: "user_login_personal"
+      action: "user_login_personal",
+      ip: clientIp
     });
 
     await supabase.from("user_presence").upsert(
@@ -151,7 +154,8 @@ export async function POST(request: NextRequest) {
 
   await supabase.from("audit_logs").insert({
     user_id: data.user_id,
-    action: "user_login_edu"
+    action: "user_login_edu",
+    ip: clientIp
   });
 
   await supabase.from("user_presence").upsert(

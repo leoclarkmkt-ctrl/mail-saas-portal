@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { getAdminSession } from "@/lib/auth/admin-session";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { jsonError, jsonSuccess } from "@/lib/utils/api";
+import { getClientIp } from "@/lib/security/client-ip";
 
 export const runtime = "nodejs";
 
@@ -19,6 +20,7 @@ export async function POST(request: NextRequest) {
   if (codes.length === 0) return jsonError("Invalid input", 400);
 
   const supabase = createServerSupabaseClient();
+  const clientIp = getClientIp(request);
   const { data, error } = await supabase
     .from("activation_codes")
     .select("code,status")
@@ -36,7 +38,8 @@ export async function POST(request: NextRequest) {
 
   await supabase.from("audit_logs").insert({
     action: "admin_revoke_code_batch",
-    meta: { codes: unusedCodes, requested: codes.length }
+    meta: { codes: unusedCodes, requested: codes.length },
+    ip: clientIp
   });
 
   const updated = unusedCodes.length;
