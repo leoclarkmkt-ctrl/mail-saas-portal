@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 const urlRegex = /https?:\/\/[^\s<]+/gi;
 
 const linkStyleClass =
-  "mail-link inline-flex max-w-full flex-wrap items-center gap-1 align-middle break-words text-sky-600 hover:text-sky-700 visited:text-indigo-600 visited:hover:text-indigo-700";
+  "mail-link inline-flex max-w-full flex-wrap items-center gap-1 align-middle break-words text-sky-600 hover:text-sky-700 visited:!text-indigo-600 visited:hover:!text-indigo-700";
 const linkTextClass = "break-all";
 const iconClass = "inline-flex h-3.5 w-3.5 items-center";
 const badgeClass =
@@ -61,7 +61,6 @@ const createIconElement = (doc: Document) => {
 
   const path = doc.createElementNS("http://www.w3.org/2000/svg", "path");
   path.setAttribute("d", "M7 7h10v10");
-
   const line = doc.createElementNS("http://www.w3.org/2000/svg", "line");
   line.setAttribute("x1", "7");
   line.setAttribute("y1", "17");
@@ -128,7 +127,8 @@ const enhanceAnchor = (anchor: HTMLAnchorElement, doc: Document) => {
 const stripTrailingPunctuation = (value: string) => {
   let url = value;
   let trailing = "";
-  while (/[),.!?]/.test(url.slice(-1))) {
+  // Important: do NOT strip "?" (query marker), but allow stripping of common trailing punctuation.
+  while (/[),.!]/.test(url.slice(-1))) {
     trailing = `${url.slice(-1)}${trailing}`;
     url = url.slice(0, -1);
   }
