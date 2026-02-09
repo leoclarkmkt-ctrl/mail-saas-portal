@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { createUserSession, getUserSession } from "@/lib/auth/user-session";
+import { createUserSession, requireUserSession } from "@/lib/auth/user-session";
 import { withLang } from "@/lib/i18n/shared";
 
 export const runtime = "nodejs";
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
   const requestUrl = new URL(request.url);
   const lang = getLangFromUrl(requestUrl);
-  const session = await getUserSession();
+  const session = await requireUserSession();
   const loginUrl = new URL(withLang("/login", lang), requestUrl);
 
   if (!session || session.mode !== "edu") {

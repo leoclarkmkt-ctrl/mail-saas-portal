@@ -174,7 +174,10 @@ export const zh = {
       expired: "已过期",
       last24h: "近 24 小时",
       redeems: "兑换",
-      logins: "登录"
+      logins: "登录",
+      presence: "用户活跃",
+      onlineUsers: "当前在线",
+      activeUsers: "今日活跃"
     },
     codesLabels: {
       prefix: "前缀",

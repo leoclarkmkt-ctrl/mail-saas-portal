@@ -65,6 +65,11 @@ create table if not exists audit_logs (
   created_at timestamptz not null default now()
 );
 
+create table if not exists user_presence (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  last_seen_at timestamptz not null
+);
+
 create index if not exists idx_profiles_email on profiles (personal_email);
 create index if not exists idx_edu_email on edu_accounts (edu_email);
 create index if not exists idx_edu_username on edu_accounts (edu_username);
@@ -73,6 +78,8 @@ create index if not exists idx_email_messages_owner on email_messages (owner_use
 create index if not exists idx_email_messages_received on email_messages (received_at desc);
 create index if not exists idx_audit_action on audit_logs (action);
 create index if not exists idx_audit_user on audit_logs (user_id);
+create unique index if not exists idx_user_presence_user_id on user_presence (user_id);
+create index if not exists idx_user_presence_last_seen on user_presence (last_seen_at desc);
 
 create or replace function redeem_activation_code(
   p_code text,

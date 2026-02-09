@@ -17,7 +17,7 @@ export function AdminNav({ lang, labels }: { lang: Locale; labels: AdminNavLabel
       <Link href={withLang("/admin/codes", lang)} className="text-primary hover:underline">{labels.codes}</Link>
       <Link href={withLang("/admin/users", lang)} className="text-primary hover:underline">{labels.users}</Link>
       <Link href={withLang("/admin/audit", lang)} className="text-primary hover:underline">{labels.audit}</Link>
-      <Link href={withLang("/status", lang)} className="text-xs text-slate-500 hover:text-primary">
+      <Link href={withLang("/status", lang)} className="text-primary hover:underline">
         {labels.status}
       </Link>
     </nav>
