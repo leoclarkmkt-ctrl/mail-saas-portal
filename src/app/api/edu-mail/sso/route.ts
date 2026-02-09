@@ -25,11 +25,12 @@ export async function GET(request: NextRequest) {
   const session = await getUserSession();
   const loginUrl = new URL(withLang("/login", lang), requestUrl);
 
+  // 必须是 personal session 才允许 SSO
   if (!session || session.mode !== "personal") {
     return respondRedirect(loginUrl);
   }
 
-  // Guard: re-check edu account status/expiry before upgrading session
+  // Guard：切换为 edu session 前，重新检查 edu_accounts 的状态与到期时间
   const supabase = createServerSupabaseClient();
   const { data, error } = await supabase
     .from("edu_accounts")
@@ -41,12 +42,14 @@ export async function GET(request: NextRequest) {
   const expired = Number.isNaN(expiresAtMs) || expiresAtMs <= Date.now();
   const active = data?.status === "active" && !expired;
 
+  // 过期/非 active/查不到数据/查询报错：回 dashboard 并携带 edu=expired 触发弹窗
   if (error || !data || !active) {
     const dashboardUrl = new URL(withLang("/dashboard", lang), requestUrl);
     dashboardUrl.searchParams.set("edu", "expired");
     return respondRedirect(dashboardUrl);
   }
 
+  // 通过校验：升级为 edu session，并跳转 inbox
   await createUserSession({ userId: session.userId, mode: "edu" });
 
   const inboxUrl = new URL(withLang("/edu-mail/inbox", lang), requestUrl);

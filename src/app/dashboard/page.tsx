@@ -34,7 +34,6 @@ export default async function DashboardPage({
         status: dict.dashboard.status,
         expiresAt: dict.dashboard.expiresAt,
         webmail: dict.dashboard.webmail,
-
         logout: dict.dashboard.logout,
 
         changePassword: dict.dashboard.changePassword,
@@ -59,7 +58,9 @@ export default async function DashboardPage({
 
         eduMailExpiredTitle: dict.dashboard.eduMailExpiredTitle,
         eduMailExpiredBody: dict.dashboard.eduMailExpiredBody,
-        ok: dict.common.submit, // 若你有 dict.common.ok，也可换成 ok
+
+        // ✅ 如果你字典里没有 common.ok，就用 submit 兜底（也可在字典补一个 ok）
+        ok: (dict.common as any).ok ?? dict.common.submit,
       }}
     />
   );

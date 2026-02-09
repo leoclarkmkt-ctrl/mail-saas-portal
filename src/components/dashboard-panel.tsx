@@ -85,9 +85,7 @@ export function DashboardPanel({
   };
 
   const resolveErrorMessage = (key?: string) => {
-    if (key && labels.errorMessages[key]) {
-      return labels.errorMessages[key];
-    }
+    if (key && labels.errorMessages[key]) return labels.errorMessages[key];
     return labels.errorMessages.unknown ?? labels.errorFallback;
   };
 
@@ -174,9 +172,7 @@ export function DashboardPanel({
         credentials: "include",
       });
 
-      const payload = await parseJson<{ active?: boolean; expired?: boolean }>(
-        res
-      );
+      const payload = await parseJson<{ active?: boolean; expired?: boolean }>(res);
 
       // ✅ only redirect when active === true
       if (res.ok && payload?.active === true) {
@@ -192,14 +188,12 @@ export function DashboardPanel({
     setShowEduExpired(true);
   };
 
-  // 自动弹窗（来自 /dashboard?edu=expired）
+  // ✅ 自动弹窗（来自 /dashboard?edu=expired）
   useEffect(() => {
-    if (showEduExpiredOnLoad) {
-      setShowEduExpired(true);
-    }
+    if (showEduExpiredOnLoad) setShowEduExpired(true);
   }, [showEduExpiredOnLoad]);
 
-  // 打开弹窗后清理 URL，避免“粘性弹窗”
+  // ✅ 打开弹窗后清理 URL，避免“粘性弹窗”
   useEffect(() => {
     if (!showEduExpired || typeof window === "undefined") return;
     const url = new URL(window.location.href);
@@ -214,9 +208,7 @@ export function DashboardPanel({
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <p className="text-sm text-slate-500">{labels.personalEmail}</p>
-            <p className="text-lg font-semibold">
-              {maskEmail(data.personalEmail)}
-            </p>
+            <p className="text-lg font-semibold">{maskEmail(data.personalEmail)}</p>
           </div>
 
           <div>
@@ -236,18 +228,10 @@ export function DashboardPanel({
         </div>
 
         <div className="mt-4 flex flex-wrap gap-3">
-          <Button
-            onClick={handleEduLogin}
-            disabled={isCheckingEdu}
-            aria-busy={isCheckingEdu}
-          >
+          <Button onClick={handleEduLogin} disabled={isCheckingEdu} aria-busy={isCheckingEdu}>
             {labels.webmail}
           </Button>
-          <Button
-            onClick={logout}
-            disabled={isLoggingOut}
-            aria-busy={isLoggingOut}
-          >
+          <Button onClick={logout} disabled={isLoggingOut} aria-busy={isLoggingOut}>
             {labels.logout}
           </Button>
         </div>
@@ -297,7 +281,7 @@ export function DashboardPanel({
               />
             </div>
 
-            <Button onClick={changePassword} disabled={isChanging}>
+            <Button onClick={changePassword} disabled={isChanging} aria-busy={isChanging}>
               {labels.submit}
             </Button>
           </div>
@@ -309,12 +293,8 @@ export function DashboardPanel({
 
           <div className="mt-4 space-y-3">
             <Label htmlFor={renewCodeId}>{labels.activationCode}</Label>
-            <Input
-              id={renewCodeId}
-              value={renewCode}
-              onChange={(e) => setRenewCode(e.target.value)}
-            />
-            <Button onClick={renew} disabled={isRenewing}>
+            <Input id={renewCodeId} value={renewCode} onChange={(e) => setRenewCode(e.target.value)} />
+            <Button onClick={renew} disabled={isRenewing} aria-busy={isRenewing}>
               {labels.renewSubmit}
             </Button>
           </div>
@@ -343,9 +323,7 @@ export function DashboardPanel({
               {labels.eduMailExpiredBody}
             </p>
             <div className="mt-6 flex justify-end">
-              <Button onClick={() => setShowEduExpired(false)}>
-                {labels.ok}
-              </Button>
+              <Button onClick={() => setShowEduExpired(false)}>{labels.ok}</Button>
             </div>
           </div>
         </div>
