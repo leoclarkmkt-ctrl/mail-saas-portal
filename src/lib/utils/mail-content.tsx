@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 const urlRegex = /https?:\/\/[^\s<]+/gi;
+
 const linkStyleClass =
   "mail-link inline-flex max-w-full flex-wrap items-center gap-1 align-middle break-words text-sky-600 hover:text-sky-700 visited:!text-indigo-600 visited:hover:!text-indigo-700";
 const linkTextClass = "break-all";
@@ -80,8 +81,17 @@ const createBadgeElement = (doc: Document, label: string) => {
 };
 
 const wrapAnchorContents = (anchor: HTMLAnchorElement, doc: Document) => {
+  // Avoid double-wrapping
+  const alreadyWrapped =
+    anchor.childElementCount === 1 &&
+    anchor.firstElementChild?.tagName.toLowerCase() === "span" &&
+    anchor.firstElementChild.classList.contains(linkTextClass);
+
+  if (alreadyWrapped) return;
+
   const contentWrapper = doc.createElement("span");
   contentWrapper.className = linkTextClass;
+
   while (anchor.firstChild) {
     contentWrapper.appendChild(anchor.firstChild);
   }
@@ -95,9 +105,14 @@ const enhanceAnchor = (anchor: HTMLAnchorElement, doc: Document) => {
   const isExternal = isExternalHttpLink(normalizedHref);
 
   setLinkAttributes(anchor);
+
+  // Keep existing classes, append ours.
   anchor.className = `${anchor.className} ${linkStyleClass}`.trim();
+
+  // Hover shows real URL.
   anchor.setAttribute("title", normalizedHref);
 
+  // Ensure long URLs wrap without breaking clickable area.
   wrapAnchorContents(anchor, doc);
 
   if (trustedTld) {
@@ -112,6 +127,7 @@ const enhanceAnchor = (anchor: HTMLAnchorElement, doc: Document) => {
 const stripTrailingPunctuation = (value: string) => {
   let url = value;
   let trailing = "";
+  // Important: do NOT strip "?" (query marker), but allow stripping of common trailing punctuation.
   while (/[),.!]/.test(url.slice(-1))) {
     trailing = `${url.slice(-1)}${trailing}`;
     url = url.slice(0, -1);
@@ -249,6 +265,7 @@ const renderPlainTextLine = (line: string, lineIndex: number) => {
     const matchText = match[0];
     const matchIndex = match.index ?? 0;
     const { url, trailing } = stripTrailingPunctuation(matchText);
+
     const normalizedHref = getNormalizedHref(url);
     const trustedTld = getTrustedTld(normalizedHref);
     const isExternal = isExternalHttpLink(normalizedHref);
@@ -267,9 +284,7 @@ const renderPlainTextLine = (line: string, lineIndex: number) => {
         className={linkStyleClass}
       >
         <span className={linkTextClass}>{url}</span>
-        {trustedTld ? (
-          <span className={badgeClass}>{trustedTld}</span>
-        ) : null}
+        {trustedTld ? <span className={badgeClass}>{trustedTld}</span> : null}
         {isExternal ? (
           <span className={iconClass} aria-hidden="true">
             <svg
