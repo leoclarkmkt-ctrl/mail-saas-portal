@@ -104,9 +104,12 @@ export const en = {
     title: "Reset Password",
     newPassword: "New Password",
     submit: "Reset Password",
-    invalidLink: "Reset link is invalid or expired. Please request a new one.",
+    loading: "Verifying reset link...",
+    invalidLink: "Reset link is invalid. Please request a new one.",
+    expiredLink: "Reset link has expired. Please request a new one.",
+    sessionMissing: "Reset session is missing. Please open the latest recovery link and try again.",
     submitFailed: "Reset failed. Please try again.",
-    submitSuccess: "Success"
+    submitSuccess: "Password reset successful."
   },
   dashboard: {
     title: "Student Console",

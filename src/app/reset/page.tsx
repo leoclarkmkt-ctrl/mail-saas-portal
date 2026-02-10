@@ -1,13 +1,17 @@
-import { getDictionary } from "@/i18n";
-import { getLangFromRequest } from "@/lib/i18n/server";
+"use client";
+
+import { useMemo } from "react";
+import { useSearchParams } from "next/navigation";
+import { getDictionary } from "@/lib/i18n";
+import { getLangFromSearchParams } from "@/lib/i18n/shared";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ResetForm } from "@/components/reset-form";
 
-export default function ResetPage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
-  const lang = getLangFromRequest(searchParams);
-  const dict = getDictionary(lang);
-  const accessTokenValue = searchParams?.access_token;
-  const accessToken = Array.isArray(accessTokenValue) ? accessTokenValue[0] : accessTokenValue;
+export default function ResetPage() {
+  const searchParams = useSearchParams();
+  const lang = getLangFromSearchParams(searchParams) ?? "en";
+  const dict = useMemo(() => getDictionary(lang), [lang]);
+
   return (
     <Card>
       <CardHeader>
@@ -18,12 +22,14 @@ export default function ResetPage({ searchParams }: { searchParams?: Record<stri
           labels={{
             newPassword: dict.reset.newPassword,
             submit: dict.reset.submit,
+            loading: dict.reset.loading,
             invalidLink: dict.reset.invalidLink,
+            expiredLink: dict.reset.expiredLink,
+            sessionMissing: dict.reset.sessionMissing,
             submitFailed: dict.reset.submitFailed,
             submitSuccess: dict.reset.submitSuccess
           }}
           lang={lang}
-          accessToken={accessToken}
         />
       </CardContent>
     </Card>

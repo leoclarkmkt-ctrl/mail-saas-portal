@@ -98,9 +98,12 @@ export const zh = {
     title: "重置密码",
     newPassword: "新密码",
     submit: "重置密码",
-    invalidLink: "重置链接无效或已过期，请重新发起找回流程。",
+    loading: "正在验证重置链接…",
+    invalidLink: "重置链接无效，请重新发起找回流程。",
+    expiredLink: "重置链接已过期，请重新发起找回流程。",
+    sessionMissing: "重置会话缺失，请打开最新的找回链接后重试。",
     submitFailed: "重置失败，请稍后重试。",
-    submitSuccess: "重置成功"
+    submitSuccess: "密码重置成功。"
   },
   dashboard: {
     title: "学生控制台",
