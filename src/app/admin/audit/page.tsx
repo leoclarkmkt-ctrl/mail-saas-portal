@@ -20,12 +20,7 @@ export default function AdminAuditPage({ searchParams }: { searchParams?: Record
           status: dict.admin.status
         }}
       />
-      <AdminAudit
-        key={lang}
-        lang={lang}
-        labels={dict.admin.auditLabels}
-        actionLabels={dict.admin.auditActionLabels}
-      />
+      <AdminAudit key={lang} lang={lang} labels={dict.admin.auditLabels} />
     </div>
   );
 }

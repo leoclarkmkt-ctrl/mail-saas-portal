@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Locale } from "@/i18n";
@@ -24,29 +25,77 @@ type AdminUsersLabels = {
   retry: string;
 };
 
-export function AdminUsers({ labels, lang }: { labels: AdminUsersLabels; lang: Locale }) {
-  const [query, setQuery] = useState("");
+const PAGE_SIZE = 50;
+
+const normalizePage = (value: number) => {
+  if (!Number.isFinite(value) || value < 1) return 1;
+  return Math.floor(value);
+};
+
+export function AdminUsers({
+  labels,
+  lang,
+  initialQuery,
+  initialPage
+}: {
+  labels: AdminUsersLabels;
+  lang: Locale;
+  initialQuery: string;
+  initialPage: number;
+}) {
+  const [query, setQuery] = useState(initialQuery);
+  const [activeQuery, setActiveQuery] = useState(initialQuery);
+  const [page, setPage] = useState(normalizePage(initialPage));
   const [users, setUsers] = useState<any[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const search = useCallback(async () => {
-    setError(null);
-    try {
-      const res = await fetch(`/api/admin/users?query=${encodeURIComponent(query)}`);
-      if (!res.ok) {
-        throw new Error(labels.failedToLoad);
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const syncUrl = useCallback(
+    (nextPage: number, nextQuery: string) => {
+      const params = new URLSearchParams();
+      params.set("lang", lang);
+      if (nextPage > 1) params.set("page", String(nextPage));
+      if (nextQuery.trim()) params.set("query", nextQuery.trim());
+      router.replace(`${pathname}?${params.toString()}`);
+    },
+    [lang, pathname, router]
+  );
+
+  const load = useCallback(
+    async (nextPage: number, nextQuery: string) => {
+      setError(null);
+      const safePage = normalizePage(nextPage);
+      try {
+        const params = new URLSearchParams();
+        params.set("page", String(safePage));
+        params.set("query", nextQuery.trim());
+        const res = await fetch(`/api/admin/users?${params.toString()}`);
+        if (!res.ok) {
+          throw new Error(labels.failedToLoad);
+        }
+        const data = await res.json();
+        const safeResponsePage = normalizePage(Number(data.page ?? safePage));
+        const safeTotalPages = Math.max(1, Number(data.totalPages ?? 1));
+        setUsers(data.users ?? []);
+        setPage(safeResponsePage);
+        setTotalPages(safeTotalPages);
+        if (safeResponsePage !== safePage) {
+          syncUrl(safeResponsePage, nextQuery);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : labels.failedToLoad);
       }
-      const data = await res.json();
-      setUsers(data.users ?? []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : labels.failedToLoad);
-    }
-  }, [query, labels.failedToLoad]);
+    },
+    [labels.failedToLoad, syncUrl]
+  );
 
   useEffect(() => {
-    void search();
-  }, [search, lang]);
+    void load(page, activeQuery);
+  }, [load, page, activeQuery, lang]);
 
   const renew = async (userId: string) => {
     await fetch("/api/admin/users", {
@@ -54,7 +103,7 @@ export function AdminUsers({ labels, lang }: { labels: AdminUsersLabels; lang: L
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ user_id: userId, action: "renew" })
     });
-    search();
+    void load(page, activeQuery);
   };
 
   const toggleSuspend = async (userId: string, suspended: boolean) => {
@@ -63,7 +112,7 @@ export function AdminUsers({ labels, lang }: { labels: AdminUsersLabels; lang: L
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ user_id: userId, suspend: !suspended })
     });
-    search();
+    void load(page, activeQuery);
   };
 
   const resetPassword = async (userId: string) => {
@@ -86,6 +135,30 @@ export function AdminUsers({ labels, lang }: { labels: AdminUsersLabels; lang: L
     return labels.statusLabels[status] ?? status ?? labels.statusLabels.unknown ?? "Unknown";
   };
 
+  const pageText = useMemo(
+    () => (lang === "zh" ? `第 ${page} 页 / 共 ${totalPages} 页` : `Page ${page} / ${totalPages}`),
+    [lang, page, totalPages]
+  );
+
+  const applySearch = () => {
+    const trimmed = query.trim();
+    setActiveQuery(trimmed);
+    setPage(1);
+    syncUrl(1, trimmed);
+  };
+
+  const goPrev = () => {
+    const prevPage = Math.max(1, page - 1);
+    setPage(prevPage);
+    syncUrl(prevPage, activeQuery);
+  };
+
+  const goNext = () => {
+    const nextPage = Math.min(totalPages, page + 1);
+    setPage(nextPage);
+    syncUrl(nextPage, activeQuery);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
@@ -95,14 +168,14 @@ export function AdminUsers({ labels, lang }: { labels: AdminUsersLabels; lang: L
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        <Button className="shrink-0" onClick={search}>
+        <Button className="shrink-0" onClick={applySearch}>
           {labels.search}
         </Button>
       </div>
       {error && (
         <div className="flex items-center gap-3 text-sm text-rose-500">
           <span>{error}</span>
-          <Button size="sm" variant="outline" onClick={search}>
+          <Button size="sm" variant="outline" onClick={() => void load(page, activeQuery)}>
             {labels.retry}
           </Button>
         </div>
@@ -140,6 +213,19 @@ export function AdminUsers({ labels, lang }: { labels: AdminUsersLabels; lang: L
           </tbody>
         </table>
       </div>
+
+      <div className="flex items-center justify-between text-sm text-slate-600">
+        <span>{pageText}</span>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={goPrev} disabled={page <= 1}>
+            {lang === "zh" ? "上一页" : "Previous"}
+          </Button>
+          <Button size="sm" variant="outline" onClick={goNext} disabled={page >= totalPages}>
+            {lang === "zh" ? "下一页" : "Next"}
+          </Button>
+        </div>
+      </div>
+      <p className="text-xs text-slate-500">{lang === "zh" ? `每页最多 ${PAGE_SIZE} 条` : `Up to ${PAGE_SIZE} per page`}</p>
     </div>
   );
 }

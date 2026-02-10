@@ -8,6 +8,14 @@ import { getClientIp } from "@/lib/security/client-ip";
 
 export const runtime = "nodejs";
 
+const PAGE_SIZE = 50;
+
+const normalizePage = (raw: string | null) => {
+  const page = Number(raw ?? "1");
+  if (!Number.isFinite(page) || page < 1) return 1;
+  return Math.floor(page);
+};
+
 /**
  * GET /api/admin/users
  * - 搜索 personal_email / edu_email / edu_username
@@ -17,38 +25,47 @@ export async function GET(request: NextRequest) {
   const session = await getAdminSession();
   if (!session) return jsonError("Unauthorized", 401);
 
-  const query = request.nextUrl.searchParams.get("query")?.toLowerCase() ?? "";
+  const query = request.nextUrl.searchParams.get("query")?.toLowerCase().trim() ?? "";
+  const page = normalizePage(request.nextUrl.searchParams.get("page"));
   const supabase = createServerSupabaseClient();
 
-  // 1) 从 profiles 里按 personal_email 找 user_id
   const userMatches = await supabase
     .from("profiles")
     .select("user_id")
     .ilike("personal_email", `%${query}%`)
-    .limit(100);
+    .limit(500);
 
   const userIds = userMatches.data?.map((row) => row.user_id) ?? [];
 
-  // 2) edu_accounts 查询（邮箱 / 用户名 / user_id）
-  let eduQuery = supabase
-    .from("edu_accounts")
-    .select("user_id, edu_email, expires_at, status");
+  let eduQuery = supabase.from("edu_accounts").select("user_id, edu_email, expires_at, status, created_at");
+  let countQuery = supabase.from("edu_accounts").select("id", { count: "exact", head: true });
 
   const orFilters: string[] = [`edu_email.ilike.%${query}%,edu_username.ilike.%${query}%`];
-
   if (userIds.length > 0) {
     orFilters.push(`user_id.in.(${userIds.join(",")})`);
   }
+  const orFilter = orFilters.join(",");
 
-  eduQuery = eduQuery.or(orFilters.join(","));
+  eduQuery = eduQuery.or(orFilter);
+  countQuery = countQuery.or(orFilter);
 
-  const { data: eduRows, error: eduError } = await eduQuery.limit(100);
+  const { count, error: countError } = await countQuery;
+  if (countError) return jsonError(countError.message, 400);
+
+  const total = count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const from = (safePage - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
+  const { data: eduRows, error: eduError } = await eduQuery
+    .order("created_at", { ascending: false })
+    .range(from, to);
   if (eduError) return jsonError(eduError.message, 400);
 
   const rows = eduRows ?? [];
   const eduUserIds = rows.map((r) => r.user_id).filter(Boolean);
 
-  // 3) 回查 profiles（user_id → profile）
   const { data: profiles, error: profileError } = await supabase
     .from("profiles")
     .select("user_id, personal_email, is_suspended")
@@ -58,7 +75,6 @@ export async function GET(request: NextRequest) {
 
   const profileMap = new Map((profiles ?? []).map((p) => [p.user_id, p]));
 
-  // 4) 拼装返回数据（不再返回 id，只返回 user_id）
   const result = rows.map((row) => {
     const profile = profileMap.get(row.user_id);
     return {
@@ -71,7 +87,7 @@ export async function GET(request: NextRequest) {
     };
   });
 
-  return jsonSuccess({ users: result });
+  return jsonSuccess({ users: result, total, page: safePage, pageSize: PAGE_SIZE, totalPages });
 }
 
 /**
@@ -109,7 +125,6 @@ export async function PATCH(request: NextRequest) {
   const supabase = createServerSupabaseClient();
   const clientIp = getClientIp(request);
 
-  // A) 管理员续期（固定 1 年）
   if (parsed.data.action === "renew") {
     const years = 1;
 
@@ -129,7 +144,6 @@ export async function PATCH(request: NextRequest) {
     return jsonSuccess({ ok: true });
   }
 
-  // B) 冻结 / 解冻账号
   if (typeof parsed.data.suspend === "boolean") {
     const { error } = await supabase
       .from("profiles")
@@ -150,7 +164,6 @@ export async function PATCH(request: NextRequest) {
     return jsonSuccess({ ok: true });
   }
 
-  // C) 管理员重置密码
   if (parsed.data.reset_password) {
     const tempPassword = `NSUK-${randomString(8, "ABCDEFGHIJKLMNOPQRSTUVWXYZ23456789")}!`;
 

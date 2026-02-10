@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Locale } from "@/i18n";
+import { getAuditActionText } from "@/lib/audit/action-labels";
 
 type AdminAuditLabels = {
   searchPlaceholder: string;
@@ -16,11 +17,8 @@ type AdminAuditLabels = {
   retry: string;
 };
 
-type AdminAuditActionLabels = Record<string, string>;
-
 type AdminAuditProps = {
   labels: AdminAuditLabels;
-  actionLabels: AdminAuditActionLabels;
   lang: Locale;
 };
 
@@ -59,12 +57,7 @@ const formatLocalTime = (value: string, lang: Locale) => {
   });
 };
 
-const resolveActionLabel = (action: string | null | undefined, actionLabels: AdminAuditActionLabels) => {
-  if (!action) return actionLabels.unknown ?? "Unknown";
-  return actionLabels[action] ?? action ?? actionLabels.unknown ?? "Unknown";
-};
-
-export function AdminAudit({ labels, actionLabels, lang }: AdminAuditProps) {
+export function AdminAudit({ labels, lang }: AdminAuditProps) {
   const [query, setQuery] = useState("");
   const [logs, setLogs] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -123,7 +116,7 @@ export function AdminAudit({ labels, actionLabels, lang }: AdminAuditProps) {
           <tbody>
             {logs.map((log) => (
               <tr key={log.id} className="border-t border-slate-100">
-                <td className="p-3">{resolveActionLabel(log.action, actionLabels)}</td>
+                <td className="p-3">{getAuditActionText(log.action, lang)}</td>
                 <td className="p-3">{log.edu_email ?? "-"}</td>
                 <td className="p-3">
                   {typeof log.ip === "string" && log.ip.trim() && log.ip !== "-" ? log.ip : "-"}
