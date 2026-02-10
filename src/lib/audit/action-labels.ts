@@ -60,6 +60,7 @@ const normalizeKey = (value: string | null | undefined) => {
   if (!value) return null;
   const trimmed = value.trim();
   if (!trimmed) return null;
+
   const lower = trimmed.toLowerCase();
   // try exact, then lowercase for english variants
   return ACTION_ALIASES[trimmed] ?? ACTION_ALIASES[lower] ?? trimmed;
