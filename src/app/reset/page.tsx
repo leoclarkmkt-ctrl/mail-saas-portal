@@ -1,16 +1,16 @@
-"use client";
-
-import { useMemo } from "react";
-import { useSearchParams } from "next/navigation";
 import { getDictionary } from "@/lib/i18n";
 import { getLangFromSearchParams } from "@/lib/i18n/shared";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ResetForm } from "@/components/reset-form";
 
-export default function ResetPage() {
-  const searchParams = useSearchParams();
+type ResetPageProps = {
+  searchParams?: Record<string, string | string[] | undefined>;
+};
+
+export default function ResetPage({ searchParams }: ResetPageProps) {
+  // Prefer server-side searchParams for stable language when users copy/paste URLs
   const lang = getLangFromSearchParams(searchParams) ?? "en";
-  const dict = useMemo(() => getDictionary(lang), [lang]);
+  const dict = getDictionary(lang);
 
   return (
     <Card>
