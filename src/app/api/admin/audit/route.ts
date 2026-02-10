@@ -17,13 +17,27 @@ type AuditLogRow = {
 type AuditLogWithEmail = AuditLogRow & { edu_email: string | null; description: string | null };
 type AttachEduEmailsResult = { data: AuditLogWithEmail[] } | { error: Error };
 
+function extractDescription(meta: Record<string, unknown> | null): string | null {
+  if (!meta) return null;
+  const candidates = [meta.description, meta.message, meta.detail];
+  for (const candidate of candidates) {
+    if (typeof candidate === "string") {
+      const trimmed = candidate.trim();
+      if (trimmed) {
+        return trimmed;
+      }
+    }
+  }
+  return null;
+}
+
 async function attachEduEmails(
   supabase: ReturnType<typeof createServerSupabaseClient>,
   rows: AuditLogRow[]
 ): Promise<AttachEduEmailsResult> {
   const userIds = Array.from(new Set(rows.map((row) => row.user_id).filter(Boolean))) as string[];
   if (userIds.length === 0) {
-    return { data: rows.map((row) => ({ ...row, edu_email: null })) };
+    return { data: rows.map((row) => ({ ...row, edu_email: null, description: extractDescription(row.meta) })) };
   }
 
   const { data, error } = await supabase
@@ -37,14 +51,7 @@ async function attachEduEmails(
     data: rows.map((row) => ({
       ...row,
       edu_email: row.user_id ? eduMap.get(row.user_id) ?? null : null,
-      description:
-        typeof row.meta?.description === "string"
-          ? row.meta.description
-          : typeof row.meta?.message === "string"
-            ? row.meta.message
-            : typeof row.meta?.detail === "string"
-              ? row.meta.detail
-              : null
+      description: extractDescription(row.meta)
     }))
   };
 }
