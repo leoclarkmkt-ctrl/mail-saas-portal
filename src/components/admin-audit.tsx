@@ -27,17 +27,15 @@ const formatRelativeTime = (date: Date, lang: Locale) => {
   const diffMs = Date.now() - date.getTime();
   if (!Number.isFinite(diffMs)) return "-";
   const diffSeconds = Math.max(0, Math.floor(diffMs / 1000));
-  if (diffSeconds < 60) {
-    return lang === "zh" ? "刚刚" : "just now";
-  }
+
+  if (diffSeconds < 60) return lang === "zh" ? "刚刚" : "just now";
+
   const diffMinutes = Math.floor(diffSeconds / 60);
-  if (diffMinutes < 60) {
-    return lang === "zh" ? `${diffMinutes} 分钟前` : `${diffMinutes} minutes ago`;
-  }
+  if (diffMinutes < 60) return lang === "zh" ? `${diffMinutes} 分钟前` : `${diffMinutes} minutes ago`;
+
   const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) {
-    return lang === "zh" ? `${diffHours} 小时前` : `${diffHours} hours ago`;
-  }
+  if (diffHours < 24) return lang === "zh" ? `${diffHours} 小时前` : `${diffHours} hours ago`;
+
   const diffDays = Math.floor(diffHours / 24);
   return lang === "zh" ? `${diffDays} 天前` : `${diffDays} days ago`;
 };
@@ -53,7 +51,7 @@ const formatLocalTime = (value: string, lang: Locale) => {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
-    hour12: false
+    hour12: false,
   });
 };
 
@@ -66,11 +64,13 @@ export function AdminAudit({ labels, lang }: AdminAuditProps) {
     setError(null);
     try {
       const trimmed = query.trim();
-      const endpoint = trimmed ? `/api/admin/audit?query=${encodeURIComponent(trimmed)}` : "/api/admin/audit";
+      const endpoint = trimmed
+        ? `/api/admin/audit?query=${encodeURIComponent(trimmed)}`
+        : "/api/admin/audit";
+
       const res = await fetch(endpoint);
-      if (!res.ok) {
-        throw new Error(labels.failedToLoad);
-      }
+      if (!res.ok) throw new Error(labels.failedToLoad);
+
       const payload = await res.json();
       setLogs(payload.data ?? []);
     } catch (err) {
@@ -95,6 +95,7 @@ export function AdminAudit({ labels, lang }: AdminAuditProps) {
           {labels.search}
         </Button>
       </div>
+
       {error && (
         <div className="flex items-center gap-3 text-sm text-rose-500">
           <span>{error}</span>
@@ -103,6 +104,7 @@ export function AdminAudit({ labels, lang }: AdminAuditProps) {
           </Button>
         </div>
       )}
+
       <div className="overflow-auto rounded-lg border border-slate-200 bg-white">
         <table className="min-w-full text-sm">
           <thead className="bg-slate-50 text-left">
@@ -131,6 +133,13 @@ export function AdminAudit({ labels, lang }: AdminAuditProps) {
                 </td>
               </tr>
             ))}
+            {logs.length === 0 && (
+              <tr>
+                <td className="p-3 text-slate-500" colSpan={4}>
+                  -
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
