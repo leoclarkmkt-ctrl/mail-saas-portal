@@ -1,10 +1,15 @@
-import { getDictionary } from "@/i18n";
-import { getLangFromRequest } from "@/lib/i18n/server";
+import { getDictionary } from "@/lib/i18n";
+import { getLangFromSearchParams } from "@/lib/i18n/shared";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ResetForm } from "@/components/reset-form";
 
-export default function ResetPage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
-  const lang = getLangFromRequest(searchParams);
+type ResetPageProps = {
+  searchParams?: Record<string, string | string[] | undefined>;
+};
+
+export default function ResetPage({ searchParams }: ResetPageProps) {
+  // Prefer server-side searchParams for stable language when users copy/paste URLs
+  const lang = getLangFromSearchParams(searchParams) ?? "en";
   const dict = getDictionary(lang);
 
   return (
