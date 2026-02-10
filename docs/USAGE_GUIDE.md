@@ -145,10 +145,17 @@
    证据：src/app/forgot/page.tsx:1-29；src/app/api/forgot/route.ts:16-59
 
 4. **重置密码（/reset）**
-   - 页面：`src/app/reset/page.tsx` → `ResetForm`（读取 access_token）。
-   - `/api/reset`：使用 access_token 更新密码，记录 `audit_logs`。
+   - 页面：`src/app/reset/page.tsx` → `ResetForm`，支持消费 `?code=` 与 `#access_token/#refresh_token&type=recovery` 两类回跳参数并建立会话。
 
-   证据：src/app/reset/page.tsx:6-22；src/app/api/reset/route.ts:10-48
+   证据：src/app/reset/page.tsx；src/components/reset-form.tsx
+
+4.1 **QQ/微信风控规避：站内 verify 代理入口**
+   - 新增 `/auth/verify`：接收 `token/type/redirect_to`，校验后 302 到 `${NEXT_PUBLIC_SUPABASE_URL}/auth/v1/verify`。
+   - 默认 `redirect_to=https://portal.nsuk.edu.kg/reset`，`type` 仅允许 `recovery/signup/magiclink/invite`。
+   - 若 QQ 邮箱拦截 `*.supabase.co` 链接，可将 Supabase 邮件模板中的按钮 URL 改为本站入口（保留你当前模板里已有的 token/type 变量）：
+     - `https://portal.nsuk.edu.kg/auth/verify?token=<TOKEN_FROM_CURRENT_TEMPLATE>&type=<TYPE_FROM_CURRENT_TEMPLATE>&redirect_to=https%3A%2F%2Fportal.nsuk.edu.kg%2Freset`
+
+   证据：src/app/auth/verify/route.ts
 
 5. **Dashboard（/dashboard）**
    - 页面：`src/app/dashboard/page.tsx`：需要用户会话；读取用户与 `edu_accounts`；过期则更新状态；Suspended 则跳回登录。

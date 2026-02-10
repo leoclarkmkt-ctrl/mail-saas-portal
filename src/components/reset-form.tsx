@@ -1,95 +1,133 @@
 "use client";
 
-import { useEffect, useState, useId } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useMemo, useState, useId } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { resetSchema } from "@/lib/validation/schemas";
-import type { z } from "zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { passwordSchema } from "@/lib/validation/schemas";
+import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { readJsonResponse } from "@/lib/utils/safe-json";
 
-type ResetValues = z.infer<typeof resetSchema>;
+const resetClientSchema = z.object({
+  new_password: passwordSchema
+});
+
+type ResetValues = z.infer<typeof resetClientSchema>;
+type SessionState = "loading" | "ready" | "invalid";
+
+function cleanupResetUrl() {
+  const current = new URL(window.location.href);
+  const preservedLang = current.searchParams.get("lang");
+  const cleanSearch = preservedLang ? `?lang=${encodeURIComponent(preservedLang)}` : "";
+  const cleanUrl = `${current.pathname}${cleanSearch}`;
+  window.history.replaceState({}, document.title, cleanUrl);
+}
 
 export function ResetForm({
   labels,
-  lang,
-  accessToken
+  lang
 }: {
   labels: {
     newPassword: string;
     submit: string;
+    loading: string;
     invalidLink: string;
+    expiredLink: string;
+    sessionMissing: string;
     submitFailed: string;
     submitSuccess: string;
   };
   lang: "en" | "zh";
-  accessToken?: string;
 }) {
   const [message, setMessage] = useState<string | null>(null);
-  const [accessTokenFromHash, setAccessTokenFromHash] = useState("");
+  const [sessionState, setSessionState] = useState<SessionState>("loading");
   const passwordId = useId();
   const messageId = useId();
-  const tokenMessageId = useId();
-
-  useEffect(() => {
-    const hashToken = new URLSearchParams(window.location.hash.replace(/^#/, "")).get("access_token") ?? "";
-    setAccessTokenFromHash(hashToken);
-  }, []);
+  const supabase = useMemo(() => createBrowserSupabaseClient(), []);
 
   const form = useForm<ResetValues>({
-    resolver: zodResolver(resetSchema),
-    defaultValues: { access_token: accessToken ?? "", new_password: "" }
+    resolver: zodResolver(resetClientSchema),
+    defaultValues: { new_password: "" }
   });
 
   useEffect(() => {
-    if (accessToken || accessTokenFromHash) {
-      form.setValue("access_token", accessToken || accessTokenFromHash);
-    }
-  }, [accessToken, accessTokenFromHash, form]);
+    const establishRecoverySession = async () => {
+      const url = new URL(window.location.href);
+      const code = url.searchParams.get("code");
 
-  const hasToken = Boolean(accessToken || accessTokenFromHash);
-  const tokenMessage = labels.invalidLink;
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) {
+          setSessionState("invalid");
+          setMessage(labels.expiredLink);
+          return;
+        }
+        cleanupResetUrl();
+        setSessionState("ready");
+        return;
+      }
+
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const accessToken = hashParams.get("access_token");
+      const refreshToken = hashParams.get("refresh_token");
+      const type = hashParams.get("type");
+
+      if (accessToken && refreshToken && type === "recovery") {
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken
+        });
+        if (error) {
+          setSessionState("invalid");
+          setMessage(labels.expiredLink);
+          return;
+        }
+        cleanupResetUrl();
+        setSessionState("ready");
+        return;
+      }
+
+      setSessionState("invalid");
+      setMessage(labels.invalidLink);
+    };
+
+    void establishRecoverySession();
+  }, [labels.expiredLink, labels.invalidLink, supabase]);
 
   const onSubmit = async (values: ResetValues) => {
     setMessage(null);
-    const res = await fetch("/api/reset", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(values)
-    });
-    const { data, text } = await readJsonResponse<{ error?: string }>(res);
-    if (!res.ok) {
-      setMessage(data?.error ?? text ?? labels.submitFailed);
+    if (sessionState !== "ready") {
+      setMessage(labels.sessionMissing);
       return;
     }
+
+    const { error } = await supabase.auth.updateUser({
+      password: values.new_password
+    });
+
+    if (error) {
+      const isMissingSession = /auth session missing/i.test(error.message ?? "");
+      setMessage(isMissingSession ? labels.sessionMissing : labels.submitFailed);
+      return;
+    }
+
     setMessage(labels.submitSuccess);
     const resolvedLang = lang === "en" || lang === "zh" ? lang : undefined;
     window.location.href = resolvedLang ? `/login?lang=${resolvedLang}` : "/login";
   };
 
+  const disabled = sessionState !== "ready" || form.formState.isSubmitting;
+
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
       <div>
         <Label htmlFor={passwordId}>{labels.newPassword}</Label>
-        <Input
-          id={passwordId}
-          type="password"
-          aria-describedby={
-            !hasToken ? tokenMessageId : message ? messageId : undefined
-          }
-          {...form.register("new_password")}
-        />
+        <Input id={passwordId} type="password" aria-describedby={message ? messageId : undefined} {...form.register("new_password")} />
       </div>
-      <Button type="submit" disabled={!hasToken}>
-        {labels.submit}
-      </Button>
-      {!hasToken && (
-        <p className="text-sm text-rose-500" id={tokenMessageId}>
-          {tokenMessage}
-        </p>
-      )}
+      <Button type="submit" disabled={disabled}>{labels.submit}</Button>
+      {sessionState === "loading" && <p className="text-sm text-slate-500">{labels.loading}</p>}
       {message && (
         <p className="text-sm text-slate-500" id={messageId}>
           {message}
