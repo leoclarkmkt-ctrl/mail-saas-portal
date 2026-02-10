@@ -4,13 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Locale } from "@/i18n";
-import { getAuditActionLabel, resolveAuditDescription } from "@/lib/audit/action-labels";
+import { getAuditActionText } from "@/lib/audit/action-labels";
 
 type AdminAuditLabels = {
   searchPlaceholder: string;
   search: string;
   action: string;
-  description: string;
   user: string;
   ip: string;
   time: string;
@@ -28,17 +27,15 @@ const formatRelativeTime = (date: Date, lang: Locale) => {
   const diffMs = Date.now() - date.getTime();
   if (!Number.isFinite(diffMs)) return "-";
   const diffSeconds = Math.max(0, Math.floor(diffMs / 1000));
-  if (diffSeconds < 60) {
-    return lang === "zh" ? "刚刚" : "just now";
-  }
+
+  if (diffSeconds < 60) return lang === "zh" ? "刚刚" : "just now";
+
   const diffMinutes = Math.floor(diffSeconds / 60);
-  if (diffMinutes < 60) {
-    return lang === "zh" ? `${diffMinutes} 分钟前` : `${diffMinutes} minutes ago`;
-  }
+  if (diffMinutes < 60) return lang === "zh" ? `${diffMinutes} 分钟前` : `${diffMinutes} minutes ago`;
+
   const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) {
-    return lang === "zh" ? `${diffHours} 小时前` : `${diffHours} hours ago`;
-  }
+  if (diffHours < 24) return lang === "zh" ? `${diffHours} 小时前` : `${diffHours} hours ago`;
+
   const diffDays = Math.floor(diffHours / 24);
   return lang === "zh" ? `${diffDays} 天前` : `${diffDays} days ago`;
 };
@@ -54,7 +51,7 @@ const formatLocalTime = (value: string, lang: Locale) => {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
-    hour12: false
+    hour12: false,
   });
 };
 
@@ -67,11 +64,13 @@ export function AdminAudit({ labels, lang }: AdminAuditProps) {
     setError(null);
     try {
       const trimmed = query.trim();
-      const endpoint = trimmed ? `/api/admin/audit?query=${encodeURIComponent(trimmed)}` : "/api/admin/audit";
+      const endpoint = trimmed
+        ? `/api/admin/audit?query=${encodeURIComponent(trimmed)}`
+        : "/api/admin/audit";
+
       const res = await fetch(endpoint);
-      if (!res.ok) {
-        throw new Error(labels.failedToLoad);
-      }
+      if (!res.ok) throw new Error(labels.failedToLoad);
+
       const payload = await res.json();
       setLogs(payload.data ?? []);
     } catch (err) {
@@ -96,6 +95,7 @@ export function AdminAudit({ labels, lang }: AdminAuditProps) {
           {labels.search}
         </Button>
       </div>
+
       {error && (
         <div className="flex items-center gap-3 text-sm text-rose-500">
           <span>{error}</span>
@@ -104,12 +104,12 @@ export function AdminAudit({ labels, lang }: AdminAuditProps) {
           </Button>
         </div>
       )}
+
       <div className="overflow-auto rounded-lg border border-slate-200 bg-white">
         <table className="min-w-full text-sm">
           <thead className="bg-slate-50 text-left">
             <tr>
               <th className="p-3">{labels.action}</th>
-              <th className="p-3">{labels.description}</th>
               <th className="p-3">{labels.user}</th>
               <th className="p-3">{labels.ip}</th>
               <th className="p-3">{labels.time}</th>
@@ -117,42 +117,8 @@ export function AdminAudit({ labels, lang }: AdminAuditProps) {
           </thead>
           <tbody>
             {logs.map((log) => (
-              <tr key={log.id} className="border-t border-slate-100 align-top">
-                <td className="p-3">
-                  {(() => {
-                    const action = getAuditActionLabel(log.action);
-                    return (
-                      <div className="flex flex-col">
-                        <span>{action.label.zh} / {action.label.en}</span>
-                        {!action.isKnown && action.normalizedKey && (
-                          <span className="text-xs text-slate-500">{action.normalizedKey}</span>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </td>
-                <td className="p-3">
-                  {(() => {
-                    const description = resolveAuditDescription(log.description, log.action);
-                    const showRaw = !description.isKnown && description.normalizedKey;
-                    if (description.isCode) {
-                      return (
-                        <div className="flex flex-col">
-                          <span>{description.label.zh} / {description.label.en}</span>
-                          {showRaw && <span className="text-xs text-slate-500">{description.normalizedKey}</span>}
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <div className="flex flex-col gap-1">
-                        <span>中文：{description.label.zh || "-"}</span>
-                        <span>English: {description.label.en || description.label.zh || "-"}</span>
-                        {showRaw && <span className="text-xs text-slate-500">{description.normalizedKey}</span>}
-                      </div>
-                    );
-                  })()}
-                </td>
+              <tr key={log.id} className="border-t border-slate-100">
+                <td className="p-3">{getAuditActionText(log.action, lang)}</td>
                 <td className="p-3">{log.edu_email ?? "-"}</td>
                 <td className="p-3">
                   {typeof log.ip === "string" && log.ip.trim() && log.ip !== "-" ? log.ip : "-"}
@@ -167,6 +133,13 @@ export function AdminAudit({ labels, lang }: AdminAuditProps) {
                 </td>
               </tr>
             ))}
+            {logs.length === 0 && (
+              <tr>
+                <td className="p-3 text-slate-500" colSpan={4}>
+                  -
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
