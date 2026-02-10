@@ -330,6 +330,7 @@ export const zh = {
       failedToLoad: "加载失败",
       retry: "重试",
       action: "动作",
+      description: "代码描述",
       user: "用户",
       ip: "IP",
       time: "时间"

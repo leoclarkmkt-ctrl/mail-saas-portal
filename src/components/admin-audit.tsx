@@ -4,11 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Locale } from "@/i18n";
+import { getAuditActionLabel, resolveAuditDescription } from "@/lib/audit/action-labels";
 
 type AdminAuditLabels = {
   searchPlaceholder: string;
   search: string;
   action: string;
+  description: string;
   user: string;
   ip: string;
   time: string;
@@ -16,11 +18,8 @@ type AdminAuditLabels = {
   retry: string;
 };
 
-type AdminAuditActionLabels = Record<string, string>;
-
 type AdminAuditProps = {
   labels: AdminAuditLabels;
-  actionLabels: AdminAuditActionLabels;
   lang: Locale;
 };
 
@@ -59,12 +58,7 @@ const formatLocalTime = (value: string, lang: Locale) => {
   });
 };
 
-const resolveActionLabel = (action: string | null | undefined, actionLabels: AdminAuditActionLabels) => {
-  if (!action) return actionLabels.unknown ?? "Unknown";
-  return actionLabels[action] ?? action ?? actionLabels.unknown ?? "Unknown";
-};
-
-export function AdminAudit({ labels, actionLabels, lang }: AdminAuditProps) {
+export function AdminAudit({ labels, lang }: AdminAuditProps) {
   const [query, setQuery] = useState("");
   const [logs, setLogs] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -115,6 +109,7 @@ export function AdminAudit({ labels, actionLabels, lang }: AdminAuditProps) {
           <thead className="bg-slate-50 text-left">
             <tr>
               <th className="p-3">{labels.action}</th>
+              <th className="p-3">{labels.description}</th>
               <th className="p-3">{labels.user}</th>
               <th className="p-3">{labels.ip}</th>
               <th className="p-3">{labels.time}</th>
@@ -122,8 +117,42 @@ export function AdminAudit({ labels, actionLabels, lang }: AdminAuditProps) {
           </thead>
           <tbody>
             {logs.map((log) => (
-              <tr key={log.id} className="border-t border-slate-100">
-                <td className="p-3">{resolveActionLabel(log.action, actionLabels)}</td>
+              <tr key={log.id} className="border-t border-slate-100 align-top">
+                <td className="p-3">
+                  {(() => {
+                    const action = getAuditActionLabel(log.action);
+                    return (
+                      <div className="flex flex-col">
+                        <span>{action.label.zh} / {action.label.en}</span>
+                        {!action.isKnown && action.normalizedKey && (
+                          <span className="text-xs text-slate-500">{action.normalizedKey}</span>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </td>
+                <td className="p-3">
+                  {(() => {
+                    const description = resolveAuditDescription(log.description, log.action);
+                    const showRaw = !description.isKnown && description.normalizedKey;
+                    if (description.isCode) {
+                      return (
+                        <div className="flex flex-col">
+                          <span>{description.label.zh} / {description.label.en}</span>
+                          {showRaw && <span className="text-xs text-slate-500">{description.normalizedKey}</span>}
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="flex flex-col gap-1">
+                        <span>中文：{description.label.zh || "-"}</span>
+                        <span>English: {description.label.en || description.label.zh || "-"}</span>
+                        {showRaw && <span className="text-xs text-slate-500">{description.normalizedKey}</span>}
+                      </div>
+                    );
+                  })()}
+                </td>
                 <td className="p-3">{log.edu_email ?? "-"}</td>
                 <td className="p-3">
                   {typeof log.ip === "string" && log.ip.trim() && log.ip !== "-" ? log.ip : "-"}

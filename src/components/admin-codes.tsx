@@ -1,14 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/status-badge";
+import type { Locale } from "@/i18n";
 
 const STATUSES = ["all", "unused", "used", "revoked"] as const;
 
 type Status = (typeof STATUSES)[number];
+const PAGE_SIZE = 50;
 
 type AlertDialogProps = {
   open: boolean;
@@ -111,13 +113,33 @@ type AdminCodesLabels = {
   revoke: string;
 };
 
-export function AdminCodes({ labels }: { labels: AdminCodesLabels }) {
+const normalizePage = (value: number) => {
+  if (!Number.isFinite(value) || value < 1) return 1;
+  return Math.floor(value);
+};
+
+export function AdminCodes({
+  labels,
+  lang,
+  initialStatus,
+  initialQuery,
+  initialPage
+}: {
+  labels: AdminCodesLabels;
+  lang: Locale;
+  initialStatus: Status;
+  initialQuery: string;
+  initialPage: number;
+}) {
   const [codes, setCodes] = useState<any[]>([]);
   const [quantity, setQuantity] = useState(10);
   const [prefix, setPrefix] = useState("");
   const [note, setNote] = useState("");
-  const [status, setStatus] = useState<Status>("all");
-  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState<Status>(initialStatus);
+  const [query, setQuery] = useState(initialQuery);
+  const [activeQuery, setActiveQuery] = useState(initialQuery);
+  const [page, setPage] = useState(normalizePage(initialPage));
+  const [totalPages, setTotalPages] = useState(1);
   const [message, setMessage] = useState<string | null>(null);
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [selectedCodes, setSelectedCodes] = useState<Set<string>>(new Set());
@@ -131,35 +153,48 @@ export function AdminCodes({ labels }: { labels: AdminCodesLabels }) {
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tableRef = useRef<HTMLDivElement | null>(null);
 
-  const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
 
-  const activeQuery = useMemo(() => query.trim(), [query]);
+  const syncUrl = useCallback(
+    (nextPage: number, nextQuery: string, nextStatus: Status) => {
+      const params = new URLSearchParams();
+      params.set("lang", lang);
+      if (nextStatus !== "all") params.set("status", nextStatus);
+      if (nextQuery.trim()) params.set("q", nextQuery.trim());
+      if (nextPage > 1) params.set("page", String(nextPage));
+      router.replace(`${pathname}?${params.toString()}`);
+    },
+    [lang, pathname, router]
+  );
 
-  const load = useCallback(() => {
-    const params = new URLSearchParams();
-    if (status !== "all") params.set("status", status);
-    if (activeQuery) params.set("q", activeQuery);
-    const queryString = params.toString();
-    fetch(`/api/admin/codes${queryString ? `?${queryString}` : ""}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setCodes(data.data ?? []);
-        setSelectedCodes(new Set());
-      });
-  }, [status, activeQuery]);
+  const load = useCallback(
+    (nextPage: number, nextQuery: string, nextStatus: Status) => {
+      const params = new URLSearchParams();
+      if (nextStatus !== "all") params.set("status", nextStatus);
+      if (nextQuery.trim()) params.set("q", nextQuery.trim());
+      params.set("page", String(normalizePage(nextPage)));
+      const queryString = params.toString();
+      fetch(`/api/admin/codes?${queryString}`)
+        .then((res) => res.json())
+        .then((data) => {
+          const safePage = normalizePage(Number(data.page ?? nextPage));
+          const safeTotalPages = Math.max(1, Number(data.totalPages ?? 1));
+          setCodes(data.data ?? []);
+          setPage(safePage);
+          setTotalPages(safeTotalPages);
+          setSelectedCodes(new Set());
+          if (safePage !== nextPage) {
+            syncUrl(safePage, nextQuery, nextStatus);
+          }
+        });
+    },
+    [syncUrl]
+  );
 
   useEffect(() => {
-    load();
-  }, [load]);
-
-  useEffect(() => {
-    const initialQuery = searchParams.get("q");
-    if (initialQuery) {
-      setQuery(initialQuery);
-    }
-  }, [searchParams]);
+    load(page, activeQuery, status);
+  }, [load, page, activeQuery, status]);
 
   useEffect(() => {
     return () => {
@@ -197,7 +232,7 @@ export function AdminCodes({ labels }: { labels: AdminCodesLabels }) {
       setCodes(data.codes);
       showToast("success", formatToast(labels.toasts.generateSuccess, { count: quantity }));
       setSelectedCodes(new Set());
-      load();
+      load(page, activeQuery, status);
       tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch {
       setMessage(labels.codesFailed);
@@ -227,7 +262,7 @@ export function AdminCodes({ labels }: { labels: AdminCodesLabels }) {
         return;
       }
       showToast("success", labels.toasts.revokeSingleSuccess);
-      load();
+      load(page, activeQuery, status);
     } catch {
       setMessage(labels.codesFailed);
       showToast("error", labels.toasts.revokeFailed);
@@ -238,11 +273,10 @@ export function AdminCodes({ labels }: { labels: AdminCodesLabels }) {
   };
 
   const applySearch = () => {
-    const params = new URLSearchParams();
-    if (status !== "all") params.set("status", status);
-    if (activeQuery) params.set("q", activeQuery);
-    router.replace(`${pathname}${params.toString() ? `?${params.toString()}` : ""}`);
-    load();
+    const trimmed = query.trim();
+    setActiveQuery(trimmed);
+    setPage(1);
+    syncUrl(1, trimmed, status);
   };
 
   const exportCsv = async () => {
@@ -307,8 +341,7 @@ export function AdminCodes({ labels }: { labels: AdminCodesLabels }) {
   };
 
   const revokeSelected = async () => {
-    const codesToRevoke = Array.from(selectedCodes);
-    if (codesToRevoke.length === 0) return;
+    if (selectedCodes.size === 0) return;
     setConfirmDialog({ type: "batch" });
   };
 
@@ -337,7 +370,7 @@ export function AdminCodes({ labels }: { labels: AdminCodesLabels }) {
         "success",
         formatToast(labels.toasts.revokeSuccess, { revoked: data.updated ?? 0, skipped: data.skipped ?? 0 })
       );
-      load();
+      load(page, activeQuery, status);
     } catch {
       setMessage(labels.codesFailed);
       showToast("error", labels.toasts.revokeFailed);
@@ -371,6 +404,23 @@ export function AdminCodes({ labels }: { labels: AdminCodesLabels }) {
       return `activation_codes-selected-${selectedCodes.size}-${stamp}.csv`;
     }
     return `activation_codes-${status}-${stamp}.csv`;
+  };
+
+  const pageText = useMemo(
+    () => (lang === "zh" ? `第 ${page} 页 / 共 ${totalPages} 页` : `Page ${page} / ${totalPages}`),
+    [lang, page, totalPages]
+  );
+
+  const goPrev = () => {
+    const prevPage = Math.max(1, page - 1);
+    setPage(prevPage);
+    syncUrl(prevPage, activeQuery, status);
+  };
+
+  const goNext = () => {
+    const nextPage = Math.min(totalPages, page + 1);
+    setPage(nextPage);
+    syncUrl(nextPage, activeQuery, status);
   };
 
   return (
@@ -411,11 +461,11 @@ export function AdminCodes({ labels }: { labels: AdminCodesLabels }) {
         <div className="flex items-center gap-2">
           <Input
             className="w-full max-w-md"
-            placeholder="搜索激活码或备注"
+            placeholder={labels.searchPlaceholder}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          <Button className="h-10 px-6 whitespace-nowrap" onClick={applySearch}>
+          <Button className="h-10 whitespace-nowrap px-6" onClick={applySearch}>
             {labels.search}
           </Button>
         </div>
@@ -423,7 +473,16 @@ export function AdminCodes({ labels }: { labels: AdminCodesLabels }) {
 
       <div className="flex flex-wrap items-center gap-2 text-sm">
         {STATUSES.map((item) => (
-          <Button key={item} size="sm" variant={status === item ? "default" : "outline"} onClick={() => setStatus(item)}>
+          <Button
+            key={item}
+            size="sm"
+            variant={status === item ? "default" : "outline"}
+            onClick={() => {
+              setStatus(item);
+              setPage(1);
+              syncUrl(1, activeQuery, item);
+            }}
+          >
             {labels.statuses[item]}
           </Button>
         ))}
@@ -501,6 +560,19 @@ export function AdminCodes({ labels }: { labels: AdminCodesLabels }) {
           </tbody>
         </table>
       </div>
+
+      <div className="flex items-center justify-between text-sm text-slate-600">
+        <span>{pageText}</span>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={goPrev} disabled={page <= 1}>
+            {lang === "zh" ? "上一页" : "Previous"}
+          </Button>
+          <Button size="sm" variant="outline" onClick={goNext} disabled={page >= totalPages}>
+            {lang === "zh" ? "下一页" : "Next"}
+          </Button>
+        </div>
+      </div>
+      <p className="text-xs text-slate-500">{lang === "zh" ? `每页最多 ${PAGE_SIZE} 条` : `Up to ${PAGE_SIZE} per page`}</p>
 
       <AlertDialog
         open={Boolean(confirmDialog)}

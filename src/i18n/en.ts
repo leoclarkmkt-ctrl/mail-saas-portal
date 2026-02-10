@@ -336,6 +336,7 @@ export const en = {
       failedToLoad: "Failed to load",
       retry: "Retry",
       action: "Action",
+      description: "Description",
       user: "User",
       ip: "IP",
       time: "Time"
