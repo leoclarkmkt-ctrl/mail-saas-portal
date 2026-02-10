@@ -30,6 +30,7 @@ export function LanguageSwitch({
       variant="ghost"
       size="sm"
       onClick={() => {
+        document.cookie = `nsuk_lang=${next}; path=/; max-age=31536000; samesite=lax`;
         document.cookie = `portal-lang=${next}; path=/; max-age=31536000; samesite=lax`;
         const nextUrl = buildNextUrl();
         window.location.href = nextUrl;

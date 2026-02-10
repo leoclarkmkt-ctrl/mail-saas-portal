@@ -14,12 +14,14 @@ import {
 /**
  * Read locale from cookies (server-only).
  * Priority:
- * 1) lang
- * 2) portal-lang
+ * 1) nsuk_lang
+ * 2) lang
+ * 3) portal-lang
  * 3) defaultLocale
  */
-export function getLocaleFromCookies(defaultLocale: Locale = "en"): Locale {
+export function getLocaleFromCookies(defaultLocale: Locale = "zh"): Locale {
   const value =
+    cookies().get("nsuk_lang")?.value ??
     cookies().get("lang")?.value ??
     cookies().get("portal-lang")?.value;
 
@@ -55,7 +57,7 @@ export function getPortalDictionary(locale: Locale) {
  */
 export function getLangFromRequest(
   searchParams?: SearchParams,
-  defaultLocale: Locale = "en"
+  defaultLocale: Locale = "zh"
 ): Locale {
   const fromQuery = getLangFromSearchParams(searchParams);
   if (fromQuery) return fromQuery;
