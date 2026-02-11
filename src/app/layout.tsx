@@ -29,9 +29,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 <Image
                   alt={`${dict.common.brand} logo`}
                   className="h-9 w-9 shrink-0 sm:h-10 sm:w-10"
-                  height={32}
+                  height={40}
+                  width={40}
                   src="/logo128.png"
-                  width={32}
                 />
                 <div className="min-w-0">
                   <h1 className="truncate text-lg font-semibold leading-tight text-primary">
