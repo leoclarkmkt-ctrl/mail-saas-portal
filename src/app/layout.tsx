@@ -10,7 +10,7 @@ export const metadata = {
   title: "NSUK Mail Portal",
   description: "NSUK official mail portal",
   icons: {
-    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }]
+    icon: [{ url: "/logo3.png", type: "image/png" }]
   }
 };
 
