@@ -1,62 +1,96 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getPublicEnv } from "@/lib/env";
+import { NextRequest } from "next/server";
+import {
+  createServerSupabaseAnonClient,
+  createServerSupabaseClient
+} from "@/lib/supabase/server";
+import { getAppBaseUrl } from "@/lib/env";
+import { jsonFieldError, jsonSuccess } from "@/lib/utils/api";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
+import { safeTrimLower } from "@/lib/safe-trim";
 
-const allowedTypes = new Set(["recovery", "signup", "magiclink", "invite"]);
+export const runtime = "nodejs";
 
-// Default: keep language when users copy/paste the URL
-const defaultRedirectTo = "/reset?lang=zh";
+export async function POST(request: NextRequest) {
+  /**
+   * Error keys:
+   * - forgot_email_required
+   *
+   * ⚠️ 注意：
+   * - 无论邮箱是否存在，合法请求一律返回 200 { ok: true }
+   * - 防止邮箱枚举
+   */
 
-function safeDecodeURIComponent(value: string) {
+  const rateLimitResponse = await enforceRateLimit(request, "forgot", {
+    requests: 3,
+    windowSeconds: 60
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
+  let body: Record<string, unknown> = {};
   try {
-    return decodeURIComponent(value);
+    body = (await request.json()) as Record<string, unknown>;
   } catch {
-    return value;
-  }
-}
-
-/**
- * Normalize redirect_to:
- * - Supports URL-encoded values (decodeURIComponent)
- * - Supports relative paths (resolved against current request origin)
- * - Only allows http/https
- * - Returns absolute URL string or null
- */
-function normalizeRedirect(request: NextRequest, redirectToRaw: string | null) {
-  const raw = (redirectToRaw ?? defaultRedirectTo).trim();
-  const decoded = safeDecodeURIComponent(raw);
-  const base = request.nextUrl.origin;
-
-  try {
-    const parsed = new URL(decoded, base); // allows relative
-    if (!/^https?:$/.test(parsed.protocol)) return null;
-    return parsed.toString();
-  } catch {
-    return null;
-  }
-}
-
-export async function GET(request: NextRequest) {
-  const token = request.nextUrl.searchParams.get("token")?.trim();
-  const type = request.nextUrl.searchParams.get("type")?.trim();
-  const redirectTo = normalizeRedirect(
-    request,
-    request.nextUrl.searchParams.get("redirect_to")
-  );
-
-  if (!token || !type || !allowedTypes.has(type) || !redirectTo) {
-    return NextResponse.json(
-      { ok: false, error: "Invalid verify parameters." },
-      { status: 400 }
-    );
+    return jsonFieldError("personal_email", "forgot_email_required", 400);
   }
 
-  const { NEXT_PUBLIC_SUPABASE_URL } = getPublicEnv();
-  const supabaseUrl = NEXT_PUBLIC_SUPABASE_URL.replace(/\/$/, "");
+  const personal_email = safeTrimLower(body.personal_email);
+  if (!personal_email) {
+    return jsonFieldError("personal_email", "forgot_email_required", 400);
+  }
 
-  const verifyUrl = new URL(`${supabaseUrl}/auth/v1/verify`);
-  verifyUrl.searchParams.set("token", token);
-  verifyUrl.searchParams.set("type", type);
-  verifyUrl.searchParams.set("redirect_to", redirectTo);
+  // service-role：仅用于查询 profile 是否存在（绕过 RLS）
+  const supabase = createServerSupabaseClient();
+  // anon：仅用于触发 Supabase Auth 发送 recovery 邮件
+  const authClient = createServerSupabaseAnonClient();
+  const { APP_BASE_URL } = getAppBaseUrl();
 
-  return NextResponse.redirect(verifyUrl, { status: 302 });
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("user_id")
+    .eq("personal_email", personal_email)
+    .maybeSingle();
+
+  /**
+   * ✅ 关键：必须让 redirectTo 自带 lang
+   *
+   * 原问题根因：
+   * - 以前 redirectTo 是 /reset（不带 lang）
+   * - 你 middleware 会对“缺 lang 的请求”做 302 补参
+   * - 但 recovery 的 access_token 在 URL 的 #fragment 里，fragment 不会发送给服务器
+   * - 所以服务器 302 时根本带不走 fragment -> token 丢失 -> /reset 拿不到 session
+   * - 表现就是：点“重置密码”没反应 / Failed to fetch
+   *
+   * 解决：
+   * - 直接把 redirectTo 设为 /reset?lang=xx
+   * - middleware 不再重定向，fragment 会完整保留到 reset 页面
+   */
+
+  // 解析 lang：优先 query，其次 cookie，否则默认 zh
+  const url = new URL(request.url);
+  const qLang = url.searchParams.get("lang")?.trim().toLowerCase();
+  const cLang = request.cookies.get("nsuk_lang")?.value?.trim().toLowerCase();
+  const lang =
+    qLang === "zh" || qLang === "en"
+      ? qLang
+      : cLang === "zh" || cLang === "en"
+        ? cLang
+        : "zh";
+
+  if (profile) {
+    const { error } = await authClient.auth.resetPasswordForEmail(personal_email, {
+      // ✅ 以前：`${APP_BASE_URL}/reset`
+      // ✅ 现在：`${APP_BASE_URL}/reset?lang=${lang}`（避免 middleware 302 吃掉 fragment）
+      redirectTo: `${APP_BASE_URL}/reset?lang=${lang}`
+    });
+
+    if (error) {
+      // ❗只记录日志，不向客户端暴露任何内部信息
+      console.error("[forgot] resetPasswordForEmail_failed", {
+        email: personal_email,
+        message: error.message
+      });
+    }
+  }
+
+  return jsonSuccess({ ok: true });
 }
