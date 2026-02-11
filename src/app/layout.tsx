@@ -28,10 +28,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               <div className="flex min-w-0 items-center gap-3">
                 <Image
                   alt={`${dict.common.brand} logo`}
-                  className="h-7 w-7 shrink-0 sm:h-8 sm:w-8"
-                  height={32}
+                  className="h-9 w-9 shrink-0 sm:h-10 sm:w-10"
+                  height={40}
+                  width={40}
                   src="/logo128.png"
-                  width={32}
                 />
                 <div className="min-w-0">
                   <h1 className="truncate text-lg font-semibold leading-tight text-primary">
