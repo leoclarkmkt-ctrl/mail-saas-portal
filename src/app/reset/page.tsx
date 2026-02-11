@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { getDictionary } from "@/lib/i18n";
 import { getLangFromSearchParams } from "@/lib/i18n/shared";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -7,9 +8,19 @@ type ResetPageProps = {
   searchParams?: Record<string, string | string[] | undefined>;
 };
 
+function resolveLangFromCookie(): "zh" | "en" | null {
+  const store = cookies();
+  const value = store.get("nsuk_lang")?.value?.trim().toLowerCase();
+  if (value === "zh" || value === "en") return value;
+  return null;
+}
+
 export default function ResetPage({ searchParams }: ResetPageProps) {
-  // Prefer server-side searchParams for stable language when users copy/paste URLs
-  const lang = getLangFromSearchParams(searchParams) ?? "en";
+  const fromQuery = getLangFromSearchParams(searchParams);
+  const fromCookie = resolveLangFromCookie();
+
+  // Most safe default: zh
+  const lang = (fromQuery ?? fromCookie ?? "zh") as "zh" | "en";
   const dict = getDictionary(lang);
 
   return (
@@ -27,7 +38,7 @@ export default function ResetPage({ searchParams }: ResetPageProps) {
             expiredLink: dict.reset.expiredLink,
             sessionMissing: dict.reset.sessionMissing,
             submitFailed: dict.reset.submitFailed,
-            submitSuccess: dict.reset.submitSuccess
+            submitSuccess: dict.reset.submitSuccess,
           }}
           lang={lang}
         />
